@@ -31,6 +31,7 @@
 extern char *FILES;
 extern char *COORDS[64];
 extern unsigned int PIECES[];
+extern char SYMBOLS[];
 extern unsigned int CASTLING_RIGHTS[];
 extern int SUPERPIECE[16];
 
@@ -40,5 +41,8 @@ extern int BISHOP_OFFS[4];
 extern int ROOK_OFFS[4];
 extern int QUEEN_OFFS[8];
 extern int *KING_OFFS;
+
+extern unsigned int MOVE_TABLE[239];
+extern unsigned int UNIT_VEC[239];
 
 #endif

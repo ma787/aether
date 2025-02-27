@@ -36,3 +36,12 @@ Input:
     - info *pstn: The pointer to the position struct.
 */
 void flip_position(info *pstn);
+
+/*
+Converts a position to a fen string.
+
+Input:
+    - info *pstn: The pointer to the position struct.
+    - char *fen_str: A string pointer to store the result in.
+*/
+void to_fen(info *pstn, char *fen_str);

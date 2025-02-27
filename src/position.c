@@ -77,6 +77,54 @@ int parse_board_string(char *fen_str) {
     }
 }
 
+int is_attacking(int p_type, int start, int dest) {
+    int res = NO_CHECK;
+    int diff = square_diff(start, dest);
+    if (MOVE_TABLE[diff] & p_type) {
+        res = UNIT_VEC[diff] == start - dest ? CONTACT_CHECK : DISTANT_CHECK;
+    }
+    return res;
+}
+
+void set_check(info *pstn) {
+    pstn->check_info = 0;
+    int k_pos = pstn->w_pieces[0];
+
+    for (int i = 0; i < 8; i++) {
+        int vec = SUPERPIECE[i];
+        int current = k_pos + vec;
+        int sq;
+
+        for (;;) {
+            sq = pstn->arr[current];
+            int colour = sq & COLOUR_MASK;
+
+            if (colour == G || colour == WHITE) {
+                goto exit_loop;
+            } else if (colour == BLACK) {
+                int attack = is_attacking(sq, current, k_pos);
+
+                if (attack) {
+                    pstn->check_info |= attack;
+                    if ((pstn->check_info >> 2) & 0xFF) {
+                        pstn->check_info |= (current << 10);
+                        pstn->check_info |= DOUBLE_CHECK;
+                    } else {
+                        pstn->check_info |= (current << 2);
+                    }
+                }
+                goto exit_loop;
+            } else {
+                current += vec;
+            }
+        }
+        exit_loop:
+            if (pstn->check_info & DOUBLE_CHECK) {
+                return;
+            }
+    }
+}
+
 info *new_position(char *fen_str) {
     info *pstn = NULL;
     int idx = parse_board_string(fen_str);
@@ -118,10 +166,6 @@ info *new_position(char *fen_str) {
 
     pstn->h_clk = fen_str[idx] - '0';
 
-    if (pstn->side == BLACK) {
-        flip_position(pstn);
-    }
-
     int i = 0x44;
     int w_off = 1;
     int b_off = 1;
@@ -137,15 +181,21 @@ info *new_position(char *fen_str) {
             case WHITE:
                 off = sq & KING ? 0 : w_off++;
                 pstn->w_pieces[off] = i;
+                pstn->arr[i] |= (off << 8);
                 break;
             case BLACK:
                 off = sq & KING ? 0 : b_off++;
                 pstn->b_pieces[off] = i;
+                pstn->arr[i] |= (off << 8);
                 break;
         }
-        pstn->arr[i] |= (i << 8);
         i++;
     }
+
+    if (pstn->side == BLACK) {
+        flip_position(pstn);
+    }
+    set_check(pstn);
 
     return pstn;
 }
@@ -158,15 +208,81 @@ void flip_position(info *pstn) {
     pstn->w_pieces = pstn->b_pieces;
     pstn->b_pieces = tmp;
 
+    for (int i = 0; i < 16; i++) {
+        int wp = pstn->w_pieces[i];
+        pstn->w_pieces[i] = (~wp & 0xF0) ^ (wp & 0x0F);
+        int bp = pstn->b_pieces[i];
+        pstn->b_pieces[i] = (~bp & 0xF0) ^ (bp & 0x0F);
+    }
+
     for (int i = 0x44; i < 0x84; i += 0x10) {
         for (int j = 0; j < 8; j++) {
             int k = (~i & 0xF0) ^ (i & 0x0F);
             int sq1 = pstn->arr[i + j];
             int sq2 = pstn->arr[k + j];
-            pstn->arr[i] = sq2 ^ (sq2 & 3);
-            pstn->arr[k] = sq1 ^ (sq1 & 3);
+            pstn->arr[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
+            pstn->arr[k + j] = sq1 ? (sq1 & 0xFFC) | (~sq1 & 3) : 0;
         }       
     };
+}
+
+void to_fen(info *pstn, char *fen_str) {
+    int i = 0xB4;
+    int j = 0;
+    int sq;
+
+    while (i != 0x4C) {
+        sq = pstn->arr[i];
+
+        if (sq == G) {
+            fen_str[j++] = '/';
+            i -= 0x18;
+        } else if (sq == 0) {
+            int count = 0;
+            while (sq == 0) {
+                count++;
+                sq = pstn->arr[++i];
+            }
+            fen_str[j++] = '0' + count;
+        } else {
+            fen_str[j++] = SYMBOLS[sq & 0xFF];
+            i++;
+        }
+    }
+
+    fen_str[j++] = ' ';
+    fen_str[j++] = pstn->side == WHITE ? 'w' : 'b';
+    fen_str[j++] = ' ';
+
+    if (pstn->c_rights) {
+        if (pstn->c_rights & WHITE_KINGSIDE) {
+            fen_str[j++] = 'K';
+        }
+        if (pstn->c_rights & WHITE_QUEENSIDE) {
+            fen_str[j++] = 'Q';
+        }
+        if (pstn->c_rights & BLACK_KINGSIDE) {
+            fen_str[j++] = 'k';
+        }
+        if (pstn->c_rights & BLACK_QUEENSIDE) {
+            fen_str[j++] = 'q';
+        }
+    } else {
+        fen_str[j++] = '-';
+    }
+    fen_str[j++] = ' ';
+
+    if (pstn->ep_square) {
+        strcpy(fen_str + j, COORDS[to_index(pstn->ep_square)]);
+        j += 2;
+    } else {
+        fen_str[j++] = '-';
+    }
+    fen_str[j++] = ' ';
+    fen_str[j++] = '0' + pstn->h_clk;
+    fen_str[j++] = ' ';
+    fen_str[j++] = '1'; // fullmove number not implemented
+    fen_str[j] = '\0';
 }
 
 void clear_position(info *pstn) {
