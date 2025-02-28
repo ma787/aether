@@ -90,7 +90,7 @@ void set_check(info *pstn) {
     pstn->check_info = 0;
     int k_pos = pstn->w_pieces[0];
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 16; i++) {
         int vec = SUPERPIECE[i];
         int current = k_pos + vec;
         int sq;
@@ -114,12 +114,15 @@ void set_check(info *pstn) {
                     }
                 }
                 goto exit_loop;
-            } else {
+            } else if (i > 8) {  // cannot move >1 step in knight direction
+                goto exit_loop;
+            } 
+              else {
                 current += vec;
             }
         }
         exit_loop:
-            if (pstn->check_info & DOUBLE_CHECK) {
+            if (pstn->check_info == DOUBLE_CHECK) {
                 return;
             }
     }
