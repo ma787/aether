@@ -28,6 +28,9 @@ unsigned int board[256] = {
 unsigned int w_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 unsigned int b_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+state_t prev_state[STACK_SIZE];
+int top = -1;
+
 int parse_board_string(char *fen_str) {
     regex_t preg;
     int res;
@@ -203,8 +206,30 @@ info *new_position(char *fen_str) {
     return pstn;
 }
 
+void switch_side(info *pstn) { pstn->side = ~(pstn->side) & 3; }
+
+void save_state(info *pstn) {
+    state_t state = {
+        .c_rights = pstn->c_rights,
+        .ep_square = pstn->ep_square,
+        .h_clk = pstn->h_clk,
+        .check_info = pstn->check_info
+    };
+
+    prev_state[++top] = state;
+}
+
+void restore_state(info *pstn) {
+    state_t state = prev_state[top--];
+
+    pstn->c_rights = state.c_rights;
+    pstn->ep_square = state.ep_square;
+    pstn->h_clk = state.h_clk;
+    pstn->check_info = state.check_info;
+}
+
+
 void flip_position(info *pstn) {
-    pstn->side = ~(pstn->side) & 3;
     pstn->c_rights = ((pstn->c_rights & 12) >> 2) | ((pstn->c_rights & 3) << 2);
 
     unsigned int *tmp = pstn->w_pieces;
@@ -213,14 +238,14 @@ void flip_position(info *pstn) {
 
     for (int i = 0; i < 16; i++) {
         int wp = pstn->w_pieces[i];
-        pstn->w_pieces[i] = (~wp & 0xF0) ^ (wp & 0x0F);
+        pstn->w_pieces[i] = (~wp & 0xF0) | (wp & 0x0F);
         int bp = pstn->b_pieces[i];
-        pstn->b_pieces[i] = (~bp & 0xF0) ^ (bp & 0x0F);
+        pstn->b_pieces[i] = (~bp & 0xF0) | (bp & 0x0F);
     }
 
     for (int i = 0x44; i < 0x84; i += 0x10) {
         for (int j = 0; j < 8; j++) {
-            int k = (~i & 0xF0) ^ (i & 0x0F);
+            int k = (~i & 0xF0) | (i & 0x0F);
             int sq1 = pstn->arr[i + j];
             int sq2 = pstn->arr[k + j];
             pstn->arr[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
@@ -230,6 +255,10 @@ void flip_position(info *pstn) {
 }
 
 void to_fen(info *pstn, char *fen_str) {
+    if (pstn->side != WHITE) {
+        flip_position(pstn);
+    }
+
     int i = 0xB4;
     int j = 0;
     int sq;

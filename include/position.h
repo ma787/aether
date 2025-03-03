@@ -10,6 +10,14 @@ struct position_info {
 };
 typedef struct position_info info;
 
+struct state {
+    unsigned int c_rights: 4;
+    unsigned int ep_square : 8;
+    unsigned int h_clk: 6;
+    unsigned int check_info: 18;
+};
+typedef struct state state_t;
+
 /*
 Resets the arrays pointed to by a position struct and frees it.
 
@@ -25,9 +33,19 @@ Input:
     - char *fen_str: The FEN string.
 
 Returns:
-    - info *pstn: A pointer to a new position struct, or NULL if the parse failed.
+    - info*: A pointer to a new position struct, or NULL if the parse failed.
 */
 info *new_position(char *fen_str);
+
+
+/* Changes the side to move in a position struct. */
+void switch_side(info *pstn);
+
+/* Saves the irreversible state of a position. */
+void save_state(info *pstn);
+
+/* Restores the irreversible state of a position. */
+void restore_state(info *pstn);
 
 /*
 Vertically flips the board array and inverts position state incl. piece lists.
