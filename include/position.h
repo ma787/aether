@@ -47,6 +47,18 @@ void save_state(info *pstn);
 /* Restores the irreversible state of a position. */
 void restore_state(info *pstn);
 
+
+/* Determines whether a square is attacked by black.
+
+Input:
+    - info *pstn: The pointer to the position struct.
+    - int pos: The index of the square to check in the board array.
+
+Returns:
+    - int: 1 if the square is attacked, otherwise 0.
+*/
+int is_square_attacked(info *pstn, int pos);
+
 /*
 Vertically flips the board array and inverts position state incl. piece lists.
 

@@ -3,8 +3,9 @@
 #include "constants.h"
 #include "position.h"
 
-#define N_TESTS 15
-#define N_RUN 15
+#define POSITION_TESTS 15
+#define IS_SQUARE_ATTACKED_TESTS 4
+#define TOTAL_TESTS (POSITION_TESTS + IS_SQUARE_ATTACKED_TESTS)
 
 int compare_positions(info *pstn_1, info *pstn_2) {
     char names[][20] = {"side", "castling rights", "ep square", "halfmove clock", "check type"};
@@ -69,7 +70,7 @@ int test_position(char *fen_str, info expected_pstn){
     info *pstn = new_position(fen_str);
 
     if (pstn == NULL) {
-        printf("Error while parsing fen string.\n");
+        printf("Error - fen string parse failed.\n");
         return -1;
     }
 
@@ -96,8 +97,31 @@ int test_position(char *fen_str, info expected_pstn){
     return match;
 }
 
-int main(void) {
-    char fen_strings[N_TESTS][92] = {
+int test_is_square_attacked(char *fen_str, int pos, int expected) {
+    printf("Testing whether square %s is attacked\n", COORDS[to_index(pos)]);
+    printf("Position: %s\n", fen_str);
+
+    info *pstn = new_position(fen_str);
+    if (pstn == NULL) {
+        printf("Error - fen string parse failed.\n");
+        return -1;
+    }
+
+    int res = is_square_attacked(pstn, pos);
+    
+    if (res != expected) {
+        printf(
+            "is_square_attacked result mismatch - Expected: %d, Actual: %d\n", 
+            expected, res
+        );
+        return -1;
+    }
+    
+    return 0;
+}
+
+int run_position_tests(int passed) {
+    char fen_strings[POSITION_TESTS][92] = {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "rnbqkbnr/1p1ppppp/8/p1pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
@@ -115,7 +139,7 @@ int main(void) {
         "r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R w KQkq - 0 1"
     };
 
-    info results[N_TESTS] = {
+    info results[POSITION_TESTS] = {
         {.side = WHITE, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = 0},
         {.side = WHITE, .c_rights = 15, .ep_square = 0x96, .h_clk = 0, .check_info = 0},
         {.side = WHITE, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = 0},
@@ -133,9 +157,7 @@ int main(void) {
         {.side = WHITE, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = 0}
     };
 
-    int passed = 0;
-
-    for (int i = 0; i < N_RUN; i++) {
+    for (int i = 0; i < POSITION_TESTS; i++) {
         if (test_position(fen_strings[i], results[i]) == 0) {
             printf("Passed Test %d\n\n", i+1);
             passed++;
@@ -144,7 +166,37 @@ int main(void) {
         }
     }
 
-    printf("Passed %d/%d tests.\n", passed, N_RUN);
+    return passed;
+}
 
+int run_is_square_attacked_tests(int passed) {
+    char *fen_strings[IS_SQUARE_ATTACKED_TESTS] = {
+        "rnb1kbnr/1pp1pppp/p7/8/2p5/NQ1qB3/PP2PPPP/R3KBNR w KQkq - 0 6",
+        "r3k2r/p1ppqpb1/bn2pnN1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
+        "r3k2r/Pppp1ppp/5nbN/nP6/BBP1P3/q4N2/Pp1P1bPP/R2Q2K1 w kq - 0 2",
+        "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1"
+    };
+    int squares[IS_SQUARE_ATTACKED_TESTS] = {D1, E7, G1, F8};
+    int expected_results[IS_SQUARE_ATTACKED_TESTS] = {1, 1, 1, 0};
+
+    for (int i = 0; i < IS_SQUARE_ATTACKED_TESTS; i++) {
+        if (test_is_square_attacked(fen_strings[i], squares[i], expected_results[i]) == 0) {
+            printf("Passed Test %d\n\n", i+1);
+            passed++;
+        } else {
+            printf("Failed Test %d\n\n", i+1);
+        }
+    }
+
+    return passed;
+}
+
+int main(void) {
+    int passed = 0;
+    passed = run_position_tests(passed);
+    passed = run_is_square_attacked_tests(passed);
+    
+
+    printf("Passed %d/%d tests.\n", passed, TOTAL_TESTS);
     return 0;
 }

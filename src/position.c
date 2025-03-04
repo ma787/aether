@@ -89,6 +89,41 @@ int is_attacking(int p_type, int start, int dest) {
     return res;
 }
 
+int is_square_attacked(info *pstn, int pos) {
+    if (pstn->side == BLACK) {
+        pos = (~pos & 0xF0) | (pos & 0x0F);
+    }
+
+    for (int i = 0; i < 16; i++) {
+        int vec = SUPERPIECE[i];
+        int current = pos + vec;
+        int contact = 1;
+        int sq;
+
+        for (;;) {
+            sq = pstn->arr[current];
+
+            if ((sq & COLOUR_MASK) == BLACK) {
+                switch(is_attacking(sq, current, pos)) {
+                    case CONTACT_CHECK:
+                        if (contact) { return 1; }
+                        break;
+                    case DISTANT_CHECK:
+                        return 1;
+                }
+                break;
+            } else if (sq) {
+                break;
+            }
+
+            current += vec;
+            contact = 0;
+        }
+    }
+
+    return 0;
+}
+
 void set_check(info *pstn) {
     pstn->check_info = 0;
     int k_pos = pstn->w_pieces[0];

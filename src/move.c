@@ -72,7 +72,6 @@ int make_move(info *pstn, move_t mv) {
     if (mv.flags == EP_FLAG) { return -1; }
 
     save_state(pstn);
-    switch_side(pstn);
     pstn->ep_square = 0;
     int piece = pstn->arr[mv.start];
 
@@ -101,6 +100,7 @@ int make_move(info *pstn, move_t mv) {
 
     if (piece & KING) {
         pstn->c_rights &= 12;
+        switch_side(pstn);
         flip_position(pstn);
         return 0;
     }
@@ -112,6 +112,7 @@ int make_move(info *pstn, move_t mv) {
         | ((mv.dest != H8) << 3)
     );
 
+    switch_side(pstn);
     flip_position(pstn);
     return 0;
 
@@ -123,6 +124,7 @@ int make_move(info *pstn, move_t mv) {
         }
 
         pstn->c_rights &= 12;
+        switch_side(pstn);
         flip_position(pstn);
         return 0;
 }
@@ -131,6 +133,7 @@ void unmake_move(info *pstn, move_t mv) {
     if (mv.flags == EP_FLAG) { return; }
 
     flip_position(pstn);
+    switch_side(pstn);
     move_piece(pstn, mv.dest, mv.start);
 
     if (mv.flags & PROMO_FLAG) {
@@ -152,6 +155,5 @@ void unmake_move(info *pstn, move_t mv) {
             break;
     }
 
-    switch_side(pstn);
     restore_state(pstn);
 }
