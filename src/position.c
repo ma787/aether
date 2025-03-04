@@ -243,6 +243,10 @@ void flip_position(info *pstn) {
         pstn->b_pieces[i] = (~bp & 0xF0) | (bp & 0x0F);
     }
 
+    if (pstn->ep_square) {
+        pstn->ep_square = (~pstn->ep_square & 0xF0) | (pstn->ep_square & 0x0F);
+    }
+    
     for (int i = 0x44; i < 0x84; i += 0x10) {
         for (int j = 0; j < 8; j++) {
             int k = (~i & 0xF0) | (i & 0x0F);

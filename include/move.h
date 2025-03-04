@@ -22,4 +22,23 @@ Returns:
 */
 move_t of_string(info *pstn, char *mstr);
 
+/* Updates a position by making a move.
+
+Input:
+    - info *pstn: The board position to update.
+    - move_t mv: The move struct containing the move info.
+
+Returns:
+    - int: 0 if the resulting position is legal, -1 otherwise.
+*/
+int make_move(info *pstn, move_t mv);
+
+/* Unmakes a move and restores a position to its previous state.
+
+Input:
+    - info *pstn: The board position immediately after the move was made.
+    - move_t mv: The move to unmake.
+*/
+void unmake_move(info *pstn, move_t mv);
+
 #endif
