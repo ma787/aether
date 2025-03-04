@@ -69,16 +69,14 @@ void capture_piece(info *pstn, unsigned int pos) {
 }
 
 int make_move(info *pstn, move_t mv) {
-    if (
-        mv.flags == EP_FLAG 
-        || mv.flags == K_CASTLE_FLAG
-        || mv.flags == Q_CASTLE_FLAG
-    ) { return -1; }
+    if (mv.flags == EP_FLAG) { return -1; }
 
     save_state(pstn);
+    switch_side(pstn);
     pstn->ep_square = 0;
+    int piece = pstn->arr[mv.start];
 
-    if (pstn->arr[mv.start] & PAWN || mv.flags & CAPTURE_FLAG) {
+    if (piece & PAWN || mv.flags & CAPTURE_FLAG) {
         pstn->h_clk = 0;
     } else {
         pstn->h_clk++;
@@ -92,6 +90,8 @@ int make_move(info *pstn, move_t mv) {
 
     if (mv.flags == DPP_FLAG) {
         pstn->ep_square = mv.dest + S;
+    } else if (mv.flags == K_CASTLE_FLAG || mv.flags == Q_CASTLE_FLAG) {
+        goto castling;
     }
 
     if (mv.flags & PROMO_FLAG) {
@@ -99,20 +99,38 @@ int make_move(info *pstn, move_t mv) {
         pstn->arr[mv.dest] = p_code | PROMOTIONS[mv.flags & 3] | WHITE;
     }
 
-    switch_side(pstn);
+    if (piece & KING) {
+        pstn->c_rights &= 12;
+        flip_position(pstn);
+        return 0;
+    }
+
+    pstn->c_rights &= (
+        mv.start != A1
+        | ((mv.start != H1) << 1)
+        | ((mv.dest != A8) << 2)
+        | ((mv.dest != H8) << 3)
+    );
+
     flip_position(pstn);
     return 0;
+
+    castling:
+        if (mv.flags == K_CASTLE_FLAG) {
+            move_piece(pstn, H1, F1);
+        } else {
+            move_piece(pstn, A1, D1);
+        }
+
+        pstn->c_rights &= 12;
+        flip_position(pstn);
+        return 0;
 }
 
 void unmake_move(info *pstn, move_t mv) {
-    if (
-        mv.flags == EP_FLAG 
-        || mv.flags == K_CASTLE_FLAG
-        || mv.flags == Q_CASTLE_FLAG
-    ) { return; }
+    if (mv.flags == EP_FLAG) { return; }
 
     flip_position(pstn);
-    switch_side(pstn);
     move_piece(pstn, mv.dest, mv.start);
 
     if (mv.flags & PROMO_FLAG) {
@@ -125,5 +143,15 @@ void unmake_move(info *pstn, move_t mv) {
         pstn->b_pieces[mv.captured_piece >> 8] = mv.dest;
     }
 
+    switch(mv.flags) {
+        case K_CASTLE_FLAG:
+            move_piece(pstn, F1, H1);
+            break;
+        case Q_CASTLE_FLAG:
+            move_piece(pstn, D1, A1);
+            break;
+    }
+
+    switch_side(pstn);
     restore_state(pstn);
 }

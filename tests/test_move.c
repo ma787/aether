@@ -4,8 +4,8 @@
 #include "constants.h"
 
 #define OF_STRING_TESTS 8
-#define MAKE_MOVE_TESTS 5
-#define UNMAKE_MOVE_TESTS 3
+#define MAKE_MOVE_TESTS 11
+#define UNMAKE_MOVE_TESTS 14
 #define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS)
 
 
@@ -154,7 +154,8 @@ int run_of_string_tests(int passed) {
 
 int run_make_move_tests(int passed) {
     char *move_strings[MAKE_MOVE_TESTS] = {
-        "a2a3", "e4d5", "f2f4", "e7e5", "b7b8q"
+        "a2a3", "e4d5", "f2f4", "e7e5", "b7b8q", "a1a2", "a8a7", "h1h2",
+        "h8h7", "e1e2", "e8e7"
     };
 
     char *fen_strings[MAKE_MOVE_TESTS] = {
@@ -162,7 +163,13 @@ int run_make_move_tests(int passed) {
         "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
         "rnbqkbnr/pppp1ppp/8/1N6/4p3/8/PPPPPPPP/R1BQKBNR w KQkq - 0 1",
         "rnbqkbnr/1ppppppp/p7/3P4/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
-        "r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1"
+        "r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1",
+        "rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1",
+        "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1",
+        "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
     };
 
     char *expected_strings[MAKE_MOVE_TESTS] = {
@@ -170,7 +177,13 @@ int run_make_move_tests(int passed) {
         "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
         "rnbqkbnr/pppp1ppp/8/1N6/4pP2/8/PPPPP1PP/R1BQKBNR b KQkq f3 0 1",
         "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1",
-        "rQbqkbnr/p1pppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR b KQkq - 0 1"
+        "rQbqkbnr/p1pppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR b KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/P7/8/RPPPPPPP/1NBQKBNR b Kkq - 2 1",
+        "1nbqkbnr/rppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR w KQk - 1 1",
+        "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPPR/RNBQKBN1 b Qkq - 2 1",
+        "rnbqkbn1/pppppppr/7p/7P/8/8/PPPPPPP1/RNBQKBNR w KQq - 1 1",
+        "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPPKPPP/RNBQ1BNR b kq - 2 1",
+        "rnbq1bnr/ppppkppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQ - 1 1"
     };
 
     printf("Testing the function make_move\n\n");
@@ -188,12 +201,26 @@ int run_make_move_tests(int passed) {
 }
 
 int run_unmake_move_tests(int passed) {
-    char *move_strings[UNMAKE_MOVE_TESTS] = {"a2a3", "e8d8","g2g1q"};
+    char *move_strings[UNMAKE_MOVE_TESTS] = {
+        "a2a3", "e8d8", "g2g1q", "e1c1", "e1g1", "a1a2", "a8a7", "h1h2",
+        "h8h7", "e1e2", "e8e7", "a1a2", "e1e2", "h6h1",
+    };
     
     char *fen_strings[UNMAKE_MOVE_TESTS] = {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1",
-        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1"
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",
+        "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1",
+        "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1",
+        "rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1",
+        "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1",
+        "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1",
+        "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        "r1bqkbnr/p1pppppp/n7/1p6/7P/8/PPPPPPP1/RNBQKBNR w Qkq - 0 1",
+        "rnbqkbnr/1ppppppp/8/8/p7/4P3/PPPP1PPP/RNBQKBNR w kq - 0 1",
+        "rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1"
     };
 
     for (int i = 0; i < UNMAKE_MOVE_TESTS; i++) {
