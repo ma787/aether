@@ -1,16 +1,20 @@
 #ifndef UTILS_H
 #define UTILS_H 1
 
-int get_rank(int pos) { return (pos >> 4) - 4; }
+int get_rank(int pos);
 
-int get_file(int pos) { return (pos & 0x0F) - 4; }
+int get_file(int pos);
 
-int to_index(int pos) { return 8 * get_rank(pos) + get_file(pos); }
+int to_index(int pos);
 
-int square_diff(int start, int dest) { return 0x77 + start - dest; }
+int flip_square(int pos);
 
-int string_to_coord(char *sqr_str) {
-    return ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + 0x44;
-}
+int square_diff(int start, int dest);
+
+int is_attacking(int p_type, int start, int dest);
+
+int string_to_coord(char *sqr_str);
+
+char* coord_to_string(int pos);
 
 #endif

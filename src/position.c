@@ -47,7 +47,7 @@ int parse_board_string(char *fen_str) {
         return -1;
     }
 
-    int i = 0xB4;
+    int i = A8;
     int j = 0;
     int count = 0;
 
@@ -80,20 +80,7 @@ int parse_board_string(char *fen_str) {
     }
 }
 
-int is_attacking(int p_type, int start, int dest) {
-    int res = NO_CHECK;
-    int diff = square_diff(start, dest);
-    if (MOVE_TABLE[diff] & p_type) {
-        res = UNIT_VEC[diff] == start - dest ? CONTACT_CHECK : DISTANT_CHECK;
-    }
-    return res;
-}
-
 int is_square_attacked(info *pstn, int pos) {
-    if (pstn->side == BLACK) {
-        pos = (~pos & 0xF0) | (pos & 0x0F);
-    }
-
     for (int i = 0; i < 16; i++) {
         int vec = SUPERPIECE[i];
         int current = pos + vec;
@@ -125,8 +112,14 @@ int is_square_attacked(info *pstn, int pos) {
 }
 
 void set_check(info *pstn) {
+    int flipped = 0;
+    if (pstn->side == WHITE) {
+        flipped = 1;
+        flip_position(pstn);
+    }
+
     pstn->check_info = 0;
-    int k_pos = pstn->w_pieces[0];
+    int k_pos = pstn->b_pieces[0];
 
     for (int i = 0; i < 16; i++) {
         int vec = SUPERPIECE[i];
@@ -137,9 +130,9 @@ void set_check(info *pstn) {
             sq = pstn->arr[current];
             int colour = sq & COLOUR_MASK;
 
-            if (colour == G || colour == WHITE) {
+            if (colour == G || colour == BLACK) {
                 goto exit_loop;
-            } else if (colour == BLACK) {
+            } else if (colour == WHITE) {
                 int attack = is_attacking(sq, current, k_pos);
 
                 if (attack) {
@@ -161,8 +154,15 @@ void set_check(info *pstn) {
         }
         exit_loop:
             if (pstn->check_info == DOUBLE_CHECK) {
+                if (flipped) {
+                    flip_position(pstn);
+                }
                 return;
             }
+    }
+
+    if (flipped) {
+        flip_position(pstn);
     }
 }
 
@@ -207,11 +207,11 @@ info *new_position(char *fen_str) {
 
     pstn->h_clk = fen_str[idx] - '0';
 
-    int i = 0x44;
+    int i = A1;
     int w_off = 1;
     int b_off = 1;
 
-    while (i < 0xBC) {
+    while (i <= H8) {
         int sq = pstn->arr[i];
         int off;
 
@@ -233,10 +233,10 @@ info *new_position(char *fen_str) {
         i++;
     }
 
+    set_check(pstn);
     if (pstn->side == BLACK) {
         flip_position(pstn);
     }
-    set_check(pstn);
 
     return pstn;
 }
@@ -272,19 +272,26 @@ void flip_position(info *pstn) {
     pstn->b_pieces = tmp;
 
     for (int i = 0; i < 16; i++) {
-        int wp = pstn->w_pieces[i];
-        pstn->w_pieces[i] = (~wp & 0xF0) | (wp & 0x0F);
-        int bp = pstn->b_pieces[i];
-        pstn->b_pieces[i] = (~bp & 0xF0) | (bp & 0x0F);
+        pstn->w_pieces[i] = flip_square(pstn->w_pieces[i]);
+        pstn->b_pieces[i] = flip_square(pstn->b_pieces[i]);
     }
 
     if (pstn->ep_square) {
-        pstn->ep_square = (~pstn->ep_square & 0xF0) | (pstn->ep_square & 0x0F);
+        pstn->ep_square = flip_square(pstn->ep_square);
+    }
+
+    if (pstn->check_info) {
+        int check = (pstn->check_info & 3);
+        int first_checker = flip_square((pstn->check_info >> 2) & 0xFF);
+        if (check == DOUBLE_CHECK) {
+            check |= (flip_square((pstn->check_info >> 10) & 0xFF) << 10);
+        }
+        pstn->check_info = (check | (first_checker << 2));
     }
     
-    for (int i = 0x44; i < 0x84; i += 0x10) {
+    for (int i = A1; i < A5; i += 0x10) {
         for (int j = 0; j < 8; j++) {
-            int k = (~i & 0xF0) | (i & 0x0F);
+            int k = flip_square(i);
             int sq1 = pstn->arr[i + j];
             int sq2 = pstn->arr[k + j];
             pstn->arr[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
@@ -298,7 +305,7 @@ void to_fen(info *pstn, char *fen_str) {
         flip_position(pstn);
     }
 
-    int i = 0xB4;
+    int i = A8;
     int j = 0;
     int sq;
 
@@ -344,7 +351,7 @@ void to_fen(info *pstn, char *fen_str) {
     fen_str[j++] = ' ';
 
     if (pstn->ep_square) {
-        strcpy(fen_str + j, COORDS[to_index(pstn->ep_square)]);
+        strcpy(fen_str + j, coord_to_string(pstn->ep_square));
         j += 2;
     } else {
         fen_str[j++] = '-';
@@ -357,8 +364,8 @@ void to_fen(info *pstn, char *fen_str) {
 }
 
 void clear_position(info *pstn) {
-    for (int i = 0; i < 0x80; i += 0x10) {
-        memset(pstn->arr + (0x44 + i), 0, 8 * sizeof(int));
+    for (int i = A1; i <= A8; i += 0x10) {
+        memset(pstn->arr + i, 0, 8 * sizeof(int));
     }
     memset(pstn->w_pieces, 0, 16 * sizeof(int));
     memset(pstn->b_pieces, 0, 16 * sizeof(int));

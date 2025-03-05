@@ -2,6 +2,7 @@
 #include <string.h>
 #include "constants.h"
 #include "position.h"
+#include "utils.h"
 
 #define POSITION_TESTS 15
 #define IS_SQUARE_ATTACKED_TESTS 4
@@ -79,16 +80,11 @@ int test_position(char *fen_str, info expected_pstn){
     printf("Testing position attributes\n");
     match = compare_positions(pstn, &expected_pstn);
 
-    if (match == 0) {
-        printf("Attributes test successful.\n");
-    }
-
     printf("Comparing outputted FEN string to original\n");
     char parsed_str[92];
     to_fen(pstn, parsed_str);
-    if (strcmp(fen_str, parsed_str) == 0) {
-        printf("FEN strings comparison successful.\n");
-    } else {
+    
+    if (strcmp(fen_str, parsed_str) != 0) {
         printf("FEN strings do not match.\n\nExpected: %s\nActual:   %s\n", fen_str, parsed_str);
         match = -1;
     }
@@ -98,7 +94,7 @@ int test_position(char *fen_str, info expected_pstn){
 }
 
 int test_is_square_attacked(char *fen_str, int pos, int expected) {
-    printf("Testing whether square %s is attacked\n", COORDS[to_index(pos)]);
+    printf("Testing whether square %s is attacked\n", coord_to_string(pos));
     printf("Position: %s\n", fen_str);
 
     info *pstn = new_position(fen_str);
@@ -141,19 +137,19 @@ int run_position_tests(int passed) {
 
     info results[POSITION_TESTS] = {
         {.side = WHITE, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = 0},
-        {.side = WHITE, .c_rights = 15, .ep_square = 0x96, .h_clk = 0, .check_info = 0},
+        {.side = WHITE, .c_rights = 15, .ep_square = C6, .h_clk = 0, .check_info = 0},
         {.side = WHITE, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = 0},
         {.side = WHITE, .c_rights = 0, .ep_square = 0, .h_clk = 0, .check_info = 0},
         {.side = WHITE, .c_rights = 13, .ep_square = 0, .h_clk = 0, .check_info = 0},
-        {.side = BLACK, .c_rights = 12, .ep_square = 0, .h_clk = 3, .check_info = DISTANT_CHECK | (0x8B << 2)},
-        {.side = BLACK, .c_rights = 14, .ep_square = 0, .h_clk = 0, .check_info = DISTANT_CHECK | (0x6A << 2)},
-        {.side = BLACK, .c_rights = 12, .ep_square = 0, .h_clk = 0, .check_info = CONTACT_CHECK | (0x59 << 2)},
-        {.side = WHITE, .c_rights = 11, .ep_square = 0, .h_clk = 1, .check_info = DISTANT_CHECK | (0x46 << 2)},
-        {.side = BLACK, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = CONTACT_CHECK | (0x59 << 2)},
-        {.side = WHITE, .c_rights = 0, .ep_square = 0x96, .h_clk = 0, .check_info = CONTACT_CHECK | (0x86 << 2)},
-        {.side = WHITE, .c_rights = 4, .ep_square = 0, .h_clk = 0, .check_info = DOUBLE_CHECK | (0x5A << 2) | (0x79 << 10)},
-        {.side = WHITE, .c_rights = 0, .ep_square = 0, .h_clk = 0, .check_info = DOUBLE_CHECK | (0x69 << 2) | (0x98 << 10)},
-        {.side = BLACK, .c_rights = 12, .ep_square = 0, .h_clk = 0, .check_info = DOUBLE_CHECK | (0xB6 << 2) | (0xBB << 10)},
+        {.side = BLACK, .c_rights = 12, .ep_square = 0, .h_clk = 3, .check_info = DISTANT_CHECK | (H5 << 2)},
+        {.side = BLACK, .c_rights = 14, .ep_square = 0, .h_clk = 0, .check_info = DISTANT_CHECK | (G3 << 2)},
+        {.side = BLACK, .c_rights = 12, .ep_square = 0, .h_clk = 0, .check_info = CONTACT_CHECK | (F2 << 2)},
+        {.side = WHITE, .c_rights = 11, .ep_square = 0, .h_clk = 1, .check_info = DISTANT_CHECK | (C1 << 2)},
+        {.side = BLACK, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = CONTACT_CHECK | (F2 << 2)},
+        {.side = WHITE, .c_rights = 0, .ep_square = C6, .h_clk = 0, .check_info = CONTACT_CHECK | (C5 << 2)},
+        {.side = WHITE, .c_rights = 4, .ep_square = 0, .h_clk = 0, .check_info = DOUBLE_CHECK | (G2 << 2) | (F4 << 10)},
+        {.side = WHITE, .c_rights = 0, .ep_square = 0, .h_clk = 0, .check_info = DOUBLE_CHECK | (F3 << 2) | (E6 << 10)},
+        {.side = BLACK, .c_rights = 12, .ep_square = 0, .h_clk = 0, .check_info = DOUBLE_CHECK | (C8 << 2) | (H8 << 10)},
         {.side = WHITE, .c_rights = 15, .ep_square = 0, .h_clk = 0, .check_info = 0}
     };
 
@@ -176,7 +172,7 @@ int run_is_square_attacked_tests(int passed) {
         "r3k2r/Pppp1ppp/5nbN/nP6/BBP1P3/q4N2/Pp1P1bPP/R2Q2K1 w kq - 0 2",
         "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1"
     };
-    int squares[IS_SQUARE_ATTACKED_TESTS] = {D1, E7, G1, F8};
+    int squares[IS_SQUARE_ATTACKED_TESTS] = {D1, E7, G1, F1};
     int expected_results[IS_SQUARE_ATTACKED_TESTS] = {1, 1, 1, 0};
 
     for (int i = 0; i < IS_SQUARE_ATTACKED_TESTS; i++) {

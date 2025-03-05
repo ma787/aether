@@ -6,7 +6,8 @@
 #define OF_STRING_TESTS 8
 #define MAKE_MOVE_TESTS 11
 #define UNMAKE_MOVE_TESTS 14
-#define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS)
+#define UPDATE_CHECK_TESTS 5
+#define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS + UPDATE_CHECK_TESTS)
 
 
 int test_of_string(char *fen_str, char *mstr, move_t expected_mv) {
@@ -62,6 +63,7 @@ int test_make_move(char *fen_str, char *mstr, char *expected_str) {
 
     res = make_move(pstn, mv);
     if (res != 0) {
+        printf("Error - make move resulted in illegal position.\n");
         clear_position(pstn);
         return res;
     }
@@ -105,6 +107,68 @@ int test_unmake_move(char *fen_str, char *mstr) {
     if (strcmp(fen_str, parsed_str) != 0) {
         printf("FEN strings do not match.\n\nExpected: %s\nActual:   %s\n", fen_str, parsed_str);
         res = -1;
+    }
+
+    clear_position(pstn);
+    return res;
+}
+
+int test_update_check(char *fen_str, char *mstr, int expected_check) {
+    printf("Testing if check status is correct after move %s\n", mstr);
+    printf("Position: %s\n", fen_str);
+
+    info *pstn = new_position(fen_str);
+    if (pstn == NULL) {
+        printf("Error - fen string parse failed.\n");
+        return -1;
+    }
+
+    move_t mv = of_string(pstn, mstr);
+    
+    int res = make_move(pstn, mv);
+    if (res != 0) {
+        printf("Error - make move resulted in illegal position.\n");
+        clear_position(pstn);
+        return res;
+    }
+
+    if ((pstn->check_info & 3) != (expected_check & 3)) {
+        printf(
+            "Check type mismatch - Expected: %d, Actual: %d\n",
+            expected_check & 3, pstn->check_info & 3
+        );
+        res = -1;
+    }
+
+    unsigned int first_checker = (pstn->check_info >> 2) & 0xFF;
+    unsigned int second_checker = (pstn->check_info >> 10) & 0xFF;
+    unsigned int expected_first_checker = (expected_check >> 2) & 0xFF;
+    unsigned int expected_second_checker = (expected_check >> 10) & 0xFF;
+
+    int first_checker_match = first_checker == expected_first_checker;
+
+    if (pstn->check_info < DOUBLE_CHECK) {
+        if (!first_checker_match) {
+            res = -1;
+        }
+    } else if (first_checker_match) {
+        if (second_checker != expected_second_checker) {
+            res = -1;
+        }
+    } else if (first_checker == expected_second_checker) {
+        if (second_checker != expected_first_checker) {
+            res = -1;
+        }
+    } else {
+        res = -1;
+    }
+
+    if (res != 0) {
+        printf(
+            "Checkers do not match. Expected checkers: %u, %u, Actual: %u, %u\n",
+            expected_first_checker, expected_second_checker, first_checker, 
+            second_checker
+        );
     }
 
     clear_position(pstn);
@@ -235,10 +299,44 @@ int run_unmake_move_tests(int passed) {
     return passed;
 }
 
+int run_update_check_tests(int passed) {
+    char *move_strings[UPDATE_CHECK_TESTS] = {
+        "f3h5", "a4c6", "b7b8q", "a6b5", "d1d7"
+    };
+
+    char *fen_strings[UPDATE_CHECK_TESTS] = {
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "rnbqkbnr/pp2pppp/2pp4/8/Q7/2P5/PP1PPPPP/RNB1KBNR w KQkq - 0 1",
+        "Q7/1PP5/2k5/8/8/8/4Kppp/8 w - - 1 1",
+        "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R4K1R b kq - 1 1",
+        "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP2PPP/R1BQKB1R w KQkq - 0 1"
+    };
+
+    int expected_checks[UPDATE_CHECK_TESTS] = {
+        NO_CHECK,
+        DISTANT_CHECK | (C3 << 2), // change these to match colour flipping
+        DISTANT_CHECK | (A1 << 2),
+        DISTANT_CHECK | (B5 << 2),
+        CONTACT_CHECK | (D2 << 2),
+    };
+
+    for (int i = 0; i < UPDATE_CHECK_TESTS; i++) {
+        if (test_update_check(fen_strings[i], move_strings[i], expected_checks[i]) == 0) {
+            printf("Passed Test %d\n\n", i+1);
+            passed++;
+        } else {
+            printf("Failed Test %d\n\n", i+1);
+        }
+    }
+    
+    return passed;
+}
+
 int main(void) {
     int passed = run_of_string_tests(0);
     passed = run_make_move_tests(passed);
     passed = run_unmake_move_tests(passed);
+    passed = run_update_check_tests(passed);
 
     printf("Passed %d/%d tests.\n", passed, TOTAL_TESTS);
 

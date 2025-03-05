@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "move.h"
+#include "utils.h"
 
 move_t of_string(info *pstn, char *mstr) {
     move_t mv = {
@@ -10,8 +11,8 @@ move_t of_string(info *pstn, char *mstr) {
     };
 
     if (pstn->side == BLACK) {
-        mv.start = (~mv.start & 0xF0) | (mv.start & 0x0F);
-        mv.dest = (~mv.dest & 0xF0) | (mv.dest & 0x0F);
+        mv.start = flip_square(mv.start);
+        mv.dest = flip_square(mv.dest);
     }
 
     if (pstn->arr[mv.dest]) {
@@ -68,8 +69,66 @@ void capture_piece(info *pstn, unsigned int pos) {
     pstn->b_pieces[piece >> 8] = 0;
 }
 
+void update_check(info *pstn, int piece, move_t mv) {
+    pstn->check_info = 0;
+    int k_pos = pstn->b_pieces[0];
+    int step_to_king = UNIT_VEC[square_diff(mv.dest, k_pos)];
+
+    // check if the moved piece checks the king
+    switch(is_attacking(piece, mv.dest, k_pos)) {
+        case CONTACT_CHECK:
+            pstn->check_info = (CONTACT_CHECK | (mv.dest << 2));
+            break;
+        case DISTANT_CHECK:
+            int current = mv.dest + step_to_king;
+            while (current != k_pos) {
+                if (pstn->arr[current]) {
+                    break;
+                }
+                current += step_to_king;
+            }
+            if (current == k_pos) {
+                pstn->check_info = (DISTANT_CHECK | (mv.dest << 2));
+            }
+            break;
+    }
+
+    // search for a discovered check
+    if (is_attacking(QUEEN, mv.start, k_pos)) {
+        int discovered_vec = UNIT_VEC[square_diff(k_pos, mv.start)];
+        if (discovered_vec == -step_to_king) {
+            return; // this ray has already been checked
+        }
+
+        int current = k_pos;
+        int sq;
+
+        for (;;) {
+            current += discovered_vec;
+            sq = pstn->arr[current];
+            
+            if (
+                (sq & COLOUR_MASK) == WHITE 
+                && is_attacking(sq, current, k_pos) == DISTANT_CHECK
+            ) {
+                if (pstn->check_info) {
+                    pstn->check_info |= (DOUBLE_CHECK | (current << 10));
+                } else {
+                    pstn->check_info |= (DISTANT_CHECK | (current << 2));
+                }
+                break;
+            } else if (sq) {
+                break;
+            }
+        }
+    }
+}
+
 int make_move(info *pstn, move_t mv) {
     if (mv.flags == EP_FLAG) { return -1; }
+
+    int legal = 0;
+    int kp_square = 0;
 
     save_state(pstn);
     pstn->ep_square = 0;
@@ -87,10 +146,17 @@ int make_move(info *pstn, move_t mv) {
 
     move_piece(pstn, mv.start, mv.dest);
 
-    if (mv.flags == DPP_FLAG) {
-        pstn->ep_square = mv.dest + S;
-    } else if (mv.flags == K_CASTLE_FLAG || mv.flags == Q_CASTLE_FLAG) {
-        goto castling;
+    switch(mv.flags) {
+        case DPP_FLAG:
+            pstn->ep_square = mv.dest + S;
+            break;
+        case K_CASTLE_FLAG:
+            kp_square = D1;
+            move_piece(pstn, H1, F1);
+            break;
+        case Q_CASTLE_FLAG:
+            kp_square = F1;
+            move_piece(pstn, A1, D1);
     }
 
     if (mv.flags & PROMO_FLAG) {
@@ -99,34 +165,27 @@ int make_move(info *pstn, move_t mv) {
     }
 
     if (piece & KING) {
-        pstn->c_rights &= 12;
-        switch_side(pstn);
-        flip_position(pstn);
-        return 0;
+        if (is_square_attacked(pstn, mv.dest)) {
+            legal = -1; // king left in check
+        } else if (kp_square && is_square_attacked(pstn, kp_square)) {
+            legal = -1; // king castles through check
+        } else {
+            pstn->c_rights &= 12;
+            update_check(pstn, piece, mv);
+        }
+    } else {
+        pstn->c_rights &= (
+            (mv.start != A1)
+            | ((mv.start != H1) << 1)
+            | ((mv.dest != A8) << 2)
+            | ((mv.dest != H8) << 3)
+        );
+        update_check(pstn, piece, mv);
     }
-
-    pstn->c_rights &= (
-        mv.start != A1
-        | ((mv.start != H1) << 1)
-        | ((mv.dest != A8) << 2)
-        | ((mv.dest != H8) << 3)
-    );
 
     switch_side(pstn);
     flip_position(pstn);
-    return 0;
-
-    castling:
-        if (mv.flags == K_CASTLE_FLAG) {
-            move_piece(pstn, H1, F1);
-        } else {
-            move_piece(pstn, A1, D1);
-        }
-
-        pstn->c_rights &= 12;
-        switch_side(pstn);
-        flip_position(pstn);
-        return 0;
+    return legal;
 }
 
 void unmake_move(info *pstn, move_t mv) {
