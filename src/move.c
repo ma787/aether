@@ -72,7 +72,7 @@ void capture_piece(info *pstn, unsigned int pos) {
 void update_check(info *pstn, int piece, move_t mv) {
     pstn->check_info = 0;
     int k_pos = pstn->b_pieces[0];
-    int step_to_king = UNIT_VEC[square_diff(mv.dest, k_pos)];
+    int step_to_king = get_step(mv.dest, k_pos);
 
     // check if the moved piece checks the king
     switch(is_attacking(piece, mv.dest, k_pos)) {
@@ -95,7 +95,7 @@ void update_check(info *pstn, int piece, move_t mv) {
 
     // search for a discovered check
     if (is_attacking(QUEEN, mv.start, k_pos)) {
-        int discovered_vec = UNIT_VEC[square_diff(k_pos, mv.start)];
+        int discovered_vec = get_step(k_pos, mv.start);
         if (discovered_vec == -step_to_king) {
             return; // this ray has already been checked
         }
@@ -125,12 +125,12 @@ void update_check(info *pstn, int piece, move_t mv) {
 }
 
 int make_move(info *pstn, move_t mv) {
-    if (mv.flags == EP_FLAG) { return -1; }
-
     int legal = 0;
     int kp_square = 0;
-
     save_state(pstn);
+
+    if (mv.flags == EP_FLAG) { goto en_passant; }
+
     pstn->ep_square = 0;
     int piece = pstn->arr[mv.start];
 
@@ -186,11 +186,87 @@ int make_move(info *pstn, move_t mv) {
     switch_side(pstn);
     flip_position(pstn);
     return legal;
+
+    en_passant:
+        int k_pos = pstn->w_pieces[0];
+        int b_pawn_pos = mv.dest + S;
+        int ep_exposed_checker = 0;
+
+        // check for an undiscovered pin on king on ep rank
+        if (get_rank(k_pos) == get_rank(mv.start)) {
+            int vec = get_step(k_pos, mv.start);
+            int current = k_pos;
+
+            for (;;) {
+                current += vec;
+                if (current == mv.start || current == b_pawn_pos) {
+                    continue;
+                }
+
+                int sq = pstn->arr[current];
+
+                if (
+                    (sq & COLOUR_MASK) == BLACK
+                    && is_attacking(sq, current, k_pos)
+                ) {
+                    legal = -1;
+                    break;
+                } else if (sq) {
+                    break;
+                }
+            }
+        }
+
+        int b_king_pos = pstn->b_pieces[0];
+        int step_to_pawn = get_step(b_king_pos, b_pawn_pos);
+        int current = b_king_pos;
+        int passed_pawn = 0;
+
+        // search for a check discovered by this capture
+        if (step_to_pawn != get_step(b_king_pos, mv.dest)) {
+            for (;;) {
+                current += step_to_pawn;
+                if (current == b_pawn_pos) {
+                    passed_pawn = 1;
+                    continue;
+                }
+
+                int sq = pstn->arr[current];
+
+                if (
+                    (sq & COLOUR_MASK) == WHITE
+                    && passed_pawn
+                    && is_attacking(sq, current, b_king_pos)
+                ) {
+                    ep_exposed_checker = current;
+                }
+
+                if (sq) {
+                    break;
+                }
+            }
+        }
+
+        move_piece(pstn, mv.start, mv.dest);
+        capture_piece(pstn, b_pawn_pos);
+        pstn->h_clk = 0;
+        pstn->ep_square = 0;
+        update_check(pstn, WHITE | PAWN, mv);
+
+        if (ep_exposed_checker) {
+            if (pstn->check_info) {
+                pstn->check_info |= (DOUBLE_CHECK | (ep_exposed_checker << 10));
+            } else {
+                pstn->check_info = (DISTANT_CHECK | (ep_exposed_checker << 2));
+            }
+        }
+
+        switch_side(pstn);
+        flip_position(pstn);
+        return legal;
 }
 
 void unmake_move(info *pstn, move_t mv) {
-    if (mv.flags == EP_FLAG) { return; }
-
     flip_position(pstn);
     switch_side(pstn);
     move_piece(pstn, mv.dest, mv.start);
@@ -201,8 +277,13 @@ void unmake_move(info *pstn, move_t mv) {
     }
 
     if (mv.flags & CAPTURE_FLAG) {
-        pstn->arr[mv.dest] = mv.captured_piece;
-        pstn->b_pieces[mv.captured_piece >> 8] = mv.dest;
+        int cap_pos = mv.dest;
+        if (mv.flags == EP_FLAG) {
+            cap_pos += S;
+        }
+
+        pstn->arr[cap_pos] = mv.captured_piece;
+        pstn->b_pieces[mv.captured_piece >> 8] = cap_pos;
     }
 
     switch(mv.flags) {

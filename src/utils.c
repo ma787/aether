@@ -19,6 +19,8 @@ int is_attacking(int p_type, int start, int dest) {
     return res;
 }
 
+int get_step(int start, int dest) { return UNIT_VEC[square_diff(start, dest)]; }
+
 int string_to_coord(char *sqr_str) {
     return ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1;
 }

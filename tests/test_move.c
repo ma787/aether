@@ -4,9 +4,9 @@
 #include "constants.h"
 
 #define OF_STRING_TESTS 8
-#define MAKE_MOVE_TESTS 11
+#define MAKE_MOVE_TESTS 14
 #define UNMAKE_MOVE_TESTS 14
-#define UPDATE_CHECK_TESTS 5
+#define UPDATE_CHECK_TESTS 7
 #define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS + UPDATE_CHECK_TESTS)
 
 
@@ -219,7 +219,7 @@ int run_of_string_tests(int passed) {
 int run_make_move_tests(int passed) {
     char *move_strings[MAKE_MOVE_TESTS] = {
         "a2a3", "e4d5", "f2f4", "e7e5", "b7b8q", "a1a2", "a8a7", "h1h2",
-        "h8h7", "e1e2", "e8e7"
+        "h8h7", "e1e2", "e8e7", "e1c1", "e1g1", "d5e6"
     };
 
     char *fen_strings[MAKE_MOVE_TESTS] = {
@@ -233,7 +233,10 @@ int run_make_move_tests(int passed) {
         "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1",
         "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1",
         "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1",
-        "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+        "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1",
+        "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1",
+        "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1"
     };
 
     char *expected_strings[MAKE_MOVE_TESTS] = {
@@ -247,7 +250,10 @@ int run_make_move_tests(int passed) {
         "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPPR/RNBQKBN1 b Qkq - 2 1",
         "rnbqkbn1/pppppppr/7p/7P/8/8/PPPPPPP1/RNBQKBNR w KQq - 1 1",
         "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPPKPPP/RNBQ1BNR b kq - 2 1",
-        "rnbq1bnr/ppppkppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQ - 1 1"
+        "rnbq1bnr/ppppkppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQ - 1 1",
+        "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/2KR1BNR b kq - 1 1",
+        "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQ1RK1 b kq - 1 1",
+        "rnbqkbnr/1ppp1ppp/p3P3/8/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1"
     };
 
     printf("Testing the function make_move\n\n");
@@ -301,7 +307,7 @@ int run_unmake_move_tests(int passed) {
 
 int run_update_check_tests(int passed) {
     char *move_strings[UPDATE_CHECK_TESTS] = {
-        "f3h5", "a4c6", "b7b8q", "a6b5", "d1d7"
+        "f3h5", "a4c6", "b7b8q", "a6b5", "d1d7", "b5c6", "d5c6"
     };
 
     char *fen_strings[UPDATE_CHECK_TESTS] = {
@@ -309,15 +315,19 @@ int run_update_check_tests(int passed) {
         "rnbqkbnr/pp2pppp/2pp4/8/Q7/2P5/PP1PPPPP/RNB1KBNR w KQkq - 0 1",
         "Q7/1PP5/2k5/8/8/8/4Kppp/8 w - - 1 1",
         "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R4K1R b kq - 1 1",
-        "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP2PPP/R1BQKB1R w KQkq - 0 1"
+        "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP2PPP/R1BQKB1R w KQkq - 0 1",
+        "r6r/Pp1pkppp/1P3nbN/nPp5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w - c6 0 3",
+        "2kr3r/p2pqpb1/bn2pnp1/2pPN3/1p2P3/2Q4p/PPPBBPPP/RN2K2R w KQ c6 0 3"
     };
 
     int expected_checks[UPDATE_CHECK_TESTS] = {
         NO_CHECK,
-        DISTANT_CHECK | (C3 << 2), // change these to match colour flipping
+        DISTANT_CHECK | (C3 << 2),
         DISTANT_CHECK | (A1 << 2),
         DISTANT_CHECK | (B5 << 2),
         CONTACT_CHECK | (D2 << 2),
+        DISTANT_CHECK | (B5 << 2),
+        NO_CHECK
     };
 
     for (int i = 0; i < UPDATE_CHECK_TESTS; i++) {

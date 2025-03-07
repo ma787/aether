@@ -13,6 +13,8 @@ int square_diff(int start, int dest);
 
 int is_attacking(int p_type, int start, int dest);
 
+int get_step(int start, int dest);
+
 int string_to_coord(char *sqr_str);
 
 char* coord_to_string(int pos);
