@@ -6,7 +6,7 @@
 #define OF_STRING_TESTS 8
 #define MAKE_MOVE_TESTS 14
 #define UNMAKE_MOVE_TESTS 14
-#define UPDATE_CHECK_TESTS 7
+#define UPDATE_CHECK_TESTS 8
 #define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS + UPDATE_CHECK_TESTS)
 
 
@@ -307,7 +307,7 @@ int run_unmake_move_tests(int passed) {
 
 int run_update_check_tests(int passed) {
     char *move_strings[UPDATE_CHECK_TESTS] = {
-        "f3h5", "a4c6", "b7b8q", "a6b5", "d1d7", "b5c6", "d5c6"
+        "f3h5", "a4c6", "b7b8q", "a6b5", "d1d7", "b5c6", "d5c6", "e8g8"
     };
 
     char *fen_strings[UPDATE_CHECK_TESTS] = {
@@ -317,7 +317,8 @@ int run_update_check_tests(int passed) {
         "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R4K1R b kq - 1 1",
         "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP2PPP/R1BQKB1R w KQkq - 0 1",
         "r6r/Pp1pkppp/1P3nbN/nPp5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w - c6 0 3",
-        "2kr3r/p2pqpb1/bn2pnp1/2pPN3/1p2P3/2Q4p/PPPBBPPP/RN2K2R w KQ c6 0 3"
+        "2kr3r/p2pqpb1/bn2pnp1/2pPN3/1p2P3/2Q4p/PPPBBPPP/RN2K2R w KQ c6 0 3",
+        "4k2r/8/8/8/8/8/8/5K2 b k - 1 1"
     };
 
     int expected_checks[UPDATE_CHECK_TESTS] = {
@@ -327,7 +328,8 @@ int run_update_check_tests(int passed) {
         DISTANT_CHECK | (B5 << 2),
         CONTACT_CHECK | (D2 << 2),
         DISTANT_CHECK | (B5 << 2),
-        NO_CHECK
+        NO_CHECK,
+        DISTANT_CHECK | (F8 << 2)
     };
 
     for (int i = 0; i < UPDATE_CHECK_TESTS; i++) {

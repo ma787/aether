@@ -173,6 +173,24 @@ int make_move(info *pstn, move_t mv) {
             pstn->c_rights &= 12;
             update_check(pstn, piece, mv);
         }
+
+        // search for check from castling rook
+        if (kp_square) {
+            int r_dest = K_CASTLE_FLAG ? F1 : D1;
+            int current = r_dest;
+
+            for (;;) {
+                current += N;
+                int sq = pstn->arr[current];
+
+                if (sq & KING) {
+                    pstn->check_info = (DISTANT_CHECK | (r_dest << 2));
+                } else if (sq) {
+                    break;
+                }
+            }
+        }
+
     } else {
         pstn->c_rights &= (
             (mv.start != A1)
