@@ -11,6 +11,19 @@ struct move {
 };
 typedef struct move move_t;
 
+/* Encodes information about a move into a bitfield struct.
+
+Input:
+    - info *pstn: The current board position.
+    - int start: The coordinates of the starting square.
+    - int dest: The coordinates of the destination square.
+    - int flags: Any flags associated with the move.
+
+Returns:
+    - move_t: A move struct containing the move information.
+*/
+move_t encode_move(info *pstn, int start, int dest, int flags);
+
 /* Parses a move string and returns a move struct.
 
 Input:
@@ -21,6 +34,9 @@ Returns:
     - move_t: A move struct containing the move information. 
 */
 move_t of_string(info *pstn, char *mstr);
+
+/* Returns the string representation of a move from a struct. */
+void move_to_string(info *pstn, move_t mv, char *mstr);
 
 /* Updates a position by making a move.
 

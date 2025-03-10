@@ -5,7 +5,7 @@
 
 #define OF_STRING_TESTS 8
 #define MAKE_MOVE_TESTS 14
-#define UNMAKE_MOVE_TESTS 14
+#define UNMAKE_MOVE_TESTS 15
 #define UPDATE_CHECK_TESTS 8
 #define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS + UPDATE_CHECK_TESTS)
 
@@ -273,7 +273,7 @@ int run_make_move_tests(int passed) {
 int run_unmake_move_tests(int passed) {
     char *move_strings[UNMAKE_MOVE_TESTS] = {
         "a2a3", "e8d8", "g2g1q", "e1c1", "e1g1", "a1a2", "a8a7", "h1h2",
-        "h8h7", "e1e2", "e8e7", "a1a2", "e1e2", "h6h1",
+        "h8h7", "e1e2", "e8e7", "a1a2", "e1e2", "h6h1", "d5e6"
     };
     
     char *fen_strings[UNMAKE_MOVE_TESTS] = {
@@ -290,7 +290,8 @@ int run_unmake_move_tests(int passed) {
         "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
         "r1bqkbnr/p1pppppp/n7/1p6/7P/8/PPPPPPP1/RNBQKBNR w Qkq - 0 1",
         "rnbqkbnr/1ppppppp/8/8/p7/4P3/PPPP1PPP/RNBQKBNR w kq - 0 1",
-        "rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1"
+        "rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
     };
 
     for (int i = 0; i < UNMAKE_MOVE_TESTS; i++) {

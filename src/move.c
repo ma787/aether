@@ -1,59 +1,83 @@
+#include <string.h>
 #include "constants.h"
 #include "move.h"
 #include "utils.h"
 
-move_t of_string(info *pstn, char *mstr) {
-    move_t mv = {
-        .start = string_to_coord(mstr),
-        .dest = string_to_coord(mstr + 2),
-        .flags = 0,
-        .captured_piece = 0
-    };
+move_t encode_move(info *pstn, int start, int dest, int flags) {
+    move_t mv = {start, dest, flags, 0};
 
-    if (pstn->side == BLACK) {
-        mv.start = flip_square(mv.start);
-        mv.dest = flip_square(mv.dest);
+    if (flags & CAPTURE_FLAG) {
+        int cap_pos = (flags == EP_FLAG) ? dest + S : dest;
+        mv.captured_piece = pstn->arr[cap_pos];
     }
 
-    if (pstn->arr[mv.dest]) {
-        mv.flags |= CAPTURE_FLAG;
-        mv.captured_piece = pstn->arr[mv.dest];
+    return mv;
+}
+
+move_t of_string(info *pstn, char *mstr) {
+    int start = string_to_coord(mstr);
+    int dest = string_to_coord(mstr + 2);
+    int flags = Q_FLAG;
+
+    if (pstn->side == BLACK) {
+        start = flip_square(start);
+        dest = flip_square(dest);
+    }
+
+    if (pstn->arr[dest]) {
+        flags |= CAPTURE_FLAG;
     };
 
-    switch(pstn->arr[mv.start] & 0x0FC) {
+    switch(pstn->arr[start] & 0x0FC) {
         case KING:
-            if (mv.start == E1) {
-                if (mv.dest == C1) {
-                    mv.flags |= Q_CASTLE_FLAG;
-                } else if (mv.dest == G1) {
-                    mv.flags |= K_CASTLE_FLAG;
+            if (start == E1) {
+                if (dest == C1) {
+                    flags |= Q_CASTLE_FLAG;
+                } else if (dest == G1) {
+                    flags |= K_CASTLE_FLAG;
                 }
             }
             break;
         case PAWN:
-            if (get_rank(mv.start) == 1 && get_rank(mv.dest) == 3) {
-                mv.flags = DPP_FLAG;
-            } else if (mv.dest == pstn->ep_square) {
-                mv.flags = EP_FLAG;
-                mv.captured_piece = pstn->arr[mv.dest + S];
-            } else if (get_rank(mv.dest) == 7) {
-                mv.flags |= PROMO_FLAG;
+            if (get_rank(start) == 1 && get_rank(dest) == 3) {
+                flags = DPP_FLAG;
+            } else if (dest == pstn->ep_square) {
+                flags = EP_FLAG;
+            } else if (get_rank(dest) == 7) {
+                flags |= PROMO_FLAG;
                 switch(PIECES[(int) mstr[4]] & 0xFC) {
                     case BISHOP:
-                        mv.flags |= 1;
+                        flags |= 1;
                         break;
                     case ROOK:
-                        mv.flags |= 2;
+                        flags |= 2;
                         break;
                     case QUEEN:
-                        mv.flags |= 3;
+                        flags |= 3;
                         break;
                 }
             }
             break;
     }
 
-    return mv;
+    return encode_move(pstn, start, dest, flags);
+}
+
+void move_to_string(info *pstn, move_t mv, char* mstr) {
+    int start = mv.start;
+    int dest = mv.dest;
+
+    if (pstn->side == BLACK) {
+        start = flip_square(start);
+        dest = flip_square(dest);
+    }
+
+    strcpy(mstr, coord_to_string(start));
+    strcpy(mstr + 2, coord_to_string(dest));
+    if (mv.flags & PROMO_FLAG) {
+        mstr[4] = SYMBOLS[PROMOTIONS[mv.flags & 3] | BLACK];
+        mstr[5] = '\0';
+    }
 }
 
 void move_piece(info *pstn, unsigned int start, unsigned int dest) {

@@ -2,6 +2,7 @@
 #define CONSTANTS_H 1
 
 #define STACK_SIZE 50
+#define MOVE_LIST_SIZE 256
 
 #define WHITE 1U
 #define BLACK (WHITE << 1)
@@ -57,7 +58,7 @@ extern unsigned int PROMOTIONS[];
 extern unsigned int CASTLING_RIGHTS[];
 extern int SUPERPIECE[16];
 
-extern int PAWN_OFFS[4];
+extern int PAWN_OFFS[3];
 extern int KNIGHT_OFFS[8];
 extern int BISHOP_OFFS[4];
 extern int ROOK_OFFS[4];

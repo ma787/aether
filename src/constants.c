@@ -54,7 +54,7 @@ unsigned int CASTLING_RIGHTS[] = {
 
 unsigned int PROMOTIONS[] = {KNIGHT, BISHOP, ROOK, QUEEN};
 
-int PAWN_OFFS[4] = {N, N + N, N + E, N + W};
+int PAWN_OFFS[3] = {N, N + E, N + W};
 int KNIGHT_OFFS[8] = {
     N + N + W, N + N + E, S + S + W, S + S + E,
     E + E + N, E + E + S, W + W + N, W + W + S

@@ -272,8 +272,12 @@ void flip_position(info *pstn) {
     pstn->b_pieces = tmp;
 
     for (int i = 0; i < 16; i++) {
-        pstn->w_pieces[i] = flip_square(pstn->w_pieces[i]);
-        pstn->b_pieces[i] = flip_square(pstn->b_pieces[i]);
+        if (pstn->w_pieces[i]) {
+            pstn->w_pieces[i] = flip_square(pstn->w_pieces[i]);
+        }
+        if (pstn->b_pieces[i]) {
+            pstn->b_pieces[i] = flip_square(pstn->b_pieces[i]);
+        }
     }
 
     if (pstn->ep_square) {
