@@ -127,4 +127,17 @@ void all_moves(info *pstn, move_list *moves) {
         }
         gen_moves_from_position(pstn, pos, moves);
     }
+
+    if (pstn->c_rights & WHITE_KINGSIDE && !(pstn->arr[F1]) && !(pstn->arr[G1])) {
+        add_move(pstn, E1, G1, K_CASTLE_FLAG, moves);
+    }
+
+    if (
+        pstn->c_rights & WHITE_QUEENSIDE
+        && !(pstn->arr[B1])
+        && !(pstn->arr[C1]) 
+        && !(pstn->arr[D1])
+    ) {
+        add_move(pstn, E1, C1, Q_CASTLE_FLAG, moves);
+    }
 }
