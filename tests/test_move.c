@@ -7,7 +7,9 @@
 #define MAKE_MOVE_TESTS 14
 #define UNMAKE_MOVE_TESTS 15
 #define UPDATE_CHECK_TESTS 8
-#define TOTAL_TESTS (OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS + UPDATE_CHECK_TESTS)
+#define TOTAL_TESTS (\
+    OF_STRING_TESTS + MAKE_MOVE_TESTS + UNMAKE_MOVE_TESTS + UPDATE_CHECK_TESTS \
+)
 
 
 int test_of_string(char *fen_str, char *mstr, move_t expected_mv) {

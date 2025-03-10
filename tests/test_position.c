@@ -5,7 +5,7 @@
 #include "utils.h"
 
 #define POSITION_TESTS 15
-#define IS_SQUARE_ATTACKED_TESTS 4
+#define IS_SQUARE_ATTACKED_TESTS 5
 #define TOTAL_TESTS (POSITION_TESTS + IS_SQUARE_ATTACKED_TESTS)
 
 int compare_positions(info *pstn_1, info *pstn_2) {
@@ -170,10 +170,12 @@ int run_is_square_attacked_tests(int passed) {
         "rnb1kbnr/1pp1pppp/p7/8/2p5/NQ1qB3/PP2PPPP/R3KBNR w KQkq - 0 6",
         "r3k2r/p1ppqpb1/bn2pnN1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
         "r3k2r/Pppp1ppp/5nbN/nP6/BBP1P3/q4N2/Pp1P1bPP/R2Q2K1 w kq - 0 2",
-        "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1"
+        "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1",
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1"
     };
-    int squares[IS_SQUARE_ATTACKED_TESTS] = {D1, E7, G1, F1};
-    int expected_results[IS_SQUARE_ATTACKED_TESTS] = {1, 1, 1, 0};
+    
+    int squares[IS_SQUARE_ATTACKED_TESTS] = {D1, E7, G1, F1, D1};
+    int expected_results[IS_SQUARE_ATTACKED_TESTS] = {1, 1, 1, 0, 1};
 
     for (int i = 0; i < IS_SQUARE_ATTACKED_TESTS; i++) {
         if (test_is_square_attacked(fen_strings[i], squares[i], expected_results[i]) == 0) {

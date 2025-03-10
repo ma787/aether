@@ -3,7 +3,7 @@
 #include <string.h>
 #include "move_gen.h"
 
-#define TOTAL_TESTS 8
+#define TOTAL_TESTS 10
 
 int test_move_gen(char *fen_str, char *expected_moves[], int n_moves) {
     printf("Testing all_moves, FEN: %s\n", fen_str);
@@ -35,25 +35,20 @@ int test_move_gen(char *fen_str, char *expected_moves[], int n_moves) {
         char mstr[6];
         move_to_string(pstn, mv, mstr);
         int found = 0;
-        int excluded = 0;
 
         for (int j = 0; j < n_moves; j++) {
             if (strcmp(mstr, expected_moves[j]) == 0) {
                 found = 1;
-
-                if (make_move(pstn, mv) == 0) {
-                    strcpy(found_moves[found_index++], mstr);
-                } else {
-                    excluded = 1; // only count moves that are legal
-                }
-                unmake_move(pstn, mv);
-
+                strcpy(found_moves[found_index++], mstr);
                 break;
             }
         }
 
-        if (!(found | excluded)) { // generated move that is not pseudo-legal
-            strcpy(extra_moves[extra_index++], mstr);
+        if (!found) {
+            if (make_move(pstn, mv) == 0) { // discard illegal moves
+                strcpy(extra_moves[extra_index++], mstr);
+            }
+            unmake_move(pstn, mv);
         }
     }
 
@@ -105,11 +100,13 @@ int main(void) {
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/R3KR2 w Qkq - 0 2",
         "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP1QPPP/R1B1KB1R b KQkq - 1 5",
         "r3k2r/8/8/8/8/8/8/1R2K2R b Kkq - 0 1",
-        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1"
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",
+        "n1n5/PPPk4/8/8/8/8/4Kp1p/5N1b w - - 0 2",
+        "n1n5/PPPk4/8/8/8/8/4Kp1p/5N1q w - - 0 2"
     };
 
     int n_moves[TOTAL_TESTS] = {
-        20, 48, 36, 44, 46, 41, 26, 24
+        20, 48, 36, 44, 46, 41, 26, 24, 21, 21
     };
 
     char *test_1_moves[] = {
@@ -175,9 +172,21 @@ int main(void) {
         "c8a7", "c8e7", "d7c6", "d7d6", "d7e6", "d7c7", "d7e7", "d7e8"
     };
 
+    char *test_9_moves[] = {
+        "b7c8q", "b7c8r", "b7c8b", "b7c8n", "b7a8q", "b7a8r", "b7a8b", "b7a8n",
+        "b7b8q", "b7b8r", "b7b8b", "b7b8n", "f1d2", "f1h2", "f1e3", "f1g3",
+        "e2d1", "e2e3", "e2d2", "e2f2", "e2d3"
+    };
+
+    char *test_10_moves[] = {
+        "b7c8q", "b7c8r", "b7c8b", "b7c8n", "b7a8q", "b7a8r", "b7a8b", "b7a8n",
+        "b7b8q", "b7b8r", "b7b8b", "b7b8n", "f1d2", "f1h2", "f1e3", "f1g3",
+        "e2d1", "e2e3", "e2d2", "e2f2", "e2d3"
+    };
+
     char **expected_moves[TOTAL_TESTS] = {
         test_1_moves, test_2_moves, test_3_moves, test_4_moves, test_5_moves,
-        test_6_moves, test_7_moves, test_8_moves
+        test_6_moves, test_7_moves, test_8_moves, test_9_moves, test_10_moves
     };
 
     int passed = 0;
