@@ -62,7 +62,16 @@ int KNIGHT_OFFS[8] = {
 int BISHOP_OFFS[4] = {N + E, N + W, S + E, S + W};
 int ROOK_OFFS[4] = {N, E, S, W};
 int QUEEN_OFFS[8] = {N, E, S, W, N + E, N + W, S + E, S + W};
-int *KING_OFFS = QUEEN_OFFS;
+int KING_OFFS[8] = {N, E, S, W, N + E, N + W, S + E, S + W};
+
+int N_VECS[] = {
+    [PAWN] = 3, [KNIGHT] = 8, [BISHOP] = 4, [ROOK] = 4, [QUEEN] = 8, [KING] = 8
+};
+
+int *MOVE_SETS[] = {
+    [PAWN] = PAWN_OFFS, [KNIGHT] = KNIGHT_OFFS, [BISHOP] = BISHOP_OFFS,
+    [ROOK] = ROOK_OFFS, [QUEEN] = QUEEN_OFFS, [KING] = KING_OFFS
+};
 
 int SUPERPIECE[16] = {
     N, E, S, W, N + E, N + W, S + E, S + W,

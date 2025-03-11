@@ -10,10 +10,15 @@ int flip_square(int pos) { return (~pos & 0xF0) | (pos & 0x0F); }
 
 int square_diff(int start, int dest) { return 0x77 + dest - start; }
 
-int is_attacking(int p_type, int start, int dest) {
+int is_attacking(int piece, int start, int dest) {
+    if ((piece & PAWN) && ((piece & COLOUR_MASK) == BLACK)) {
+        start = flip_square(start);
+        dest = flip_square(dest);
+    }
+
     int res = NO_CHECK;
     int diff = square_diff(start, dest);
-    if (MOVE_TABLE[diff] & p_type) {
+    if (MOVE_TABLE[diff] & piece) {
         res = (UNIT_VEC[diff] == dest - start) ? CONTACT_CHECK : DISTANT_CHECK;
     }
     return res;

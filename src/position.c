@@ -91,19 +91,12 @@ int is_square_attacked(info *pstn, int pos) {
             sq = pstn->arr[current];
 
             if ((sq & COLOUR_MASK) == BLACK) {
-                if (sq & PAWN) {
-                    if (vec == (N + E) || vec == (N + W)) {
+                switch(is_attacking(sq, current, pos)) {
+                    case CONTACT_CHECK:
+                        if (contact) { return 1; }
+                        break;
+                    case DISTANT_CHECK:
                         return 1;
-                    }
-                }
-                else {
-                    switch(is_attacking(sq, current, pos)) {
-                        case CONTACT_CHECK:
-                            if (contact) { return 1; }
-                            break;
-                        case DISTANT_CHECK:
-                            return 1;
-                    }
                 }
                 break;
             } else if (sq) {

@@ -3,7 +3,7 @@
 #include <string.h>
 #include "move_gen.h"
 
-#define TOTAL_TESTS 10
+#define TOTAL_TESTS 16
 
 int test_move_gen(char *fen_str, char *expected_moves[], int n_moves) {
     printf("Testing all_moves, FEN: %s\n", fen_str);
@@ -73,6 +73,7 @@ int test_move_gen(char *fen_str, char *expected_moves[], int n_moves) {
         printf("Extra moves generated:\n");
         for (int i = 0; i < extra_index; i++) {
             printf("%s, ", extra_moves[i]);
+            fflush(stdout);
         }
         printf("\n");
     }
@@ -82,6 +83,7 @@ int test_move_gen(char *fen_str, char *expected_moves[], int n_moves) {
         printf("The following moves were not generated:\n");
         for (int i = 0; i < missing_index; i++) {
             printf("%s, ", missing_moves[i]);
+            fflush(stdout);
         }
         printf("\n");
     }
@@ -97,16 +99,22 @@ int main(void) {
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
         "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/R3KR2 w Qkq - 0 2",
-        "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP1QPPP/R1B1KB1R b KQkq - 1 5",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/R3KR2 w Qkq - 0 1",
+        "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP1QPPP/R1B1KB1R b KQkq - 1 1",
         "r3k2r/8/8/8/8/8/8/1R2K2R b Kkq - 0 1",
         "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",
-        "n1n5/PPPk4/8/8/8/8/4Kp1p/5N1b w - - 0 2",
-        "n1n5/PPPk4/8/8/8/8/4Kp1p/5N1q w - - 0 2"
+        "n1n5/PPPk4/8/8/8/8/4Kp1p/5N1b w - - 0 1",
+        "n1n5/PPPk4/8/8/8/8/4Kp1p/5N1q w - - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 1 1",
+        "rnbqkbnr/1ppppppp/4Q3/p7/8/2P5/PP1PPPPP/RNB1KBNR b KQkq - 1 1",
+        "rnbqkbnr/1ppppppp/8/p7/4Q3/2P5/PP1PPPPP/RNB1KBNR b KQkq - 1 1",
+        "8/2p5/3p4/KP3R1r/5p2/8/4PkP1/8 b - - 5 1",
+        "8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1",
+        "8/8/8/8/k2Pp2Q/8/8/3K4 b - d3 0 1"
     };
 
     int n_moves[TOTAL_TESTS] = {
-        20, 48, 36, 44, 46, 41, 26, 24, 21, 21
+        20, 48, 36, 44, 46, 41, 26, 24, 21, 21, 39, 21, 21, 20, 16, 6
     };
 
     char *test_1_moves[] = {
@@ -184,9 +192,44 @@ int main(void) {
         "e2d1", "e2e3", "e2d2", "e2f2", "e2d3"
     };
 
+    char *test_11_moves[] = {
+        "b4b3", "g6g5", "c7c6", "e8c8", "c7c5", "h3g2", "e6d5", "b4c3",
+        "b6a4", "b6c4", "b6d5", "b6c8", "f6e4", "f6g4", "f6d5", "f6h5",
+        "f6h7", "f6g8", "a6b5", "a6b7", "a6c8", "g7h6", "g7f8", "a8b8",
+        "a8c8", "a8d8", "h8h4", "h8h5", "h8h6", "h8h7", "h8f8", "h8g8",
+        "e7c5", "e7d6", "e7d8", "e7f8", "e8d8", "e8f8", "e8g8"
+    };
+
+    char *test_12_moves[] = {
+        "a5a4", "b7b6", "c7c6", "d7d6", "f7f6", "g7g6", "h7h6", "b7b5",
+        "c7c5", "d7d5", "f7f5", "g7g5", "h7h5", "f7e6", "d7e6", "b8a6",
+        "b8c6", "g8f6", "g8h6", "a8a6", "a8a7"
+    };
+
+    char *test_13_moves[] = {
+        "a5a4", "b7b6", "c7c6", "d7d6", "e7e6", "f7f6", "g7g6", "h7h6",
+        "b7b5", "c7c5", "d7d5", "e7e5", "f7f5", "g7g5", "h7h5", "b8a6",
+        "b8c6", "g8f6", "g8h6", "a8a6", "a8a7"
+    };
+
+    char *test_14_moves[] = {
+        "f4f3", "d6d5", "c7c6", "c7c5", "h5h1", "h5h2", "h5h3", "h5h4",
+        "h5f5", "h5g5", "h5h6", "h5h7", "h5h8", "f2e1", "f2f1", "f2g1",
+        "f2e2", "f2g2", "f2e3", "f2g3"
+    };
+
+    char *test_15_moves[] = {
+        "f4f3", "d6d5", "c7c6", "c7c5", "h4g5", "h5b5", "h5c5", "h5d5", 
+        "h5e5", "h5f5", "h5g5", "h5h6", "h5h7", "h5h8", "h4g3", "h4g4"
+    };
+
+    char *test_16_moves[] = {"e4e3", "a4a3", "a4b3", "a4b4", "a4a5", "a4b5"};
+
     char **expected_moves[TOTAL_TESTS] = {
         test_1_moves, test_2_moves, test_3_moves, test_4_moves, test_5_moves,
-        test_6_moves, test_7_moves, test_8_moves, test_9_moves, test_10_moves
+        test_6_moves, test_7_moves, test_8_moves, test_9_moves, test_10_moves,
+        test_11_moves, test_12_moves, test_13_moves, test_14_moves, test_15_moves,
+        test_16_moves
     };
 
     int passed = 0;

@@ -63,7 +63,10 @@ extern int KNIGHT_OFFS[8];
 extern int BISHOP_OFFS[4];
 extern int ROOK_OFFS[4];
 extern int QUEEN_OFFS[8];
-extern int *KING_OFFS;
+extern int KING_OFFS[8];
+
+extern int N_VECS[];
+extern int *MOVE_SETS[];
 
 extern unsigned int MOVE_TABLE[239];
 extern unsigned int UNIT_VEC[239];
