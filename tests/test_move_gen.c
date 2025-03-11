@@ -3,7 +3,7 @@
 #include <string.h>
 #include "move_gen.h"
 
-#define TOTAL_TESTS 16
+#define TOTAL_TESTS 30
 
 int test_move_gen(char *fen_str, char *expected_moves[], int n_moves) {
     printf("Testing all_moves, FEN: %s\n", fen_str);
@@ -110,11 +110,26 @@ int main(void) {
         "rnbqkbnr/1ppppppp/8/p7/4Q3/2P5/PP1PPPPP/RNB1KBNR b KQkq - 1 1",
         "8/2p5/3p4/KP3R1r/5p2/8/4PkP1/8 b - - 5 1",
         "8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1",
-        "8/8/8/8/k2Pp2Q/8/8/3K4 b - d3 0 1"
+        "8/8/8/8/k2Pp2Q/8/8/3K4 b - d3 0 1",
+        "1nbqkbnr/r2pp2p/ppp2pB1/4P2Q/3P4/2N5/PPP2PPP/R1B1K1NR b KQk - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPPBBPpP/R4K1R w kq - 0 1",
+        "rnbq1bnr/ppppkppp/8/6B1/4P3/2p2N2/PPP2PPP/R2QKB1R b KQ - 3 1",
+        "8/K7/5Q2/8/8/8/5b2/7k w - - 0 1",
+        "rnbqkbnr/pp2pppp/2Qp4/8/8/2P5/PP1PPPPP/RNB1KBNR b KQkq - 0 1",
+        "r2k3r/p1ppqNb1/bn2pQp1/3P4/1p2P3/2N4p/PPPBBPPP/R3K2R b KQ - 0 1",
+        "r4k1r/p1pNqpb1/bn2pnp1/3P4/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQ - 0 1",
+        "4k2r/8/8/8/8/8/8/R1r1K2R w KQk - 1 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBKPPP/R4B1R w kq - 4 1",
+        "r3k2r/p1pp1pb1/bn2pnp1/1B1PN3/1pq1P3/2N2Q1p/PPPB1PPP/R4K1R w kq - 4 1",
+        "r2k3Q/p1pp1pb1/bn2pnp1/2qPN1B1/1p2P3/2N4p/PPP1BPPP/R3K2R b KQ - 0 1",
+        "r3k2r/p1pq1Pb1/bn1p1np1/1B2N3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1",
+        "5rk1/8/8/8/8/8/8/5K2 w - - 2 1",
+        "8/8/3p4/1Pp4r/1K3R2/6k1/4P1P1/8 w - c6 0 1"
     };
 
     int n_moves[TOTAL_TESTS] = {
-        20, 48, 36, 44, 46, 41, 26, 24, 21, 21, 39, 21, 21, 20, 16, 6
+        20, 48, 36, 44, 46, 41, 26, 24, 21, 21, 39, 21, 21, 20, 16, 6, 1, 4, 4,
+        7, 5, 2, 5, 4, 7, 8, 4, 3, 4, 7
     };
 
     char *test_1_moves[] = {
@@ -225,11 +240,49 @@ int main(void) {
 
     char *test_16_moves[] = {"e4e3", "a4a3", "a4b3", "a4b4", "a4a5", "a4b5"};
 
+    char *test_17_moves[] = {"h7g6"};
+
+    char *test_18_moves[] = {"f3g2", "f1e1", "f1g1", "f1g2"};
+
+    char *test_19_moves[] = {"f7f6", "g8f6", "e7e8", "e7e6"};
+
+    char *test_20_moves[] = {
+        "f6f2", "f6d4", "f6b6", "a7a6", "a7b8", "a7b7", "a7a8"
+    };
+
+    char *test_21_moves[] = {"b7c6", "b8c6", "b8d7", "c8d7", "d8d7"};
+
+    char *test_22_moves[] = {"d8e8", "d8c8"};
+
+    char *test_23_moves[] = {"b6d7", "f6d7", "e7d7", "f8e8", "f8g8"};
+
+    char *test_24_moves[] = {"a1c1", "e1f2", "e1e2", "e1d2"};
+
+    char *test_25_moves[] = {
+        "c3b5", "e5d3", "e5c4", "f3d3", "e2d1", "e2e1", "e2e3"
+    };
+
+    char *test_26_moves[] = {
+        "c3e2", "e5d3", "e5c4", "b5c4", "f3e2", "f3d3", "f1e1", "f1g1"
+    };
+
+    char *test_27_moves[] = {"d8e7", "c5f8", "g7f8", "g7h8"};
+
+    char *test_28_moves[] = {"e8f8", "e8e7", "e8d8"};
+
+    char *test_29_moves[] = {"f1e1", "f1g1", "f1e2", "f1g2"};
+
+    char *test_30_moves[] = {
+        "b5c6", "b4a3", "b4b3", "b4c3", "b4a4", "b4c4", "b4a5"
+    };
+
     char **expected_moves[TOTAL_TESTS] = {
         test_1_moves, test_2_moves, test_3_moves, test_4_moves, test_5_moves,
         test_6_moves, test_7_moves, test_8_moves, test_9_moves, test_10_moves,
         test_11_moves, test_12_moves, test_13_moves, test_14_moves, test_15_moves,
-        test_16_moves
+        test_16_moves, test_17_moves, test_18_moves, test_19_moves, test_20_moves,
+        test_21_moves, test_22_moves, test_23_moves, test_24_moves, test_25_moves,
+        test_26_moves, test_27_moves, test_28_moves, test_29_moves, test_30_moves
     };
 
     int passed = 0;

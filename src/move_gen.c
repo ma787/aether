@@ -1,5 +1,6 @@
 #include "move_gen.h"
 #include "utils.h"
+#include <stdlib.h>
 
 void add_move(info *pstn, int start, int dest, int flags, move_list *moves) {
     if (flags & PROMO_FLAG) {
@@ -89,6 +90,62 @@ void gen_moves_from_position(info *pstn, int pos, move_list *moves) {
     }
 }
 
+void gen_moves_in_check(info *pstn, int pos, move_list *moves) {
+    int piece = pstn->arr[pos];
+    int checker = (pstn->check_info >> 2) & 0xFF;
+    int vec = get_step(pos, checker);
+
+    // attempt to capture the checker
+    if (is_attacking(piece, pos, checker)) {
+        int current = pos + vec;
+        int blocked = 0;
+        int flags = CAPTURE_FLAG;
+
+        while (current != checker) {
+            if (pstn->arr[current]) {
+                blocked = 1;
+                break;
+            }
+            current += vec;
+        }
+        
+        if (!blocked) {
+            if ((piece & PAWN) && get_rank(checker) == 7) {
+                flags |= PROMO_FLAG;
+            }
+            add_move(pstn, pos, checker, flags, moves);
+        }
+    }
+
+    if ((checker == (pstn->ep_square + S)) && (piece & PAWN) && is_attacking(piece, pos, pstn->ep_square)) {
+        add_move(pstn, pos, pstn->ep_square, EP_FLAG, moves);
+    }
+
+    // generate moves which might block the checker
+    int k_pos = pstn->w_pieces[0];
+    int k_step = get_step(k_pos, checker);
+    move_list *blocking_moves = malloc(sizeof(move_list));
+    blocking_moves->index = 0;
+    gen_moves_from_position(pstn, pos, blocking_moves);
+
+    // check if each move actually blocks the checker
+    for (int i = 0; i < blocking_moves->index; i++) {
+        move_t mv = blocking_moves->moves[i];
+        if (get_step(k_pos, mv.dest) == k_step) {
+            int current = k_pos + k_step;
+            while (current != checker) {
+                if (current == mv.dest) {
+                    moves->moves[moves->index++] = mv;
+                    break;
+                }
+                current += k_step;
+            }
+        }
+    }
+
+    free(blocking_moves);
+}
+
 int find_pinned_piece(info *pstn, int vec, int *pinned_loc) {
     int possible_pin = 0;
     int current = pstn->w_pieces[0];
@@ -163,6 +220,11 @@ int gen_pinned_pieces(info *pstn, move_list *moves, int *piece_locs) {
 
     for (int i = 1; i < 16; i++) {
         int pos = pstn->w_pieces[i];
+
+        if (!pos) {
+            continue;
+        }
+
         int found = 0;
 
         for (int j = 0; j < n_pinned; j++) {
@@ -191,11 +253,7 @@ void all_moves(info *pstn, move_list *moves) {
 
     if (check == NO_CHECK) {
         for (int i = 0; i < len; i++) {
-            int pos = piece_locs[i];
-            if (!pos) {
-                continue;
-            }
-            gen_moves_from_position(pstn, pos, moves);
+            gen_moves_from_position(pstn, piece_locs[i], moves);
         }
 
         if (pstn->c_rights & WHITE_KINGSIDE && !(pstn->arr[F1] | pstn->arr[G1])) {
@@ -207,6 +265,10 @@ void all_moves(info *pstn, move_list *moves) {
             && !(pstn->arr[B1] | pstn->arr[C1] | pstn->arr[D1])
         ) {
             add_move(pstn, E1, C1, Q_CASTLE_FLAG, moves);
+        }
+    } else if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
+        for (int i = 0; i < len; i++) {
+            gen_moves_in_check(pstn, piece_locs[i], moves);
         }
     }
 }
