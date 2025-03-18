@@ -1,4 +1,4 @@
-#ifndef CONTSTANTS_H
+#ifndef CONSTANTS_H
 #define CONSTANTS_H 1
 
 #define STACK_SIZE 50
@@ -50,6 +50,9 @@ enum SQUARES {
     A8 = 0xB4, B8, C8, D8, E8, F8, G8, H8,
 };
 
+extern char *NAME;
+extern char *AUTHOR;
+extern char *START_POS;
 extern char *FILES;
 extern char *COORDS[64];
 extern unsigned int PIECES[];

@@ -75,3 +75,10 @@ Input:
     - char *fen_str: A string pointer to store the result in.
 */
 void to_fen(info *pstn, char *fen_str);
+
+/* 
+Validates a fen string.
+
+Input:
+    - char *fen_str: A pointer to the fen string.*/
+int fen_match(char *fen_str);

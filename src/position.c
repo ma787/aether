@@ -6,6 +6,8 @@
 #include "position.h"
 #include "utils.h"
 
+#define STACK_SIZE 50
+
 unsigned int board[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -25,25 +27,34 @@ unsigned int board[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+char *reg_str = (
+    "((([pnbrqkPNBRQK]|[1-8]){1,})[/]){7}([pnbrqkPNBRQK]|[1-8]){1,}[ ]"
+    "[bw][ ](([K]?[Q]?[k]?[q]?)|-)[ ](([a-h][36])|-)([ ][0-9]+){2}"
+);
+
 unsigned int w_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 unsigned int b_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 state_t prev_state[STACK_SIZE];
 int top = -1;
 
-int parse_board_string(char *fen_str) {
+int fen_match(char *fen_str) {
     regex_t preg;
     int res;
-    char *reg_str = (
-        "((([pnbrqkPNBRQK]|[1-8]){1,})[/]){7}([pnbrqkPNBRQK]|[1-8]){1,}[ ]"
-        "[bw][ ](([K]?[Q]?[k]?[q]?)|-)[ ](([a-h][36])|-)([ ][0-9]+){2}"
-    );
 
     regcomp(&preg, reg_str, REG_EXTENDED);
     res = regexec(&preg, fen_str, (size_t) 0, NULL, 0);
     regfree(&preg);
 
     if (res != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int parse_board_string(char *fen_str) {
+    if (fen_match(fen_str) != 0) {
         return -1;
     }
 

@@ -4,6 +4,18 @@ INC_DIR := ./include
 BUILD_DIR := ./build
 DEBUG_FLAGS := -Wall
 
+all:
+	mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/position.c -I $(INC_DIR) -o $(BUILD_DIR)/position.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/constants.c -I $(INC_DIR) -o $(BUILD_DIR)/constants.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/move.c -I $(INC_DIR) -o $(BUILD_DIR)/move.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/move_gen.c -I $(INC_DIR) -o $(BUILD_DIR)/move_gen.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/perft.c -I $(INC_DIR) -o $(BUILD_DIR)/perft.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/utils.c -I $(INC_DIR) -o $(BUILD_DIR)/utils.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/uci.c -I $(INC_DIR) -o $(BUILD_DIR)/uci.o
+	gcc -o $(BUILD_DIR)/aether $(BUILD_DIR)/constants.o $(BUILD_DIR)/position.o $(BUILD_DIR)/move.o $(BUILD_DIR)/move_gen.o $(BUILD_DIR)/utils.o $(BUILD_DIR)/uci.o $(BUILD_DIR)/perft.o
+
 test-position:
 	mkdir -p $(BUILD_DIR)
 	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/position.c -I $(INC_DIR) -o $(BUILD_DIR)/position.o

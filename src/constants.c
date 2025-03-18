@@ -1,5 +1,11 @@
 #include "constants.h"
 
+char *NAME = "Aether";
+
+char *AUTHOR = "Mohamed Omar";
+
+char *START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 char *FILES = "abcdefgh";
 
 char *COORDS[64] = {

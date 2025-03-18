@@ -6,7 +6,7 @@
 
 struct move_list {
     int index;
-    move_t moves[MOVE_LIST_SIZE];
+    move_t moves[256];
 };
 typedef struct move_list move_list;
 
