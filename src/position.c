@@ -1,12 +1,26 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <regex.h>
-#include "constants.h"
+#include <string.h>
 #include "position.h"
+#include "constants.h"
 #include "utils.h"
 
 #define STACK_SIZE 50
+
+struct state {
+    unsigned int c_rights: 4;
+    unsigned int ep_square : 8;
+    unsigned int h_clk: 6;
+    unsigned int check_info: 18;
+};
+typedef struct state state_t;
+
+state_t prev_state[STACK_SIZE];
+int top = -1;
+
+char *reg_str = (
+    "((([pnbrqkPNBRQK]|[1-8]){1,})[/]){7}([pnbrqkPNBRQK]|[1-8]){1,}[ ]"
+    "[bw][ ](([K]?[Q]?[k]?[q]?)|-)[ ](([a-h][36])|-)([ ][0-9]+){2}"
+);
 
 unsigned int board[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -27,16 +41,18 @@ unsigned int board[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-char *reg_str = (
-    "((([pnbrqkPNBRQK]|[1-8]){1,})[/]){7}([pnbrqkPNBRQK]|[1-8]){1,}[ ]"
-    "[bw][ ](([K]?[Q]?[k]?[q]?)|-)[ ](([a-h][36])|-)([ ][0-9]+){2}"
-);
+unsigned int white_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+unsigned int black_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-unsigned int w_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-unsigned int b_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+unsigned int *w_pieces = white_pieces;
+unsigned int *b_pieces = black_pieces;
 
-state_t prev_state[STACK_SIZE];
-int top = -1;
+unsigned int side = WHITE;
+unsigned int c_rights = 0xF;
+unsigned int ep_square = 0;
+unsigned int h_clk = 0;
+unsigned int check_info = 0;
+
 
 int fen_match(char *fen_str) {
     regex_t preg;
@@ -91,7 +107,7 @@ int parse_board_string(char *fen_str) {
     }
 }
 
-int is_square_attacked(info *pstn, int pos) {
+int is_square_attacked(int pos) {
     for (int i = 0; i < 16; i++) {
         int vec = SUPERPIECE[i];
         int current = pos + vec;
@@ -99,7 +115,7 @@ int is_square_attacked(info *pstn, int pos) {
         int sq;
 
         for (;;) {
-            sq = pstn->arr[current];
+            sq = board[current];
 
             if ((sq & COLOUR_MASK) == BLACK) {
                 switch(is_attacking(sq, current, pos)) {
@@ -122,15 +138,58 @@ int is_square_attacked(info *pstn, int pos) {
     return 0;
 }
 
-void set_check(info *pstn) {
-    int flipped = 0;
-    if (pstn->side == WHITE) {
-        flipped = 1;
-        flip_position(pstn);
+void flip_position() {
+    c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
+
+    // swap pointers for white and black piece lists
+    unsigned int **pwp = &w_pieces;
+    unsigned int **pbp = &b_pieces;
+    unsigned int *tmp = w_pieces;
+    *pwp = *pbp;
+    *pbp = tmp;
+
+    for (int i = 0; i < 16; i++) {
+        if (w_pieces[i]) {
+            w_pieces[i] = flip_square(w_pieces[i]);
+        }
+        if (b_pieces[i]) {
+            b_pieces[i] = flip_square(b_pieces[i]);
+        }
     }
 
-    pstn->check_info = 0;
-    int k_pos = pstn->b_pieces[0];
+    if (ep_square) {
+        ep_square = flip_square(ep_square);
+    }
+
+    if (check_info) {
+        int check = check_info & 3;
+        int first_checker = flip_square((check_info >> 2) & 0xFF);
+        if (check == DOUBLE_CHECK) {
+            check |= (flip_square((check_info >> 10) & 0xFF) << 10);
+        }
+        check_info = (check | (first_checker << 2));
+    }
+    
+    for (int i = A1; i < A5; i += 0x10) {
+        for (int j = 0; j < 8; j++) {
+            int k = flip_square(i);
+            int sq1 = board[i + j];
+            int sq2 = board[k + j];
+            board[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
+            board[k + j] = sq1 ? (sq1 & 0xFFC) | (~sq1 & 3) : 0;
+        }       
+    };
+}
+
+void set_check() {
+    int flipped = 0;
+    if (side == WHITE) {
+        flipped = 1;
+        flip_position();
+    }
+
+    check_info = 0;
+    int k_pos = b_pieces[0];
 
     for (int i = 0; i < 16; i++) {
         int vec = SUPERPIECE[i];
@@ -138,7 +197,7 @@ void set_check(info *pstn) {
         int sq;
 
         for (;;) {
-            sq = pstn->arr[current];
+            sq = board[current];
             int colour = sq & COLOUR_MASK;
 
             if (colour == G || colour == BLACK) {
@@ -147,12 +206,12 @@ void set_check(info *pstn) {
                 int attack = is_attacking(sq, current, k_pos);
 
                 if (attack) {
-                    pstn->check_info |= attack;
-                    if ((pstn->check_info >> 2) & 0xFF) {
-                        pstn->check_info |= (current << 10);
-                        pstn->check_info |= DOUBLE_CHECK;
+                    check_info |= attack;
+                    if ((check_info >> 2) & 0xFF) {
+                        check_info |= (current << 10);
+                        check_info |= DOUBLE_CHECK;
                     } else {
-                        pstn->check_info |= (current << 2);
+                        check_info |= (current << 2);
                     }
                 }
                 goto exit_loop;
@@ -164,39 +223,35 @@ void set_check(info *pstn) {
             }
         }
         exit_loop:
-            if (pstn->check_info == DOUBLE_CHECK) {
+            if (check_info == DOUBLE_CHECK) {
                 if (flipped) {
-                    flip_position(pstn);
+                    flip_position();
                 }
                 return;
             }
     }
 
     if (flipped) {
-        flip_position(pstn);
+        flip_position();
     }
 }
 
-info *new_position(char *fen_str) {
-    info *pstn = NULL;
+int set_position(char *fen_str) {
+    // clear previous board position
+    for (int i = A1; i <= A8; i += 0x10) {
+        memset(board + i, 0, 8 * sizeof(int));
+    }
+    memset(white_pieces, 0, 16 * sizeof(int));
+    memset(black_pieces, 0, 16 * sizeof(int));
+
     int idx = parse_board_string(fen_str);
 
     if (idx == -1) {
-        return pstn;
+        return -1;
     }
 
-    pstn = malloc(sizeof(info));
-    pstn->arr = board;
-    pstn->w_pieces = w_pieces;
-    pstn->b_pieces = b_pieces;
-    
-    if (fen_str[idx++] == 'w') {
-        pstn->side = WHITE;
-    } else {
-        pstn->side = BLACK;
-    }
-
-    pstn->c_rights = 0;
+    side = fen_str[idx++] == 'w' ? WHITE : BLACK;
+    c_rights = 0;
 
     if (fen_str[++idx] == '-') {    
         idx += 2;
@@ -204,26 +259,26 @@ info *new_position(char *fen_str) {
         char val;
         do {
             val = fen_str[idx++];
-            pstn->c_rights |= CASTLING_RIGHTS[(int) val];
+            c_rights |= CASTLING_RIGHTS[(int) val];
         } while (val != ' ');
     }
 
     if (fen_str[idx] == '-') {
-        pstn->ep_square = 0;
+        ep_square = 0;
         idx += 2;
     } else {
-        pstn->ep_square = string_to_coord(fen_str + idx);
+        ep_square = string_to_coord(fen_str + idx);
         idx += 3;
     }
 
-    pstn->h_clk = fen_str[idx] - '0';
+    h_clk = fen_str[idx] - '0';
 
     int i = A1;
     int w_off = 1;
     int b_off = 1;
 
     while (i <= H8) {
-        int sq = pstn->arr[i];
+        int sq = board[i];
         int off;
 
         switch (sq & COLOUR_MASK) {
@@ -232,92 +287,51 @@ info *new_position(char *fen_str) {
                 continue;
             case WHITE:
                 off = sq & KING ? 0 : w_off++;
-                pstn->w_pieces[off] = i;
-                pstn->arr[i] |= (off << 8);
+                w_pieces[off] = i;
+                board[i] |= (off << 8);
                 break;
             case BLACK:
                 off = sq & KING ? 0 : b_off++;
-                pstn->b_pieces[off] = i;
-                pstn->arr[i] |= (off << 8);
+                b_pieces[off] = i;
+                board[i] |= (off << 8);
                 break;
         }
         i++;
     }
 
-    set_check(pstn);
-    if (pstn->side == BLACK) {
-        flip_position(pstn);
+    set_check();
+    if (side == BLACK) {
+        flip_position();
     }
 
-    return pstn;
+    return 0;
 }
 
-void switch_side(info *pstn) { pstn->side = ~(pstn->side) & 3; }
+void switch_side() { side = ~side & 3; }
 
-void save_state(info *pstn) {
+void save_state() {
     state_t state = {
-        .c_rights = pstn->c_rights,
-        .ep_square = pstn->ep_square,
-        .h_clk = pstn->h_clk,
-        .check_info = pstn->check_info
+        .c_rights = c_rights,
+        .ep_square = ep_square,
+        .h_clk = h_clk,
+        .check_info = check_info
     };
 
     prev_state[++top] = state;
 }
 
-void restore_state(info *pstn) {
+void restore_state() {
     state_t state = prev_state[top--];
 
-    pstn->c_rights = state.c_rights;
-    pstn->ep_square = state.ep_square;
-    pstn->h_clk = state.h_clk;
-    pstn->check_info = state.check_info;
+    c_rights = state.c_rights;
+    ep_square = state.ep_square;
+    h_clk = state.h_clk;
+    check_info = state.check_info;
 }
 
-
-void flip_position(info *pstn) {
-    pstn->c_rights = ((pstn->c_rights & 12) >> 2) | ((pstn->c_rights & 3) << 2);
-
-    unsigned int *tmp = pstn->w_pieces;
-    pstn->w_pieces = pstn->b_pieces;
-    pstn->b_pieces = tmp;
-
-    for (int i = 0; i < 16; i++) {
-        if (pstn->w_pieces[i]) {
-            pstn->w_pieces[i] = flip_square(pstn->w_pieces[i]);
-        }
-        if (pstn->b_pieces[i]) {
-            pstn->b_pieces[i] = flip_square(pstn->b_pieces[i]);
-        }
-    }
-
-    if (pstn->ep_square) {
-        pstn->ep_square = flip_square(pstn->ep_square);
-    }
-
-    if (pstn->check_info) {
-        int check = (pstn->check_info & 3);
-        int first_checker = flip_square((pstn->check_info >> 2) & 0xFF);
-        if (check == DOUBLE_CHECK) {
-            check |= (flip_square((pstn->check_info >> 10) & 0xFF) << 10);
-        }
-        pstn->check_info = (check | (first_checker << 2));
-    }
-    
-    for (int i = A1; i < A5; i += 0x10) {
-        for (int j = 0; j < 8; j++) {
-            int k = flip_square(i);
-            int sq1 = pstn->arr[i + j];
-            int sq2 = pstn->arr[k + j];
-            pstn->arr[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
-            pstn->arr[k + j] = sq1 ? (sq1 & 0xFFC) | (~sq1 & 3) : 0;
-        }       
-    };
-}
-
-void to_fen(info *pstn, char *fen_str) {
-    if (pstn->side != WHITE) {
-        flip_position(pstn);
+void to_fen(char *fen_str) {
+    if (side != WHITE) {
+        flip_position();
     }
 
     int i = A8;
@@ -325,7 +339,7 @@ void to_fen(info *pstn, char *fen_str) {
     int sq;
 
     while (i != 0x4C) {
-        sq = pstn->arr[i];
+        sq = board[i];
 
         if (sq == G) {
             fen_str[j++] = '/';
@@ -334,7 +348,7 @@ void to_fen(info *pstn, char *fen_str) {
             int count = 0;
             while (sq == 0) {
                 count++;
-                sq = pstn->arr[++i];
+                sq = board[++i];
             }
             fen_str[j++] = '0' + count;
         } else {
@@ -344,20 +358,20 @@ void to_fen(info *pstn, char *fen_str) {
     }
 
     fen_str[j++] = ' ';
-    fen_str[j++] = pstn->side == WHITE ? 'w' : 'b';
+    fen_str[j++] = side == WHITE ? 'w' : 'b';
     fen_str[j++] = ' ';
 
-    if (pstn->c_rights) {
-        if (pstn->c_rights & WHITE_KINGSIDE) {
+    if (c_rights) {
+        if (c_rights & WHITE_KINGSIDE) {
             fen_str[j++] = 'K';
         }
-        if (pstn->c_rights & WHITE_QUEENSIDE) {
+        if (c_rights & WHITE_QUEENSIDE) {
             fen_str[j++] = 'Q';
         }
-        if (pstn->c_rights & BLACK_KINGSIDE) {
+        if (c_rights & BLACK_KINGSIDE) {
             fen_str[j++] = 'k';
         }
-        if (pstn->c_rights & BLACK_QUEENSIDE) {
+        if (c_rights & BLACK_QUEENSIDE) {
             fen_str[j++] = 'q';
         }
     } else {
@@ -365,24 +379,15 @@ void to_fen(info *pstn, char *fen_str) {
     }
     fen_str[j++] = ' ';
 
-    if (pstn->ep_square) {
-        strcpy(fen_str + j, coord_to_string(pstn->ep_square));
+    if (ep_square) {
+        strcpy(fen_str + j, coord_to_string(ep_square));
         j += 2;
     } else {
         fen_str[j++] = '-';
     }
     fen_str[j++] = ' ';
-    fen_str[j++] = '0' + pstn->h_clk;
+    fen_str[j++] = '0' + h_clk;
     fen_str[j++] = ' ';
     fen_str[j++] = '1'; // fullmove number not implemented
     fen_str[j] = '\0';
-}
-
-void clear_position(info *pstn) {
-    for (int i = A1; i <= A8; i += 0x10) {
-        memset(pstn->arr + i, 0, 8 * sizeof(int));
-    }
-    memset(pstn->w_pieces, 0, 16 * sizeof(int));
-    memset(pstn->b_pieces, 0, 16 * sizeof(int));
-    free(pstn);
 }

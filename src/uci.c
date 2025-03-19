@@ -1,17 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "constants.h"
 #include "perft.h"
+#include "position.h"
 
 
 int main(void) {
-    info *pstn = new_position(START_POS);
-
-    if (pstn == NULL) {
-        printf("Error: could not initialise position.");
-        return -1;
-    }
-
+    set_position(START_POS);
+    
     while (1) {
         char buf[256];
         
@@ -33,8 +30,7 @@ int main(void) {
             if (cmd == NULL) {
                 continue;
             } else if (strcmp(cmd, "startpos") == 0) {
-                clear_position(pstn);
-                pstn = new_position(START_POS);
+                set_position(START_POS);
                 continue;
             } else if (strcmp(cmd, "fen") != 0) {
                 continue;
@@ -60,7 +56,7 @@ int main(void) {
                 continue;
             }
 
-            pstn = new_position(fen_str);
+            set_position(fen_str);
 
         } else if (strcmp(cmd, "go") == 0) {
             if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "perft") == 0) {
@@ -73,7 +69,7 @@ int main(void) {
                 int n;
                 
                 if ((n = strtol(cmd, &end, 10)) != 0) {
-                    divide(pstn, n);
+                    divide(n);
                 }
             }
         } else if (strcmp(cmd, "quit") == 0) {

@@ -1,10 +1,8 @@
 #ifndef PERFT_H
 #define PERFT_H 1
 
-#include "move_gen.h"
+int perft(int depth);
 
-int perft(info *pstn, int depth);
-
-void divide(info *pstn, int depth);
+void divide(int depth);
 
 #endif

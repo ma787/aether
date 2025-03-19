@@ -1,34 +1,35 @@
 #include <string.h>
-#include "constants.h"
 #include "move.h"
+#include "constants.h"
+#include "position.h"
 #include "utils.h"
 
-move_t encode_move(info *pstn, int start, int dest, int flags) {
+move_t encode_move(int start, int dest, int flags) {
     move_t mv = {start, dest, flags, 0};
 
     if (flags & CAPTURE_FLAG) {
         int cap_pos = (flags == EP_FLAG) ? dest + S : dest;
-        mv.captured_piece = pstn->arr[cap_pos];
+        mv.captured_piece = board[cap_pos];
     }
 
     return mv;
 }
 
-move_t of_string(info *pstn, char *mstr) {
+move_t of_string(char *mstr) {
     int start = string_to_coord(mstr);
     int dest = string_to_coord(mstr + 2);
     int flags = Q_FLAG;
 
-    if (pstn->side == BLACK) {
+    if (side == BLACK) {
         start = flip_square(start);
         dest = flip_square(dest);
     }
 
-    if (pstn->arr[dest]) {
+    if (board[dest]) {
         flags |= CAPTURE_FLAG;
     };
 
-    switch(pstn->arr[start] & 0x0FC) {
+    switch(board[start] & 0x0FC) {
         case KING:
             if (start == E1) {
                 if (dest == C1) {
@@ -41,7 +42,7 @@ move_t of_string(info *pstn, char *mstr) {
         case PAWN:
             if (get_rank(start) == 1 && get_rank(dest) == 3) {
                 flags = DPP_FLAG;
-            } else if (dest == pstn->ep_square) {
+            } else if (dest == ep_square) {
                 flags = EP_FLAG;
             } else if (get_rank(dest) == 7) {
                 flags |= PROMO_FLAG;
@@ -60,14 +61,14 @@ move_t of_string(info *pstn, char *mstr) {
             break;
     }
 
-    return encode_move(pstn, start, dest, flags);
+    return encode_move(start, dest, flags);
 }
 
-void move_to_string(info *pstn, move_t mv, char* mstr) {
+void move_to_string(move_t mv, char* mstr) {
     int start = mv.start;
     int dest = mv.dest;
 
-    if (pstn->side == BLACK) {
+    if (side == BLACK) {
         start = flip_square(start);
         dest = flip_square(dest);
     }
@@ -80,39 +81,39 @@ void move_to_string(info *pstn, move_t mv, char* mstr) {
     }
 }
 
-void move_piece(info *pstn, unsigned int start, unsigned int dest) {
-    unsigned int piece = pstn->arr[start];
-    pstn->arr[start] = 0;
-    pstn->arr[dest] = piece;
-    pstn->w_pieces[piece >> 8] = dest;
+void move_piece(unsigned int start, unsigned int dest) {
+    unsigned int piece = board[start];
+    board[start] = 0;
+    board[dest] = piece;
+    w_pieces[piece >> 8] = dest;
 }
 
-void capture_piece(info *pstn, unsigned int pos) {
-    unsigned int piece = pstn->arr[pos];
-    pstn->arr[pos] = 0;
-    pstn->b_pieces[piece >> 8] = 0;
+void capture_piece(unsigned int pos) {
+    unsigned int piece = board[pos];
+    board[pos] = 0;
+    b_pieces[piece >> 8] = 0;
 }
 
-void update_check(info *pstn, int piece, move_t mv) {
-    pstn->check_info = 0;
-    int k_pos = pstn->b_pieces[0];
+void update_check(int piece, move_t mv) {
+    check_info = 0;
+    int k_pos = b_pieces[0];
     int step_to_king = get_step(mv.dest, k_pos);
 
     // check if the moved piece checks the king
     switch(is_attacking(piece, mv.dest, k_pos)) {
         case CONTACT_CHECK:
-            pstn->check_info = (CONTACT_CHECK | (mv.dest << 2));
+            check_info = (CONTACT_CHECK | (mv.dest << 2));
             break;
         case DISTANT_CHECK:
             int current = mv.dest + step_to_king;
             while (current != k_pos) {
-                if (pstn->arr[current]) {
+                if (board[current]) {
                     break;
                 }
                 current += step_to_king;
             }
             if (current == k_pos) {
-                pstn->check_info = (DISTANT_CHECK | (mv.dest << 2));
+                check_info = (DISTANT_CHECK | (mv.dest << 2));
             }
             break;
     }
@@ -129,16 +130,16 @@ void update_check(info *pstn, int piece, move_t mv) {
 
         for (;;) {
             current += discovered_vec;
-            sq = pstn->arr[current];
+            sq = board[current];
             
             if (
                 (sq & COLOUR_MASK) == WHITE 
                 && is_attacking(sq, current, k_pos) == DISTANT_CHECK
             ) {
-                if (pstn->check_info) {
-                    pstn->check_info |= (DOUBLE_CHECK | (current << 10));
+                if (check_info) {
+                    check_info |= (DOUBLE_CHECK | (current << 10));
                 } else {
-                    pstn->check_info |= (DISTANT_CHECK | (current << 2));
+                    check_info |= (DISTANT_CHECK | (current << 2));
                 }
                 break;
             } else if (sq) {
@@ -148,54 +149,54 @@ void update_check(info *pstn, int piece, move_t mv) {
     }
 }
 
-int make_move(info *pstn, move_t mv) {
+int make_move(move_t mv) {
     int legal = 0;
     int kp_square = 0;
-    save_state(pstn);
+    save_state();
 
     if (mv.flags == EP_FLAG) { goto en_passant; }
 
-    pstn->ep_square = 0;
-    int piece = pstn->arr[mv.start];
+    ep_square = 0;
+    int piece = board[mv.start];
 
     if (piece & PAWN || mv.flags & CAPTURE_FLAG) {
-        pstn->h_clk = 0;
+        h_clk = 0;
     } else {
-        pstn->h_clk++;
+        h_clk++;
     }
 
     if (mv.flags & CAPTURE_FLAG) {
-        capture_piece(pstn, mv.dest);
+        capture_piece(mv.dest);
     }
 
-    move_piece(pstn, mv.start, mv.dest);
+    move_piece(mv.start, mv.dest);
 
     switch(mv.flags) {
         case DPP_FLAG:
-            pstn->ep_square = mv.dest + S;
+            ep_square = mv.dest + S;
             break;
         case K_CASTLE_FLAG:
             kp_square = D1;
-            move_piece(pstn, H1, F1);
+            move_piece(H1, F1);
             break;
         case Q_CASTLE_FLAG:
             kp_square = F1;
-            move_piece(pstn, A1, D1);
+            move_piece(A1, D1);
     }
 
     if (mv.flags & PROMO_FLAG) {
-        unsigned int p_code = pstn->arr[mv.dest] & 0xF00;
-        pstn->arr[mv.dest] = p_code | PROMOTIONS[mv.flags & 3] | WHITE;
+        unsigned int p_code = board[mv.dest] & 0xF00;
+        board[mv.dest] = p_code | PROMOTIONS[mv.flags & 3] | WHITE;
     }
 
     if (piece & KING) {
-        if (is_square_attacked(pstn, mv.dest)) {
+        if (is_square_attacked(mv.dest)) {
             legal = -1; // king left in check
-        } else if (kp_square && is_square_attacked(pstn, kp_square)) {
+        } else if (kp_square && is_square_attacked(kp_square)) {
             legal = -1; // king castles through check
         } else {
-            pstn->c_rights &= 12;
-            update_check(pstn, piece, mv);
+            c_rights &= 12;
+            update_check(piece, mv);
         }
 
         // search for check from castling rook
@@ -205,10 +206,10 @@ int make_move(info *pstn, move_t mv) {
 
             for (;;) {
                 current += N;
-                int sq = pstn->arr[current];
+                int sq = board[current];
 
                 if (sq & KING) {
-                    pstn->check_info = (DISTANT_CHECK | (r_dest << 2));
+                    check_info = (DISTANT_CHECK | (r_dest << 2));
                 } else if (sq) {
                     break;
                 }
@@ -216,21 +217,21 @@ int make_move(info *pstn, move_t mv) {
         }
 
     } else {
-        pstn->c_rights &= (
+        c_rights &= (
             (mv.start != A1)
             | ((mv.start != H1) << 1)
             | ((mv.dest != A8) << 2)
             | ((mv.dest != H8) << 3)
         );
-        update_check(pstn, piece, mv);
+        update_check(piece, mv);
     }
 
-    switch_side(pstn);
-    flip_position(pstn);
+    switch_side();
+    flip_position();
     return legal;
 
     en_passant:
-        int k_pos = pstn->w_pieces[0];
+        int k_pos = w_pieces[0];
         int b_pawn_pos = mv.dest + S;
         int ep_exposed_checker = 0;
 
@@ -245,7 +246,7 @@ int make_move(info *pstn, move_t mv) {
                     continue;
                 }
 
-                int sq = pstn->arr[current];
+                int sq = board[current];
 
                 if (
                     (sq & COLOUR_MASK) == BLACK
@@ -259,7 +260,7 @@ int make_move(info *pstn, move_t mv) {
             }
         }
 
-        int b_king_pos = pstn->b_pieces[0];
+        int b_king_pos = b_pieces[0];
         int step_to_pawn = get_step(b_king_pos, b_pawn_pos);
         int current = b_king_pos;
         int passed_pawn = 0;
@@ -273,7 +274,7 @@ int make_move(info *pstn, move_t mv) {
                     continue;
                 }
 
-                int sq = pstn->arr[current];
+                int sq = board[current];
 
                 if (
                     (sq & COLOUR_MASK) == WHITE
@@ -289,33 +290,33 @@ int make_move(info *pstn, move_t mv) {
             }
         }
 
-        move_piece(pstn, mv.start, mv.dest);
-        capture_piece(pstn, b_pawn_pos);
-        pstn->h_clk = 0;
-        pstn->ep_square = 0;
-        update_check(pstn, WHITE | PAWN, mv);
+        move_piece(mv.start, mv.dest);
+        capture_piece(b_pawn_pos);
+        h_clk = 0;
+        ep_square = 0;
+        update_check(WHITE | PAWN, mv);
 
         if (ep_exposed_checker) {
-            if (pstn->check_info) {
-                pstn->check_info |= (DOUBLE_CHECK | (ep_exposed_checker << 10));
+            if (check_info) {
+                check_info |= (DOUBLE_CHECK | (ep_exposed_checker << 10));
             } else {
-                pstn->check_info = (DISTANT_CHECK | (ep_exposed_checker << 2));
+                check_info = (DISTANT_CHECK | (ep_exposed_checker << 2));
             }
         }
 
-        switch_side(pstn);
-        flip_position(pstn);
+        switch_side();
+        flip_position();
         return legal;
 }
 
-void unmake_move(info *pstn, move_t mv) {
-    flip_position(pstn);
-    switch_side(pstn);
-    move_piece(pstn, mv.dest, mv.start);
+void unmake_move(move_t mv) {
+    flip_position();
+    switch_side();
+    move_piece(mv.dest, mv.start);
 
     if (mv.flags & PROMO_FLAG) {
-        unsigned int p_code = pstn->arr[mv.start] & 0xF00;
-        pstn->arr[mv.start] = p_code | PAWN | WHITE;
+        unsigned int p_code = board[mv.start] & 0xF00;
+        board[mv.start] = p_code | PAWN | WHITE;
     }
 
     if (mv.flags & CAPTURE_FLAG) {
@@ -324,18 +325,18 @@ void unmake_move(info *pstn, move_t mv) {
             cap_pos += S;
         }
 
-        pstn->arr[cap_pos] = mv.captured_piece;
-        pstn->b_pieces[mv.captured_piece >> 8] = cap_pos;
+        board[cap_pos] = mv.captured_piece;
+        b_pieces[mv.captured_piece >> 8] = cap_pos;
     }
 
     switch(mv.flags) {
         case K_CASTLE_FLAG:
-            move_piece(pstn, F1, H1);
+            move_piece(F1, H1);
             break;
         case Q_CASTLE_FLAG:
-            move_piece(pstn, D1, A1);
+            move_piece(D1, A1);
             break;
     }
 
-    restore_state(pstn);
+    restore_state();
 }

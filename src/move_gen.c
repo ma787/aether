@@ -1,22 +1,25 @@
-#include "move_gen.h"
-#include "utils.h"
 #include <stdlib.h>
+#include "move_gen.h"
+#include "constants.h"
+#include "position.h"
+#include "utils.h"
 
-void add_move(info *pstn, int start, int dest, int flags, move_list *moves) {
+
+void add_move(int start, int dest, int flags, move_list *moves) {
     if (flags & PROMO_FLAG) {
         for (int i = 0; i < 4; i++) {
-            moves->moves[moves->index++] = encode_move(pstn, start, dest, flags | i);
+            moves->moves[moves->index++] = encode_move(start, dest, flags | i);
         }
         
     } else {
-        moves->moves[moves->index++] = encode_move(pstn, start, dest, flags);
+        moves->moves[moves->index++] = encode_move(start, dest, flags);
     }
 }
 
-void gen_pawn_move(info *pstn, int pos, int vec, move_list *moves) {
+void gen_pawn_move(int pos, int vec, move_list *moves) {
     int flags = Q_FLAG;
     int current = pos + vec;
-    int sq = pstn->arr[current];
+    int sq = board[current];
 
     if (get_rank(current) == 7) {
         flags |= PROMO_FLAG;
@@ -27,13 +30,13 @@ void gen_pawn_move(info *pstn, int pos, int vec, move_list *moves) {
             return;
         }
 
-        if (get_rank(current) == 2 && !(pstn->arr[current + vec])) {
-            add_move(pstn, pos, current + vec, DPP_FLAG, moves);
+        if (get_rank(current) == 2 && !(board[current + vec])) {
+            add_move(pos, current + vec, DPP_FLAG, moves);
         }
     } else {
         flags |= CAPTURE_FLAG;
         if ((sq & COLOUR_MASK) != BLACK) {
-            if (current == pstn->ep_square && !sq) {
+            if (current == ep_square && !sq) {
                 flags |= EP_FLAG;
             } else {
                 return;
@@ -41,40 +44,40 @@ void gen_pawn_move(info *pstn, int pos, int vec, move_list *moves) {
         }
     }
 
-    add_move(pstn, pos, current, flags, moves);
+    add_move(pos, current, flags, moves);
 }
 
-void gen_step(info *pstn, int pos, int vec, move_list *moves) {
+void gen_step(int pos, int vec, move_list *moves) {
     int current = pos + vec;
-    int sq = pstn->arr[current];
+    int sq = board[current];
 
     if ((sq & COLOUR_MASK) == BLACK) {
-        add_move(pstn, pos, current, CAPTURE_FLAG, moves);
+        add_move(pos, current, CAPTURE_FLAG, moves);
     } else if (!sq) {
-        add_move(pstn, pos, current, Q_FLAG, moves);
+        add_move(pos, current, Q_FLAG, moves);
     }
 }
 
-void gen_slider(info *pstn, int pos, int vec, move_list *moves) {
+void gen_slider(int pos, int vec, move_list *moves) {
     int current = pos;
 
     for (;;) {
         current += vec;
-        int sq = pstn->arr[current];
+        int sq = board[current];
 
         if (!sq) {
-            add_move(pstn, pos, current, Q_FLAG, moves);
+            add_move(pos, current, Q_FLAG, moves);
             continue;
         } else if ((sq & COLOUR_MASK) == BLACK) {
-            add_move(pstn, pos, current, CAPTURE_FLAG, moves);
+            add_move(pos, current, CAPTURE_FLAG, moves);
         }
 
         return;
     }
 }
 
-void gen_moves_from_position(info *pstn, int pos, move_list *moves) {
-    int p_type = pstn->arr[pos] & 0xFC;
+void gen_moves_from_position(int pos, move_list *moves) {
+    int p_type = board[pos] & 0xFC;
     MOVE_GENERATOR gen;
 
     if (p_type & (BISHOP | ROOK | QUEEN)) {
@@ -86,13 +89,13 @@ void gen_moves_from_position(info *pstn, int pos, move_list *moves) {
     }
 
     for (int i = 0; i < N_VECS[p_type]; i++) {
-        gen(pstn, pos, MOVE_SETS[p_type][i], moves);
+        gen(pos, MOVE_SETS[p_type][i], moves);
     }
 }
 
-void gen_moves_in_check(info *pstn, int pos, move_list *moves) {
-    int piece = pstn->arr[pos];
-    int checker = (pstn->check_info >> 2) & 0xFF;
+void gen_moves_in_check(int pos, move_list *moves) {
+    int piece = board[pos];
+    int checker = (check_info >> 2) & 0xFF;
     int vec = get_step(pos, checker);
 
     // attempt to capture the checker
@@ -102,7 +105,7 @@ void gen_moves_in_check(info *pstn, int pos, move_list *moves) {
         int flags = CAPTURE_FLAG;
 
         while (current != checker) {
-            if (pstn->arr[current]) {
+            if (board[current]) {
                 blocked = 1;
                 break;
             }
@@ -113,20 +116,20 @@ void gen_moves_in_check(info *pstn, int pos, move_list *moves) {
             if ((piece & PAWN) && get_rank(checker) == 7) {
                 flags |= PROMO_FLAG;
             }
-            add_move(pstn, pos, checker, flags, moves);
+            add_move(pos, checker, flags, moves);
         }
     }
 
-    if ((checker == (pstn->ep_square + S)) && (piece & PAWN) && is_attacking(piece, pos, pstn->ep_square)) {
-        add_move(pstn, pos, pstn->ep_square, EP_FLAG, moves);
+    if ((checker == (ep_square + S)) && (piece & PAWN) && is_attacking(piece, pos, ep_square)) {
+        add_move(pos, ep_square, EP_FLAG, moves);
     }
 
     // generate moves which might block the checker
-    int k_pos = pstn->w_pieces[0];
+    int k_pos = w_pieces[0];
     int k_step = get_step(k_pos, checker);
     move_list *blocking_moves = malloc(sizeof(move_list));
     blocking_moves->index = 0;
-    gen_moves_from_position(pstn, pos, blocking_moves);
+    gen_moves_from_position(pos, blocking_moves);
 
     // check if each move actually blocks the checker
     for (int i = 0; i < blocking_moves->index; i++) {
@@ -146,13 +149,13 @@ void gen_moves_in_check(info *pstn, int pos, move_list *moves) {
     free(blocking_moves);
 }
 
-int find_pinned_piece(info *pstn, int vec, int *pinned_loc) {
+int find_pinned_piece(int vec, int *pinned_loc) {
     int possible_pin = 0;
-    int current = pstn->w_pieces[0];
+    int current = w_pieces[0];
 
     for (;;) {
         current += vec;
-        int sq = pstn->arr[current];
+        int sq = board[current];
 
         switch (sq & COLOUR_MASK) {
             case G:
@@ -165,7 +168,7 @@ int find_pinned_piece(info *pstn, int vec, int *pinned_loc) {
                 *pinned_loc = current;
                 break;
             case BLACK:
-                if (possible_pin && is_attacking(sq, current, pstn->w_pieces[0])) {
+                if (possible_pin && is_attacking(sq, current, w_pieces[0])) {
                     return 1;
                 }
                 return 0;
@@ -173,20 +176,20 @@ int find_pinned_piece(info *pstn, int vec, int *pinned_loc) {
     }
 }
 
-int gen_pinned_pieces(info *pstn, move_list *moves, int *piece_locs) {
+int gen_pinned_pieces(move_list *moves, int *piece_locs) {
     int pinned_pieces[15];
     int n_pinned = 0;
 
     for (int i = 0; i < 8; i++) {
         int vec = KING_OFFS[i];
         int pinned_loc = 0;
-        int is_pinned = find_pinned_piece(pstn, vec, &pinned_loc);
+        int is_pinned = find_pinned_piece(vec, &pinned_loc);
 
         if (is_pinned) {
-            int pinned_piece = pstn->arr[pinned_loc];
+            int pinned_piece = board[pinned_loc];
             pinned_pieces[n_pinned++] = pinned_loc;
 
-            if (pstn->check_info) {
+            if (check_info) {
                 continue;
             }
 
@@ -212,14 +215,14 @@ int gen_pinned_pieces(info *pstn, move_list *moves, int *piece_locs) {
                 gen = gen_pawn_move;
             }
 
-            gen(pstn, pinned_loc, vec, moves);
+            gen(pinned_loc, vec, moves);
         }
     }
     
     int piece_locs_index = 0;
 
     for (int i = 1; i < 16; i++) {
-        int pos = pstn->w_pieces[i];
+        int pos = w_pieces[i];
 
         if (!pos) {
             continue;
@@ -242,33 +245,33 @@ int gen_pinned_pieces(info *pstn, move_list *moves, int *piece_locs) {
     return piece_locs_index;
 }
 
-void all_moves(info *pstn, move_list *moves) {
+void all_moves(move_list *moves) {
     int piece_locs[15];
-    int len = gen_pinned_pieces(pstn, moves, piece_locs);
+    int len = gen_pinned_pieces(moves, piece_locs);
 
     // generate king moves
-    gen_moves_from_position(pstn, pstn->w_pieces[0], moves);
+    gen_moves_from_position(w_pieces[0], moves);
 
-    int check = pstn->check_info & 3;
+    int check = check_info & 3;
 
     if (check == NO_CHECK) {
         for (int i = 0; i < len; i++) {
-            gen_moves_from_position(pstn, piece_locs[i], moves);
+            gen_moves_from_position(piece_locs[i], moves);
         }
 
-        if (pstn->c_rights & WHITE_KINGSIDE && !(pstn->arr[F1] | pstn->arr[G1])) {
-            add_move(pstn, E1, G1, K_CASTLE_FLAG, moves);
+        if (c_rights & WHITE_KINGSIDE && !(board[F1] | board[G1])) {
+            add_move(E1, G1, K_CASTLE_FLAG, moves);
         }
 
         if (
-            pstn->c_rights & WHITE_QUEENSIDE
-            && !(pstn->arr[B1] | pstn->arr[C1] | pstn->arr[D1])
+            c_rights & WHITE_QUEENSIDE
+            && !(board[B1] | board[C1] | board[D1])
         ) {
-            add_move(pstn, E1, C1, Q_CASTLE_FLAG, moves);
+            add_move(E1, C1, Q_CASTLE_FLAG, moves);
         }
     } else if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
         for (int i = 0; i < len; i++) {
-            gen_moves_in_check(pstn, piece_locs[i], moves);
+            gen_moves_in_check(piece_locs[i], moves);
         }
     }
 }
