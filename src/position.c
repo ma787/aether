@@ -250,7 +250,7 @@ int set_position(char *fen_str) {
         return -1;
     }
 
-    side = fen_str[idx++] == 'w' ? WHITE : BLACK;
+    side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
     c_rights = 0;
 
     if (fen_str[++idx] == '-') {    
@@ -279,24 +279,35 @@ int set_position(char *fen_str) {
 
     while (i <= H8) {
         int sq = board[i];
-        int off;
+        int colour = sq & COLOUR_MASK;
 
-        switch (sq & COLOUR_MASK) {
+        if (!sq) {
+            i++;
+            continue;
+        }
+
+        if (sq & KING) {
+            if (colour == WHITE) {
+                w_pieces[0] = i++;
+            } else {
+                b_pieces[0] = i++;
+            }
+            continue;
+        }
+
+        switch (colour) {
             case G:
                 i += 8;
                 continue;
             case WHITE:
-                off = sq & KING ? 0 : w_off++;
-                w_pieces[off] = i;
-                board[i] |= (off << 8);
+                w_pieces[w_off] = i;
+                board[i++] |= (w_off++ << 8);
                 break;
             case BLACK:
-                off = sq & KING ? 0 : b_off++;
-                b_pieces[off] = i;
-                board[i] |= (off << 8);
+                b_pieces[b_off] = i;
+                board[i++] |= (b_off++ << 8);
                 break;
         }
-        i++;
     }
 
     set_check();

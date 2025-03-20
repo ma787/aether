@@ -2,13 +2,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include "constants.h"
-#include "perft.h"
 #include "position.h"
+#include "move.h"
+#include "perft.h"
 
 
 int main(void) {
     set_position(START_POS);
-    
+
     while (1) {
         char buf[256];
         
@@ -25,9 +26,7 @@ int main(void) {
         }
 
         if (strcmp(cmd, "position") == 0) {
-            cmd = strtok(NULL, " ");
-
-            if (cmd == NULL) {
+            if ((cmd = strtok(NULL, " ")) == NULL) {
                 continue;
             } else if (strcmp(cmd, "startpos") == 0) {
                 set_position(START_POS);
@@ -36,12 +35,11 @@ int main(void) {
                 continue;
             }
 
-            int res = 0;
             char fen_str[92];
+            int res = 0;
 
             for (int i = 2; i < 8; i++) {
-                cmd = strtok(NULL, " ");
-                if (cmd == NULL) {
+                if ((cmd = strtok(NULL, " ")) == NULL) {
                     res = -1;
                     break;
                 }
@@ -53,15 +51,22 @@ int main(void) {
             fen_str[end - 1] = '\0';
 
             if (res != 0 || fen_match(fen_str) != 0) {
+                fen_str[0] = '\0';
                 continue;
             }
 
             set_position(fen_str);
+            fen_str[0] = '\0';
+
+            if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "moves") == 0) {
+                while ((cmd = strtok(NULL, " ")) != NULL) {
+                    make_move(of_string(cmd));
+                }
+            }
 
         } else if (strcmp(cmd, "go") == 0) {
             if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "perft") == 0) {
-                cmd = strtok(NULL, " ");
-                if (cmd == NULL) {
+                if ((cmd = strtok(NULL, " ")) == NULL) {
                     continue;
                 }
 

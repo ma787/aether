@@ -94,13 +94,13 @@ void capture_piece(unsigned int pos) {
     b_pieces[piece >> 8] = 0;
 }
 
-void update_check(int piece, move_t mv) {
+void update_check(move_t mv) {
     check_info = 0;
     int k_pos = b_pieces[0];
     int step_to_king = get_step(mv.dest, k_pos);
 
     // check if the moved piece checks the king
-    switch(is_attacking(piece, mv.dest, k_pos)) {
+    switch(is_attacking(board[mv.dest], mv.dest, k_pos)) {
         case CONTACT_CHECK:
             check_info = (CONTACT_CHECK | (mv.dest << 2));
             break;
@@ -176,11 +176,11 @@ int make_move(move_t mv) {
             ep_square = mv.dest + S;
             break;
         case K_CASTLE_FLAG:
-            kp_square = D1;
+            kp_square = F1;
             move_piece(H1, F1);
             break;
         case Q_CASTLE_FLAG:
-            kp_square = F1;
+            kp_square = D1;
             move_piece(A1, D1);
     }
 
@@ -195,13 +195,13 @@ int make_move(move_t mv) {
         } else if (kp_square && is_square_attacked(kp_square)) {
             legal = -1; // king castles through check
         } else {
-            c_rights &= 12;
-            update_check(piece, mv);
+            c_rights &= (((mv.dest != A8) << 2) | ((mv.dest != H8) << 3));
+            update_check(mv);
         }
 
         // search for check from castling rook
         if (kp_square) {
-            int r_dest = K_CASTLE_FLAG ? F1 : D1;
+            int r_dest = (mv.flags == K_CASTLE_FLAG) ? F1 : D1;
             int current = r_dest;
 
             for (;;) {
@@ -223,7 +223,7 @@ int make_move(move_t mv) {
             | ((mv.dest != A8) << 2)
             | ((mv.dest != H8) << 3)
         );
-        update_check(piece, mv);
+        update_check(mv);
     }
 
     switch_side();
@@ -294,7 +294,7 @@ int make_move(move_t mv) {
         capture_piece(b_pawn_pos);
         h_clk = 0;
         ep_square = 0;
-        update_check(WHITE | PAWN, mv);
+        update_check(mv);
 
         if (ep_exposed_checker) {
             if (check_info) {

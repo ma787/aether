@@ -192,30 +192,22 @@ int gen_pinned_pieces(move_list *moves, int *piece_locs) {
             if (check_info) {
                 continue;
             }
-
-            if (!(is_attacking(pinned_piece, pinned_loc, pinned_loc + vec))) {
-                if (
-                    pinned_piece & PAWN
-                    && (vec == S || is_attacking(WHITE | PAWN, pinned_loc, pinned_loc - vec))
-                ) {
-                    vec *= -1;
-                } else {
+            
+            if (pinned_piece & PAWN) {
+                if (vec == N || vec == S) {
+                    gen_pawn_move(pinned_loc, N, moves);
+                } else if (is_attacking(pinned_piece, pinned_loc, pinned_loc + vec)) {
+                    gen_pawn_move(pinned_loc, vec, moves);
+                } else if (is_attacking(pinned_piece, pinned_loc, pinned_loc - vec)) {
+                    gen_pawn_move(pinned_loc, -vec, moves);
+                }
+            } else if (pinned_piece & (BISHOP | ROOK | QUEEN)) {
+                if (!(is_attacking(pinned_piece, pinned_loc, pinned_loc + vec))) {
                     continue;
                 }
+                gen_slider(pinned_loc, vec, moves);
+                gen_slider(pinned_loc, -vec, moves);
             }
-
-            int p_type = pinned_piece & 0xFC;
-            MOVE_GENERATOR gen;
-
-            if (p_type & (BISHOP | ROOK | QUEEN)) {
-                gen = gen_slider;
-            } else if (p_type & KNIGHT) {
-                gen = gen_step;
-            } else {
-                gen = gen_pawn_move;
-            }
-
-            gen(pinned_loc, vec, moves);
         }
     }
     
