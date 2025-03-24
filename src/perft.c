@@ -5,11 +5,12 @@
 #include "move_gen.h"
 
 
-int perft(int depth) {
+uint64_t perft(int depth) {
     if (depth == 0) {
         return 1;
     }
-    int total = 0;
+    uint64_t total = 0UL;
+
     move_list *moves = malloc(sizeof(move_list));
     moves->index = 0;
     all_moves(moves);
@@ -31,7 +32,7 @@ void divide(int depth) {
         return;
     }
 
-    int total = 0;
+    uint64_t total = 0;
     move_list *moves = malloc(sizeof(move_list));
     moves->index = 0;
     all_moves(moves);
@@ -41,13 +42,13 @@ void divide(int depth) {
         char mstr[6];
         move_to_string(mv, mstr);
         if (make_move(mv) == 0) {
-            int n = perft(depth - 1);
+            uint64_t n = perft(depth - 1);
             total += n;
-            printf("%s %d\n", mstr, n);
+            printf("%s %lu\n", mstr, n);
         }
         unmake_move(mv);
     }
 
     free(moves);
-    printf("\n%d\n", total);
+    printf("\n%lu\n", total);
 }

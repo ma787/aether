@@ -14,6 +14,7 @@ test:
 	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/utils.c -I $(INC_DIR) -o $(BUILD_DIR)/utils.o
 	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/position.c -I $(INC_DIR) -o $(BUILD_DIR)/position.o
 	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/move.c -I $(INC_DIR) -o $(BUILD_DIR)/move.o
+	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/hashing.c -I $(INC_DIR) -o $(BUILD_DIR)/hashing.o
 	gcc -c $(DEBUG_FLAGS) $(TEST_DIR)/tests.c -I $(INC_DIR) -o $(BUILD_DIR)/tests.o
 	gcc -o $(BUILD_DIR)/tests $(BUILD_DIR)/*.o
 

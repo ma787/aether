@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H 1
 
+#include "stdint.h"
+
 #define STACK_SIZE 50
 #define MOVE_LIST_SIZE 256
 
@@ -73,5 +75,7 @@ extern int *MOVE_SETS[];
 
 extern unsigned int MOVE_TABLE[239];
 extern unsigned int UNIT_VEC[239];
+
+extern uint64_t HASH_VALUES[781];
 
 #endif

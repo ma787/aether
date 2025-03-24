@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "move.h"
 #include "position.h"
+#include "hashing.h"
 
 int test_fen(char *fen_str){
     char parsed_str[92];
@@ -99,13 +100,13 @@ int main(void) {
 
     /* is_square_attacked tests */
 
-    assert(set_position("rnb1kbnr/1pp1pppp/p7/8/2p5/NQ1qB3/PP2PPPP/R3KBNR w KQkq - 0 6") == 0);
+    assert(set_position("rnb1kbnr/1pp1pppp/p7/8/2p5/NQ1qB3/PP2PPPP/R3KBNR w KQkq - 0 1") == 0);
     assert(is_square_attacked(D1));
 
     assert(set_position("r3k2r/p1ppqpb1/bn2pnN1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1") == 0);
     assert(is_square_attacked(E7));
 
-    assert(set_position("r3k2r/Pppp1ppp/5nbN/nP6/BBP1P3/q4N2/Pp1P1bPP/R2Q2K1 w kq - 0 2") == 0);
+    assert(set_position("r3k2r/Pppp1ppp/5nbN/nP6/BBP1P3/q4N2/Pp1P1bPP/R2Q2K1 w kq - 0 1") == 0);
     assert(is_square_attacked(G1));
 
     assert(set_position("r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1") == 0);
@@ -314,17 +315,81 @@ int main(void) {
     assert(make_move(of_string("d1d7")) == 0);
     assert(check_info == (CONTACT_CHECK | (D2 << 2)));
 
-    assert(set_position("r6r/Pp1pkppp/1P3nbN/nPp5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w - c6 0 3") == 0);
+    assert(set_position("r6r/Pp1pkppp/1P3nbN/nPp5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w - c6 0 1") == 0);
     assert(make_move(of_string("b5c6")) == 0);
     assert(check_info == (DISTANT_CHECK | (B5 << 2)));
 
-    assert(set_position("2kr3r/p2pqpb1/bn2pnp1/2pPN3/1p2P3/2Q4p/PPPBBPPP/RN2K2R w KQ c6 0 3") == 0);
+    assert(set_position("2kr3r/p2pqpb1/bn2pnp1/2pPN3/1p2P3/2Q4p/PPPBBPPP/RN2K2R w KQ c6 0 1") == 0);
     assert(make_move(of_string("d5c6")) == 0);
     assert(check_info == NO_CHECK);
 
     assert(set_position("4k2r/8/8/8/8/8/8/5K2 b k - 1 1") == 0);
     assert(make_move(of_string("e8g8")) == 0);
     assert(check_info == (DISTANT_CHECK | (F8 << 2)));
+
+    /* update_hash tests */
+
+    uint64_t new_hash;
+
+    assert(set_position(START_POS) == 0);
+    mv = of_string("a2a3");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 1") == 0);
+    mv = of_string("e7e6");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position(START_POS) == 0);
+    mv = of_string("b1c3");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/p1pppppp/8/1p6/8/2N5/PPPPPPPP/R1BQKBNR w KQkq b6 0 1") == 0);
+    mv = of_string("c3b5");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/ppppppp1/7p/2P5/8/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1") == 0);
+    mv = of_string("b7b5");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1") == 0);
+    mv = of_string("d5e6");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/p1pppppp/8/8/Pp6/6PP/1PPPPP2/RNBQKBNR b KQkq a3 0 1") == 0);
+    mv = of_string("b4a3");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1") == 0);
+    mv = of_string("e1c1");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1") == 0);
+    mv = of_string("e1g1");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
+
+    assert(set_position("r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1") == 0);
+    mv = of_string("b7b8q");
+    new_hash = update_hash(zobrist_hash(), mv);
+    assert(make_move(mv) == 0);
+    assert(zobrist_hash() == new_hash);
 
     return 0;
 }

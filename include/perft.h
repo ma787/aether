@@ -1,7 +1,9 @@
 #ifndef PERFT_H
 #define PERFT_H 1
 
-int perft(int depth);
+#include <stdint.h>
+
+uint64_t perft(int depth);
 
 void divide(int depth);
 
