@@ -37,7 +37,7 @@ int evaluate() {
     return score;
 }
 
-int negamax(int depth) {
+int alpha_beta(int alpha, int beta, int depth) {
     if (depth == 0) {
         return evaluate();
     }
@@ -51,9 +51,19 @@ int negamax(int depth) {
     for (int i = 0; i < moves->index; i++) {
         move_t mv = moves->moves[i];
         if (make_move(mv) == 0) {
-            int new_score = -negamax(depth - 1);
+            int new_score = -alpha_beta(-beta, -alpha, depth - 1);
             if (new_score > score) {
                 score = new_score;
+            }
+
+            if (score >= beta) {
+                unmake_move(mv);
+                free(moves);
+                return beta;
+            }
+
+            if (score > alpha) {
+                alpha = score;
             }
         }
         unmake_move(mv);
@@ -80,7 +90,7 @@ void search(int depth, char *best_move) {
         move_t mv = moves->moves[i];
         int new_score = score;
         if (make_move(mv) == 0) {
-            new_score = -negamax(depth - 1);
+            new_score = -alpha_beta(-100000, 100000, depth - 1);
         }
         unmake_move(mv);
         if (new_score > score) {
