@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "constants.h"
+#include "engine.h"
 #include "position.h"
 #include "move.h"
 #include "perft.h"
@@ -65,18 +66,33 @@ int main(void) {
             }
 
         } else if (strcmp(cmd, "go") == 0) {
-            if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "perft") == 0) {
-                if ((cmd = strtok(NULL, " ")) == NULL) {
-                    continue;
+            if ((cmd = strtok(NULL, " ")) != NULL) {
+                if (strcmp(cmd, "perft") == 0) {
+                    if ((cmd = strtok(NULL, " ")) == NULL) {
+                        continue;
+                    }
+    
+                    char *end;
+                    int n;
+                    
+                    if ((n = strtol(cmd, &end, 10)) != 0) {
+                        divide(n);
+                    }
+                } else if (strcmp(cmd, "depth") == 0) {
+                    if ((cmd = strtok(NULL, " ")) == NULL) {
+                        continue;
+                    }
+    
+                    char *end;
+                    int n;
+                    
+                    if ((n = strtol(cmd, &end, 10)) != 0) {
+                        char best_move[6];
+                        search(n, best_move);
+                        printf("%s\n", best_move);
+                    }
                 }
-
-                char *end;
-                int n;
-                
-                if ((n = strtol(cmd, &end, 10)) != 0) {
-                    divide(n);
-                }
-            }
+            } 
         } else if (strcmp(cmd, "quit") == 0) {
             return 0;
         } else if (strcmp(cmd, "uci") == 0) {
