@@ -3,8 +3,13 @@
 
 #include "stdint.h"
 
+#define NAME "Aether"
+#define AUTHOR "Mohamed Omar"
+
 #define STACK_SIZE 50
 #define MOVE_LIST_SIZE 256
+
+#define START_POS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define WHITE 1U
 #define BLACK (WHITE << 1)
@@ -52,9 +57,6 @@ enum SQUARES {
     A8 = 0xB4, B8, C8, D8, E8, F8, G8, H8,
 };
 
-extern char *NAME;
-extern char *AUTHOR;
-extern char *START_POS;
 extern char *FILES;
 extern char *COORDS[64];
 extern unsigned int PIECES[];

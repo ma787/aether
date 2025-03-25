@@ -104,7 +104,7 @@ int main(void) {
         } else if (strcmp(cmd, "uci") == 0) {
             printf("id name %s\n", NAME);
             printf("id author %s\n", AUTHOR);
-            printf("uciok");
+            printf("uciok\n");
         } else if (strcmp(cmd, "quit") == 0) {
             return 0;
         }

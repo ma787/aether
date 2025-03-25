@@ -138,7 +138,7 @@ int is_square_attacked(int pos) {
     return 0;
 }
 
-void flip_position() {
+void flip_position(void) {
     c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
 
     // swap pointers for white and black piece lists
@@ -181,7 +181,7 @@ void flip_position() {
     };
 }
 
-void set_check() {
+void set_check(void) {
     int flipped = 0;
     if (side == WHITE) {
         flipped = 1;
@@ -318,9 +318,9 @@ int set_position(char *fen_str) {
     return 0;
 }
 
-void switch_side() { side = ~side & 3; }
+void switch_side(void) { side = ~side & 3; }
 
-void save_state() {
+void save_state(void) {
     state_t state = {
         .c_rights = c_rights,
         .ep_square = ep_square,
@@ -331,7 +331,7 @@ void save_state() {
     prev_state[++top] = state;
 }
 
-void restore_state() {
+void restore_state(void) {
     state_t state = prev_state[top--];
 
     c_rights = state.c_rights;

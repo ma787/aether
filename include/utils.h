@@ -19,4 +19,6 @@ int string_to_coord(char *sqr_str);
 
 char* coord_to_string(int pos);
 
+int get_time(void);
+
 #endif

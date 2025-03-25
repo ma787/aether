@@ -5,7 +5,7 @@
 #include "position.h"
 #include "move_gen.h"
 
-int evaluate() {
+int evaluate(void) {
     int score = 0, i = 0x44;
 
     while (i < 0xBC) {

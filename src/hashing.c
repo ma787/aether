@@ -28,7 +28,7 @@ uint64_t get_hash(uint64_t pos, uint64_t piece) {
     return 0;
 }
 
-uint64_t zobrist_hash() {
+uint64_t zobrist_hash(void) {
     uint64_t z_hash = 0;
     int i = 0x44;
     int flipped = 0;

@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <sys/time.h>
 #include "constants.h"
 
 int get_rank(int pos) { return (pos >> 4) - 4; }
@@ -31,3 +33,9 @@ int string_to_coord(char *sqr_str) {
 }
 
 char* coord_to_string(int pos) { return COORDS[to_index(pos)]; }
+
+int get_time(void) {
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    return (t.tv_sec * 1000) + (t.tv_usec / 1000);
+}

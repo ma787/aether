@@ -10,16 +10,16 @@ extern unsigned int check_info;
 int set_position(char *fen_str);
 
 /* Changes the side to move. */
-void switch_side();
+void switch_side(void);
 
 /* Saves the irreversible state of a position. */
-void save_state();
+void save_state(void);
 
 /* Restores the irreversible state of a position. */
-void restore_state();
+void restore_state(void);
 
 /* Vertically flips the board array and inverts position state incl. piece lists. */
-void flip_position();
+void flip_position(void);
 
 /* Determines whether a square is attacked by black.
 
