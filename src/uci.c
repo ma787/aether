@@ -7,6 +7,8 @@
 #include "move.h"
 #include "perft.h"
 
+char fen_str[92];
+char best_move[6];
 
 int main(void) {
     set_position(START_POS);
@@ -36,8 +38,8 @@ int main(void) {
                 continue;
             }
 
-            char fen_str[92];
             int res = 0;
+            fen_str[0] = '\0';
 
             for (int i = 2; i < 8; i++) {
                 if ((cmd = strtok(NULL, " ")) == NULL) {
@@ -56,7 +58,10 @@ int main(void) {
                 continue;
             }
 
-            set_position(fen_str);
+            if (set_position(fen_str) != 0) {
+                return -1;
+            }
+            
             fen_str[0] = '\0';
 
             if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "moves") == 0) {
@@ -87,18 +92,21 @@ int main(void) {
                     int n;
                     
                     if ((n = strtol(cmd, &end, 10)) != 0) {
-                        char best_move[6];
                         search(n, best_move);
                         printf("%s\n", best_move);
                     }
                 }
             } 
-        } else if (strcmp(cmd, "quit") == 0) {
-            return 0;
+        } else if (strcmp(cmd, "d") == 0) {
+            char fen_str[92];
+            to_fen(fen_str);
+            printf("%s\n", fen_str);
         } else if (strcmp(cmd, "uci") == 0) {
             printf("id name %s\n", NAME);
             printf("id author %s\n", AUTHOR);
             printf("uciok");
+        } else if (strcmp(cmd, "quit") == 0) {
+            return 0;
         }
     }
 }
