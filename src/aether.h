@@ -148,7 +148,7 @@ extern unsigned int check_info;
 extern uint64_t board_hash;
 
 extern HASH_TABLE pv_table[1];
-extern int PV_LINE[MAX_DEPTH];
+extern int pv_line[MAX_DEPTH];
 
 /* functions to set/update/modify the current position */
 
