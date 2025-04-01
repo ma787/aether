@@ -122,6 +122,16 @@ typedef struct {
 
 typedef void (*MOVE_GENERATOR)(int, int, move_list*);
 
+typedef struct {
+    uint64_t key;
+    int best_move;
+} TABLE_ENTRY;
+
+typedef struct {
+    TABLE_ENTRY *table;
+    int n_entries;
+} HASH_TABLE;
+
 /* board and position state definitions */
 
 extern int prev_state[STACK_SIZE];
@@ -135,6 +145,11 @@ extern unsigned int c_rights;
 extern unsigned int ep_square;
 extern unsigned int h_clk;
 extern unsigned int check_info;
+
+extern uint64_t board_hash;
+
+extern HASH_TABLE pv_table[1];
+extern int PV_LINE[MAX_DEPTH];
 
 /* functions to set/update/modify the current position */
 
@@ -173,8 +188,16 @@ void divide(int depth);
 
 /* hashing-related functions */
 
-uint64_t zobrist_hash(void);
-uint64_t update_hash(uint64_t z_hash, int mv);
+void set_hash(void);
+void update_hash(int mv);
+
+void clear_table(void);
+void init_table(void);
+
+void store_move(int mv);
+int get_pv_move(void);
+
+int get_pv_line(int depth);
 
 /* engine search functions */
 

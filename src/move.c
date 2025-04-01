@@ -121,6 +121,7 @@ int make_move(int mv) {
     int legal = 0;
     int kp_square = 0;
     save_state();
+    update_hash(mv);
 
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
 
@@ -312,4 +313,16 @@ void unmake_move(int mv) {
     }
 
     restore_state();
+
+    bool flipped = false;
+    if (side == BLACK) {
+        flip_position();
+        flipped = true;
+    }
+
+    set_hash();
+
+    if (flipped) {
+        flip_position();
+    }
 }

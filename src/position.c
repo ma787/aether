@@ -35,6 +35,10 @@ unsigned int ep_square = 0;
 unsigned int h_clk = 0;
 unsigned int check_info = 0;
 
+uint64_t board_hash;
+
+HASH_TABLE pv_table[1];
+
 void flip_position(void) {
     c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
 
@@ -242,7 +246,10 @@ int set_position(char *fen_str) {
         }
     }
 
+    init_table();
+    set_hash();
     set_check();
+
     if (side == BLACK) {
         flip_position();
     }

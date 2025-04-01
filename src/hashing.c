@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "aether.h"
 
 uint64_t get_hash(uint64_t pos, uint64_t piece) {
@@ -21,21 +22,15 @@ uint64_t get_hash(uint64_t pos, uint64_t piece) {
     return 0;
 }
 
-uint64_t zobrist_hash(void) {
-    uint64_t z_hash = 0;
+void set_hash(void) {
+    board_hash = 0UL;
     int i = 0x44;
-    int flipped = 0;
-    
-    if (side == BLACK) {
-        flip_position();
-        flipped = 1;
-    }
 
     while (i < 0xBC) {
         int sq = board[i];
         int colour = sq & COLOUR_MASK;
         if (colour == WHITE || colour == BLACK) {
-            z_hash ^= get_hash(i++, sq);
+            board_hash ^= get_hash(i++, sq);
         } else if (colour == G) {
             i += 8;
         } else {
@@ -44,26 +39,21 @@ uint64_t zobrist_hash(void) {
     }
 
     if (side == BLACK) {
-        z_hash ^= HASH_VALUES[SIDE_OFF];
+        board_hash ^= HASH_VALUES[SIDE_OFF];
     }
 
     if (ep_square) {
-        z_hash ^= HASH_VALUES[EP_OFF + get_file(ep_square)];
+        board_hash ^= HASH_VALUES[EP_OFF + get_file(ep_square)];
     }
 
     for (int j = 0; j < 4; j++) {
         if (c_rights & (1 << j)) {
-            z_hash ^= HASH_VALUES[C_OFF + j];
+            board_hash ^= HASH_VALUES[C_OFF + j];
         }
     }
-    
-    if (flipped) {
-        flip_position();
-    }
-    return z_hash;
 }
 
-uint64_t update_hash(uint64_t z_hash, int mv) {
+void update_hash(int mv) {
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
     int piece = board[start];
 
@@ -81,14 +71,14 @@ uint64_t update_hash(uint64_t z_hash, int mv) {
         new_c_rights = ((new_c_rights & 12) >> 2) | ((new_c_rights & 3) << 2);
     }
 
-    z_hash ^= get_hash(start, piece);
-    z_hash ^= get_hash(dest, piece);
+    board_hash ^= get_hash(start, piece);
+    board_hash ^= get_hash(dest, piece);
 
     if (ep_square) {
-        z_hash ^= HASH_VALUES[EP_OFF + get_file(ep_square)];
+        board_hash ^= HASH_VALUES[EP_OFF + get_file(ep_square)];
     }
 
-    z_hash ^= HASH_VALUES[SIDE_OFF];
+    board_hash ^= HASH_VALUES[SIDE_OFF];
 
     if (flags == K_CASTLE_FLAG || flags == Q_CASTLE_FLAG) {
         int r_start = (flags == K_CASTLE_FLAG) ? H1 : A1;
@@ -98,26 +88,27 @@ uint64_t update_hash(uint64_t z_hash, int mv) {
             r_start = flip_square(r_start);
             r_dest = flip_square(r_dest);
 
-            z_hash ^= HASH_VALUES[C_OFF + 2];
-            z_hash ^= HASH_VALUES[C_OFF + 3];
+            board_hash ^= HASH_VALUES[C_OFF + 2];
+            board_hash ^= HASH_VALUES[C_OFF + 3];
         } else {
-            z_hash ^= HASH_VALUES[C_OFF];
-            z_hash ^= HASH_VALUES[C_OFF + 1];
+            board_hash ^= HASH_VALUES[C_OFF];
+            board_hash ^= HASH_VALUES[C_OFF + 1];
         }
         
-        z_hash ^= get_hash(r_start, side | ROOK);
-        z_hash ^= get_hash(r_dest, side | ROOK);
+        board_hash ^= get_hash(r_start, side | ROOK);
+        board_hash ^= get_hash(r_dest, side | ROOK);
 
-        return z_hash;
+        return;
     }
 
     if (flags == DPP_FLAG) {
-        return z_hash ^ HASH_VALUES[EP_OFF + get_file(dest)];
+        board_hash ^= HASH_VALUES[EP_OFF + get_file(dest)];
+        return;
     }
 
     if (flags & PROMO_FLAG) {
-        z_hash ^= get_hash(dest, piece);
-        z_hash ^= get_hash(dest, side | PROMOTIONS[flags & 3]);
+        board_hash ^= get_hash(dest, piece);
+        board_hash ^= get_hash(dest, side | PROMOTIONS[flags & 3]);
     }
 
     if (flags & CAPTURE_FLAG) {
@@ -132,17 +123,50 @@ uint64_t update_hash(uint64_t z_hash, int mv) {
             cap_pos += off;
         }
 
-        z_hash ^= get_hash(cap_pos, cap_piece);
+        board_hash ^= get_hash(cap_pos, cap_piece);
     }
 
     for (int i = 0; i < 4; i++) {
         if (c_rights & i) {
-            z_hash ^= HASH_VALUES[C_OFF + i];
+            board_hash ^= HASH_VALUES[C_OFF + i];
         }
         if (new_c_rights & i) {
-            z_hash ^= HASH_VALUES[C_OFF + i];
+            board_hash ^= HASH_VALUES[C_OFF + i];
         }
     }
+}
 
-    return z_hash;
+void clear_table(void) {
+    TABLE_ENTRY *t_entry = pv_table->table;
+
+    while (t_entry < pv_table->table + pv_table->n_entries) {
+        t_entry->key = 0UL;
+        t_entry->best_move = NULL_MOVE;
+        t_entry++;
+    }
+}
+
+void init_table(void) {
+    pv_table->n_entries = TABLE_SIZE / sizeof(TABLE_ENTRY);
+    pv_table->n_entries -= 2; // ensures that memory is not overrun
+    free(pv_table->table);
+    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
+    clear_table();
+}
+
+void store_move(int mv) {
+    int index = board_hash % pv_table->n_entries;
+
+    pv_table->table[index].key = board_hash;
+    pv_table->table[index].best_move = mv;
+}
+
+int get_pv_move(void) {
+    int index = board_hash % pv_table->n_entries;
+
+    if (pv_table->table[index].key == board_hash) {
+        return pv_table->table[index].best_move;
+    }
+
+    return NULL_MOVE;
 }

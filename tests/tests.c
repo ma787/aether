@@ -2,10 +2,33 @@
 #include <string.h>
 #include "aether.h"
 
+#include <stdio.h>
+
 void test_fen(char *fen_str){
     char parsed_str[92];
     board_to_fen(parsed_str);
     assert(strcmp(fen_str, parsed_str) == 0);
+}
+
+void test_update_hash(char *mstr) {
+    int mv = string_to_move(mstr);
+    assert(make_move(mv) == 0);
+    uint64_t z_hash = board_hash;
+
+    bool flipped = false;
+
+    if (side == BLACK) {
+        flip_position();
+        flipped = true;
+    }
+
+    set_hash();
+
+    if (flipped) {
+        flip_position();
+    }
+
+    assert(board_hash == z_hash);
 }
 
 int main(void) {
@@ -319,67 +342,38 @@ int main(void) {
 
     /* update_hash tests */
 
-    uint64_t new_hash;
-
     assert(set_position(START_POS) == 0);
-    mv = string_to_move("a2a3");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("a2a3");
 
     assert(set_position("rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 1") == 0);
-    mv = string_to_move("e7e6");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("e7e6");
 
     assert(set_position(START_POS) == 0);
-    mv = string_to_move("b1c3");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("b1c3");
+
+    assert(set_position(START_POS) == 0);
+    test_update_hash("b1a3");
 
     assert(set_position("rnbqkbnr/p1pppppp/8/1p6/8/2N5/PPPPPPPP/R1BQKBNR w KQkq b6 0 1") == 0);
-    mv = string_to_move("c3b5");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("c3b5");
 
     assert(set_position("rnbqkbnr/ppppppp1/7p/2P5/8/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1") == 0);
-    mv = string_to_move("b7b5");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("b7b5");
 
     assert(set_position("rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1") == 0);
-    mv = string_to_move("d5e6");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("d5e6");
 
     assert(set_position("rnbqkbnr/p1pppppp/8/8/Pp6/6PP/1PPPPP2/RNBQKBNR b KQkq a3 0 1") == 0);
-    mv = string_to_move("b4a3");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("b4a3");
 
     assert(set_position("rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1") == 0);
-    mv = string_to_move("e1c1");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("e1c1");
 
     assert(set_position("rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1") == 0);
-    mv = string_to_move("e1g1");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("e1g1");
 
     assert(set_position("r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1") == 0);
-    mv = string_to_move("b7b8q");
-    new_hash = update_hash(zobrist_hash(), mv);
-    assert(make_move(mv) == 0);
-    assert(zobrist_hash() == new_hash);
+    test_update_hash("b7b8q");
 
     return 0;
 }
