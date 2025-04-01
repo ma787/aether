@@ -1,85 +1,22 @@
 #include <string.h>
-#include "move.h"
-#include "constants.h"
-#include "position.h"
-#include "utils.h"
+#include "aether.h"
 
-move_t encode_move(int start, int dest, int flags) {
-    move_t mv = {start, dest, flags, 0};
+int encode_move(int start, int dest, int flags) {
+    int captured_piece = 0;
 
     if (flags & CAPTURE_FLAG) {
         int cap_pos = (flags == EP_FLAG) ? dest + S : dest;
-        mv.captured_piece = board[cap_pos];
+        captured_piece = board[cap_pos];
     }
 
-    return mv;
+    return (start | (dest << 8) | (flags << 16) | ((side | (captured_piece & 0xFFC)) << 20));
 }
 
-move_t of_string(char *mstr) {
-    int start = string_to_coord(mstr);
-    int dest = string_to_coord(mstr + 2);
-    int flags = Q_FLAG;
-
-    if (side == BLACK) {
-        start = flip_square(start);
-        dest = flip_square(dest);
-    }
-
-    if (board[dest]) {
-        flags |= CAPTURE_FLAG;
-    };
-
-    switch(board[start] & 0x0FC) {
-        case KING:
-            if (start == E1) {
-                if (dest == C1) {
-                    flags |= Q_CASTLE_FLAG;
-                } else if (dest == G1) {
-                    flags |= K_CASTLE_FLAG;
-                }
-            }
-            break;
-        case PAWN:
-            if (get_rank(start) == 1 && get_rank(dest) == 3) {
-                flags = DPP_FLAG;
-            } else if (dest == ep_square) {
-                flags = EP_FLAG;
-            } else if (get_rank(dest) == 7) {
-                flags |= PROMO_FLAG;
-                switch(PIECES[(int) mstr[4]] & 0xFC) {
-                    case BISHOP:
-                        flags |= 1;
-                        break;
-                    case ROOK:
-                        flags |= 2;
-                        break;
-                    case QUEEN:
-                        flags |= 3;
-                        break;
-                }
-            }
-            break;
-    }
-
-    return encode_move(start, dest, flags);
-}
-
-void move_to_string(move_t mv, char* mstr) {
-    int start = mv.start;
-    int dest = mv.dest;
-
-    if (side == BLACK) {
-        start = flip_square(start);
-        dest = flip_square(dest);
-    }
-
-    strcpy(mstr, coord_to_string(start));
-    strcpy(mstr + 2, coord_to_string(dest));
-    if (mv.flags & PROMO_FLAG) {
-        mstr[4] = SYMBOLS[PROMOTIONS[mv.flags & 3] | BLACK];
-        mstr[5] = '\0';
-    }
-}
+int get_start(int mv) { return mv & 0xFF; }
+int get_dest(int mv) { return (mv >> 8) & 0xFF; }
+int get_flags(int mv) { return (mv >> 16) & 0xF; }
+int get_captured_piece(int mv) { return ((mv >> 20) & 0xFFC) | BLACK; }
+int get_side(int mv) { return (mv >> 20) & 3; }
 
 void move_piece(unsigned int start, unsigned int dest) {
     unsigned int piece = board[start];
@@ -94,18 +31,49 @@ void capture_piece(unsigned int pos) {
     b_pieces[piece >> 8] = 0;
 }
 
-void update_check(move_t mv) {
+int is_square_attacked(int pos) {
+    for (int i = 0; i < 16; i++) {
+        int vec = SUPERPIECE[i];
+        int current = pos + vec;
+        int contact = 1;
+        int sq;
+
+        for (;;) {
+            sq = board[current];
+
+            if ((sq & COLOUR_MASK) == BLACK) {
+                switch(is_attacking(sq, current, pos)) {
+                    case CONTACT_CHECK:
+                        if (contact) { return 1; }
+                        break;
+                    case DISTANT_CHECK:
+                        return 1;
+                }
+                break;
+            } else if (sq) {
+                break;
+            }
+
+            current += vec;
+            contact = 0;
+        }
+    }
+
+    return 0;
+}
+
+void update_check(int start, int dest) {
     check_info = 0;
     int k_pos = b_pieces[0];
-    int step_to_king = get_step(mv.dest, k_pos);
+    int step_to_king = get_step(dest, k_pos);
 
     // check if the moved piece checks the king
-    switch(is_attacking(board[mv.dest], mv.dest, k_pos)) {
+    switch(is_attacking(board[dest], dest, k_pos)) {
         case CONTACT_CHECK:
-            check_info = (CONTACT_CHECK | (mv.dest << 2));
+            check_info = (CONTACT_CHECK | (dest << 2));
             break;
         case DISTANT_CHECK:
-            int current = mv.dest + step_to_king;
+            int current = dest + step_to_king;
             while (current != k_pos) {
                 if (board[current]) {
                     break;
@@ -113,14 +81,14 @@ void update_check(move_t mv) {
                 current += step_to_king;
             }
             if (current == k_pos) {
-                check_info = (DISTANT_CHECK | (mv.dest << 2));
+                check_info = (DISTANT_CHECK | (dest << 2));
             }
             break;
     }
 
     // search for a discovered check
-    if (is_attacking(QUEEN, mv.start, k_pos)) {
-        int discovered_vec = get_step(k_pos, mv.start);
+    if (is_attacking(QUEEN, start, k_pos)) {
+        int discovered_vec = get_step(k_pos, start);
         if (discovered_vec == -step_to_king) {
             return; // this ray has already been checked
         }
@@ -149,31 +117,33 @@ void update_check(move_t mv) {
     }
 }
 
-int make_move(move_t mv) {
+int make_move(int mv) {
     int legal = 0;
     int kp_square = 0;
     save_state();
 
-    if (mv.flags == EP_FLAG) { goto en_passant; }
+    int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
+
+    if (flags == EP_FLAG) { goto en_passant; }
 
     ep_square = 0;
-    int piece = board[mv.start];
+    int piece = board[start];
 
-    if (piece & PAWN || mv.flags & CAPTURE_FLAG) {
+    if (piece & PAWN || flags & CAPTURE_FLAG) {
         h_clk = 0;
     } else {
         h_clk++;
     }
 
-    if (mv.flags & CAPTURE_FLAG) {
-        capture_piece(mv.dest);
+    if (flags & CAPTURE_FLAG) {
+        capture_piece(dest);
     }
 
-    move_piece(mv.start, mv.dest);
+    move_piece(start, dest);
 
-    switch(mv.flags) {
+    switch(flags) {
         case DPP_FLAG:
-            ep_square = mv.dest + S;
+            ep_square = dest + S;
             break;
         case K_CASTLE_FLAG:
             kp_square = F1;
@@ -184,24 +154,24 @@ int make_move(move_t mv) {
             move_piece(A1, D1);
     }
 
-    if (mv.flags & PROMO_FLAG) {
-        unsigned int p_code = board[mv.dest] & 0xF00;
-        board[mv.dest] = p_code | PROMOTIONS[mv.flags & 3] | WHITE;
+    if (flags & PROMO_FLAG) {
+        unsigned int p_code = board[dest] & 0xF00;
+        board[dest] = p_code | PROMOTIONS[flags & 3] | WHITE;
     }
 
     if (piece & KING) {
-        if (is_square_attacked(mv.dest)) {
+        if (is_square_attacked(dest)) {
             legal = -1; // king left in check
         } else if (kp_square && is_square_attacked(kp_square)) {
             legal = -1; // king castles through check
         } else {
-            c_rights &= (((mv.dest != A8) << 2) | ((mv.dest != H8) << 3));
-            update_check(mv);
+            c_rights &= (((dest != A8) << 2) | ((dest != H8) << 3));
+            update_check(start, dest);
         }
 
         // search for check from castling rook
         if (kp_square) {
-            int r_dest = (mv.flags == K_CASTLE_FLAG) ? F1 : D1;
+            int r_dest = (flags == K_CASTLE_FLAG) ? F1 : D1;
             int current = r_dest;
 
             for (;;) {
@@ -218,12 +188,12 @@ int make_move(move_t mv) {
 
     } else {
         c_rights &= (
-            (mv.start != A1)
-            | ((mv.start != H1) << 1)
-            | ((mv.dest != A8) << 2)
-            | ((mv.dest != H8) << 3)
+            (start != A1)
+            | ((start != H1) << 1)
+            | ((dest != A8) << 2)
+            | ((dest != H8) << 3)
         );
-        update_check(mv);
+        update_check(start, dest);
     }
 
     switch_side();
@@ -232,17 +202,17 @@ int make_move(move_t mv) {
 
     en_passant:
         int k_pos = w_pieces[0];
-        int b_pawn_pos = mv.dest + S;
+        int b_pawn_pos = dest + S;
         int ep_exposed_checker = 0;
 
         // check for an undiscovered pin on king on ep rank
-        if (get_rank(k_pos) == get_rank(mv.start)) {
-            int vec = get_step(k_pos, mv.start);
+        if (get_rank(k_pos) == get_rank(start)) {
+            int vec = get_step(k_pos, start);
             int current = k_pos;
 
             for (;;) {
                 current += vec;
-                if (current == mv.start || current == b_pawn_pos) {
+                if (current == start || current == b_pawn_pos) {
                     continue;
                 }
 
@@ -266,7 +236,7 @@ int make_move(move_t mv) {
         int passed_pawn = 0;
 
         // search for a check discovered by this capture
-        if (step_to_pawn != get_step(b_king_pos, mv.dest)) {
+        if (step_to_pawn != get_step(b_king_pos, dest)) {
             for (;;) {
                 current += step_to_pawn;
                 if (current == b_pawn_pos) {
@@ -290,11 +260,11 @@ int make_move(move_t mv) {
             }
         }
 
-        move_piece(mv.start, mv.dest);
+        move_piece(start, dest);
         capture_piece(b_pawn_pos);
         h_clk = 0;
         ep_square = 0;
-        update_check(mv);
+        update_check(start, dest);
 
         if (ep_exposed_checker) {
             if (check_info) {
@@ -309,27 +279,30 @@ int make_move(move_t mv) {
         return legal;
 }
 
-void unmake_move(move_t mv) {
+void unmake_move(int mv) {
+    int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
+
     flip_position();
     switch_side();
-    move_piece(mv.dest, mv.start);
+    move_piece(dest, start);
 
-    if (mv.flags & PROMO_FLAG) {
-        unsigned int p_code = board[mv.start] & 0xF00;
-        board[mv.start] = p_code | PAWN | WHITE;
+    if (flags & PROMO_FLAG) {
+        unsigned int p_code = board[start] & 0xF00;
+        board[start] = p_code | PAWN | WHITE;
     }
 
-    if (mv.flags & CAPTURE_FLAG) {
-        int cap_pos = mv.dest;
-        if (mv.flags == EP_FLAG) {
+    if (flags & CAPTURE_FLAG) {
+        int cap_pos = dest;
+        if (flags == EP_FLAG) {
             cap_pos += S;
         }
 
-        board[cap_pos] = mv.captured_piece;
-        b_pieces[mv.captured_piece >> 8] = cap_pos;
+        int cap_piece = get_captured_piece(mv);
+        board[cap_pos] = cap_piece;
+        b_pieces[cap_piece >> 8] = cap_pos;
     }
 
-    switch(mv.flags) {
+    switch(flags) {
         case K_CASTLE_FLAG:
             move_piece(F1, H1);
             break;

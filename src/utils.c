@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include <stddef.h>
 #include <sys/time.h>
-#include "constants.h"
+#include "aether.h"
 
 int get_rank(int pos) { return (pos >> 4) - 4; }
 
@@ -27,12 +27,6 @@ int is_attacking(int piece, int start, int dest) {
 }
 
 int get_step(int start, int dest) { return UNIT_VEC[square_diff(start, dest)]; }
-
-int string_to_coord(char *sqr_str) {
-    return ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1;
-}
-
-char* coord_to_string(int pos) { return COORDS[to_index(pos)]; }
 
 int get_time(void) {
     struct timeval t;

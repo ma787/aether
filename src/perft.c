@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "perft.h"
-#include "position.h"
-#include "move_gen.h"
-
+#include "aether.h"
 
 uint64_t perft(int depth) {
     if (depth == 0) {
@@ -16,7 +13,7 @@ uint64_t perft(int depth) {
     all_moves(moves);
 
     for (int i = 0; i < moves->index; i++) {
-        move_t mv = moves->moves[i];
+        int mv = moves->moves[i];
         if (make_move(mv) == 0) {
             total += perft(depth - 1);
         }
@@ -38,7 +35,7 @@ void divide(int depth) {
     all_moves(moves);
 
     for (int i = 0; i < moves->index; i++) {
-        move_t mv = moves->moves[i];
+        int mv = moves->moves[i];
         char mstr[6];
         move_to_string(mv, mstr);
         if (make_move(mv) == 0) {

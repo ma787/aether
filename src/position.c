@@ -1,26 +1,8 @@
-#include <regex.h>
 #include <string.h>
-#include "position.h"
-#include "constants.h"
-#include "utils.h"
+#include "aether.h"
 
-#define STACK_SIZE 50
-
-struct state {
-    unsigned int c_rights: 4;
-    unsigned int ep_square : 8;
-    unsigned int h_clk: 6;
-    unsigned int check_info: 18;
-};
-typedef struct state state_t;
-
-state_t prev_state[STACK_SIZE];
-int top = -1;
-
-char *reg_str = (
-    "((([pnbrqkPNBRQK]|[1-8]){1,})[/]){7}([pnbrqkPNBRQK]|[1-8]){1,}[ ]"
-    "[bw][ ](([K]?[Q]?[k]?[q]?)|-)[ ](([a-h][36])|-)([ ][0-9]+){2}"
-);
+int prev_state[STACK_SIZE];
+int ply = 0;
 
 unsigned int board[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -52,91 +34,6 @@ unsigned int c_rights = 0xF;
 unsigned int ep_square = 0;
 unsigned int h_clk = 0;
 unsigned int check_info = 0;
-
-
-int fen_match(char *fen_str) {
-    regex_t preg;
-    int res;
-
-    regcomp(&preg, reg_str, REG_EXTENDED);
-    res = regexec(&preg, fen_str, (size_t) 0, NULL, 0);
-    regfree(&preg);
-
-    if (res != 0) {
-        return -1;
-    }
-
-    return 0;
-}
-
-int parse_board_string(char *fen_str) {
-    if (fen_match(fen_str) != 0) {
-        return -1;
-    }
-
-    int i = A8;
-    int j = 0;
-    int count = 0;
-
-    for (;;) {
-        char val = fen_str[j++];
-        switch(val) {
-            case ' ':
-                if (count != 8) {
-                    return -1;
-                }
-                return j;
-            case '/':
-                if (count != 8) {
-                    return -1;
-                }
-                i -= 0x18;
-                count = 0;
-                break;
-            default:
-                int piece = PIECES[(int) val];
-                if (piece) {
-                    board[i++] = piece;
-                    count++;
-                } else {
-                    int inc = val - '0';
-                    i += inc;
-                    count += inc;
-                }
-        }
-    }
-}
-
-int is_square_attacked(int pos) {
-    for (int i = 0; i < 16; i++) {
-        int vec = SUPERPIECE[i];
-        int current = pos + vec;
-        int contact = 1;
-        int sq;
-
-        for (;;) {
-            sq = board[current];
-
-            if ((sq & COLOUR_MASK) == BLACK) {
-                switch(is_attacking(sq, current, pos)) {
-                    case CONTACT_CHECK:
-                        if (contact) { return 1; }
-                        break;
-                    case DISTANT_CHECK:
-                        return 1;
-                }
-                break;
-            } else if (sq) {
-                break;
-            }
-
-            current += vec;
-            contact = 0;
-        }
-    }
-
-    return 0;
-}
 
 void flip_position(void) {
     c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
@@ -236,6 +133,42 @@ void set_check(void) {
     }
 }
 
+int parse_board_string(char *fen_str) {
+    if (!fen_match(fen_str)) {
+        return -1;
+    }
+
+    int i = A8, j = 0, count = 0;
+
+    for (;;) {
+        char val = fen_str[j++];
+        switch(val) {
+            case ' ':
+                if (count != 8) {
+                    return -1;
+                }
+                return j;
+            case '/':
+                if (count != 8) {
+                    return -1;
+                }
+                i -= 0x18;
+                count = 0;
+                break;
+            default:
+                int piece = PIECES[(int) val];
+                if (piece) {
+                    board[i++] = piece;
+                    count++;
+                } else {
+                    int inc = val - '0';
+                    i += inc;
+                    count += inc;
+                }
+        }
+    }
+}
+
 int set_position(char *fen_str) {
     // clear previous board position
     for (int i = A1; i <= A8; i += 0x10) {
@@ -243,6 +176,7 @@ int set_position(char *fen_str) {
     }
     memset(white_pieces, 0, 16 * sizeof(int));
     memset(black_pieces, 0, 16 * sizeof(int));
+    ply = 0;
 
     int idx = parse_board_string(fen_str);
 
@@ -273,9 +207,7 @@ int set_position(char *fen_str) {
 
     h_clk = fen_str[idx] - '0';
 
-    int i = A1;
-    int w_off = 1;
-    int b_off = 1;
+    int i = A1, w_off = 1, b_off = 1;
 
     while (i <= H8) {
         int sq = board[i];
@@ -321,84 +253,16 @@ int set_position(char *fen_str) {
 void switch_side(void) { side = ~side & 3; }
 
 void save_state(void) {
-    state_t state = {
-        .c_rights = c_rights,
-        .ep_square = ep_square,
-        .h_clk = h_clk,
-        .check_info = check_info
-    };
-
-    prev_state[++top] = state;
+    prev_state[ply++] = (
+        c_rights | (ep_square << 4) | (h_clk << 12) | (check_info << 18)
+    );
 }
 
 void restore_state(void) {
-    state_t state = prev_state[top--];
+    int state = prev_state[--ply];
 
-    c_rights = state.c_rights;
-    ep_square = state.ep_square;
-    h_clk = state.h_clk;
-    check_info = state.check_info;
-}
-
-void to_fen(char *fen_str) {
-    if (side != WHITE) {
-        flip_position();
-    }
-
-    int i = A8;
-    int j = 0;
-    int sq;
-
-    while (i != 0x4C) {
-        sq = board[i];
-
-        if (sq == G) {
-            fen_str[j++] = '/';
-            i -= 0x18;
-        } else if (sq == 0) {
-            int count = 0;
-            while (sq == 0) {
-                count++;
-                sq = board[++i];
-            }
-            fen_str[j++] = '0' + count;
-        } else {
-            fen_str[j++] = SYMBOLS[sq & 0xFF];
-            i++;
-        }
-    }
-
-    fen_str[j++] = ' ';
-    fen_str[j++] = side == WHITE ? 'w' : 'b';
-    fen_str[j++] = ' ';
-
-    if (c_rights) {
-        if (c_rights & WHITE_KINGSIDE) {
-            fen_str[j++] = 'K';
-        }
-        if (c_rights & WHITE_QUEENSIDE) {
-            fen_str[j++] = 'Q';
-        }
-        if (c_rights & BLACK_KINGSIDE) {
-            fen_str[j++] = 'k';
-        }
-        if (c_rights & BLACK_QUEENSIDE) {
-            fen_str[j++] = 'q';
-        }
-    } else {
-        fen_str[j++] = '-';
-    }
-    fen_str[j++] = ' ';
-
-    if (ep_square) {
-        strcpy(fen_str + j, coord_to_string(ep_square));
-        j += 2;
-    } else {
-        fen_str[j++] = '-';
-    }
-    fen_str[j++] = ' ';
-    fen_str[j++] = '0' + h_clk;
-    fen_str[j++] = ' ';
-    fen_str[j++] = '1'; // fullmove number not implemented
-    fen_str[j] = '\0';
+    c_rights = state & 0xF;
+    ep_square = (state >> 4) & 0xFF;
+    h_clk = (state >> 12) & 0x3F;
+    check_info = (state >> 18) & 0x3FFFF;
 }

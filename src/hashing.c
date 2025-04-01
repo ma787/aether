@@ -1,11 +1,4 @@
-#include "hashing.h"
-#include "constants.h"
-#include "position.h"
-#include "utils.h"
-
-int EN_PASSANT = -13;
-int CASTLING = -5;
-int SIDE = -1;
+#include "aether.h"
 
 uint64_t get_hash(uint64_t pos, uint64_t piece) {
     int sq_off = (6 * get_rank(pos)) + (12 * get_file(pos));
@@ -51,16 +44,16 @@ uint64_t zobrist_hash(void) {
     }
 
     if (side == BLACK) {
-        z_hash ^= HASH_VALUES[SIDE];
+        z_hash ^= HASH_VALUES[SIDE_OFF];
     }
 
     if (ep_square) {
-        z_hash ^= HASH_VALUES[EN_PASSANT + get_file(ep_square)];
+        z_hash ^= HASH_VALUES[EP_OFF + get_file(ep_square)];
     }
 
     for (int j = 0; j < 4; j++) {
         if (c_rights & (1 << j)) {
-            z_hash ^= HASH_VALUES[CASTLING + j];
+            z_hash ^= HASH_VALUES[C_OFF + j];
         }
     }
     
@@ -70,8 +63,9 @@ uint64_t zobrist_hash(void) {
     return z_hash;
 }
 
-uint64_t update_hash(uint64_t z_hash, move_t mv) {
-    int start = mv.start, dest = mv.dest, piece = board[mv.start];
+uint64_t update_hash(uint64_t z_hash, int mv) {
+    int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
+    int piece = board[start];
 
     int new_c_rights = c_rights & (
         (start != A1)
@@ -91,24 +85,24 @@ uint64_t update_hash(uint64_t z_hash, move_t mv) {
     z_hash ^= get_hash(dest, piece);
 
     if (ep_square) {
-        z_hash ^= HASH_VALUES[EN_PASSANT + get_file(ep_square)];
+        z_hash ^= HASH_VALUES[EP_OFF + get_file(ep_square)];
     }
 
-    z_hash ^= HASH_VALUES[SIDE];
+    z_hash ^= HASH_VALUES[SIDE_OFF];
 
-    if (mv.flags == K_CASTLE_FLAG || mv.flags == Q_CASTLE_FLAG) {
-        int r_start = (mv.flags == K_CASTLE_FLAG) ? H1 : A1;
-        int r_dest = (mv.flags == K_CASTLE_FLAG) ? F1 : D1;
+    if (flags == K_CASTLE_FLAG || flags == Q_CASTLE_FLAG) {
+        int r_start = (flags == K_CASTLE_FLAG) ? H1 : A1;
+        int r_dest = (flags == K_CASTLE_FLAG) ? F1 : D1;
 
         if (side == BLACK) {
             r_start = flip_square(r_start);
             r_dest = flip_square(r_dest);
 
-            z_hash ^= HASH_VALUES[CASTLING + 2];
-            z_hash ^= HASH_VALUES[CASTLING + 3];
+            z_hash ^= HASH_VALUES[C_OFF + 2];
+            z_hash ^= HASH_VALUES[C_OFF + 3];
         } else {
-            z_hash ^= HASH_VALUES[CASTLING];
-            z_hash ^= HASH_VALUES[CASTLING + 1];
+            z_hash ^= HASH_VALUES[C_OFF];
+            z_hash ^= HASH_VALUES[C_OFF + 1];
         }
         
         z_hash ^= get_hash(r_start, side | ROOK);
@@ -117,24 +111,24 @@ uint64_t update_hash(uint64_t z_hash, move_t mv) {
         return z_hash;
     }
 
-    if (mv.flags == DPP_FLAG) {
-        return z_hash ^ HASH_VALUES[EN_PASSANT + get_file(dest)];
+    if (flags == DPP_FLAG) {
+        return z_hash ^ HASH_VALUES[EP_OFF + get_file(dest)];
     }
 
-    if (mv.flags & PROMO_FLAG) {
+    if (flags & PROMO_FLAG) {
         z_hash ^= get_hash(dest, piece);
-        z_hash ^= get_hash(dest, side | PROMOTIONS[mv.flags & 3]);
+        z_hash ^= get_hash(dest, side | PROMOTIONS[flags & 3]);
     }
 
-    if (mv.flags & CAPTURE_FLAG) {
-        int cap_pos = dest, cap_piece = mv.captured_piece, off = S;
+    if (flags & CAPTURE_FLAG) {
+        int cap_pos = dest, cap_piece = get_captured_piece(mv), off = S;
 
         if (side == BLACK) {
             cap_piece = (cap_piece & 0xFC) | BLACK;
             off = N;
         }
         
-        if (mv.flags == EP_FLAG) {
+        if (flags == EP_FLAG) {
             cap_pos += off;
         }
 
@@ -143,10 +137,10 @@ uint64_t update_hash(uint64_t z_hash, move_t mv) {
 
     for (int i = 0; i < 4; i++) {
         if (c_rights & i) {
-            z_hash ^= HASH_VALUES[CASTLING + i];
+            z_hash ^= HASH_VALUES[C_OFF + i];
         }
         if (new_c_rights & i) {
-            z_hash ^= HASH_VALUES[CASTLING + i];
+            z_hash ^= HASH_VALUES[C_OFF + i];
         }
     }
 

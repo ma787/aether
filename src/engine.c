@@ -1,9 +1,7 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "engine_vals.h"
-#include "utils.h"
-#include "position.h"
-#include "move_gen.h"
+#include "aether.h"
 
 int evaluate(void) {
     int score = 0, i = 0x44;
@@ -46,10 +44,10 @@ int alpha_beta(int alpha, int beta, int depth) {
     moves->index = 0;
     all_moves(moves);
 
-    int score = -100000;
+    int score = -INFINITY;
 
     for (int i = 0; i < moves->index; i++) {
-        move_t mv = moves->moves[i];
+        int mv = moves->moves[i];
         if (make_move(mv) == 0) {
             int new_score = -alpha_beta(-beta, -alpha, depth - 1);
             if (new_score > score) {
@@ -73,21 +71,17 @@ int alpha_beta(int alpha, int beta, int depth) {
     return score;
 }
 
-void search(int depth, char *best_move) {
-    best_move[0] = '\0';
-
-    if (depth == 0) {
-        return;
-    }
+void search(int depth) {
+    int best_move = NULL_MOVE;
+    int score = -INFINITY;
+    char mstr[6];
 
     move_list *moves = malloc(sizeof(move_list));
     moves->index = 0;
     all_moves(moves);
 
-    int score = -100000;
-
     for (int i = 0; i < moves->index; i++) {
-        move_t mv = moves->moves[i];
+        int mv = moves->moves[i];
         int new_score = score;
         if (make_move(mv) == 0) {
             new_score = -alpha_beta(-100000, 100000, depth - 1);
@@ -95,10 +89,12 @@ void search(int depth, char *best_move) {
         unmake_move(mv);
         if (new_score > score) {
             score = new_score;
-            best_move[0] = '\0';
-            move_to_string(mv, best_move);
+            best_move = mv;
         }
     }
+
+    move_to_string(best_move, mstr);
+    printf("bestmove %s\n", mstr);
 
     free(moves);
 }

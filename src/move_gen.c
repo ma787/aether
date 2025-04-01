@@ -1,9 +1,5 @@
 #include <stdlib.h>
-#include "move_gen.h"
-#include "constants.h"
-#include "position.h"
-#include "utils.h"
-
+#include "aether.h"
 
 void add_move(int start, int dest, int flags, move_list *moves) {
     if (flags & PROMO_FLAG) {
@@ -133,11 +129,11 @@ void gen_moves_in_check(int pos, move_list *moves) {
 
     // check if each move actually blocks the checker
     for (int i = 0; i < blocking_moves->index; i++) {
-        move_t mv = blocking_moves->moves[i];
-        if (get_step(k_pos, mv.dest) == k_step) {
+        int mv = blocking_moves->moves[i], dest = get_dest(mv);
+        if (get_step(k_pos, dest) == k_step) {
             int current = k_pos + k_step;
             while (current != checker) {
-                if (current == mv.dest) {
+                if (current == dest) {
                     moves->moves[moves->index++] = mv;
                     break;
                 }

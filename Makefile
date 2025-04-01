@@ -1,22 +1,26 @@
 SRC_DIR := ./src
 TEST_DIR := ./tests
-INC_DIR := ./include
 BUILD_DIR := ./build
+SRCS := $(wildcard $(SRC_DIR)/*.c)
+OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
+EXE := $(BUILD_DIR)/aether
+
 DEBUG_FLAGS := -g -Wall
 
-aether:
-	mkdir -p $(BUILD_DIR)
-	gcc $(DEBUG_FLAGS) $(SRC_DIR)/*.c -I $(INC_DIR) -o $(BUILD_DIR)/aether
+all: $(EXE)
 
-test:
+$(EXE): $(OBJS) 
+	gcc $(DEBUG_FLAGS) $^ -o $@
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	gcc $(DEBUG_FLAGS) -c $^ -o $@
+
+$(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
-	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/constants.c -I $(INC_DIR) -o $(BUILD_DIR)/constants.o
-	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/utils.c -I $(INC_DIR) -o $(BUILD_DIR)/utils.o
-	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/position.c -I $(INC_DIR) -o $(BUILD_DIR)/position.o
-	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/move.c -I $(INC_DIR) -o $(BUILD_DIR)/move.o
-	gcc -c $(DEBUG_FLAGS) $(SRC_DIR)/hashing.c -I $(INC_DIR) -o $(BUILD_DIR)/hashing.o
-	gcc -c $(DEBUG_FLAGS) $(TEST_DIR)/tests.c -I $(INC_DIR) -o $(BUILD_DIR)/tests.o
-	gcc -o $(BUILD_DIR)/tests $(BUILD_DIR)/*.o
+
+test: $(TEST_DIR)/tests.c | $(OBJS)
+	gcc $(DEBUG_FLAGS) -c $^ -I $(SRC_DIR) -o $(BUILD_DIR)/tests.o
+	gcc -o $(BUILD_DIR)/tests $(BUILD_DIR)/tests.o $(filter-out $(BUILD_DIR)/uci.o, $(OBJS))
 
 clean:
 	rm -r $(BUILD_DIR)
