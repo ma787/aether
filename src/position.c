@@ -2,6 +2,7 @@
 #include "aether.h"
 
 int prev_state[STACK_SIZE];
+uint64_t prev_hashes[STACK_SIZE];
 int ply = 0;
 
 unsigned int board[256] = {
@@ -260,13 +261,15 @@ int set_position(char *fen_str) {
 void switch_side(void) { side = ~side & 3; }
 
 void save_state(void) {
-    prev_state[ply++] = (
+    prev_state[ply] = (
         c_rights | (ep_square << 4) | (h_clk << 12) | (check_info << 18)
     );
+    prev_hashes[ply++] = board_hash;
 }
 
 void restore_state(void) {
-    int state = prev_state[--ply];
+    board_hash = prev_hashes[--ply];
+    int state = prev_state[ply];
 
     c_rights = state & 0xF;
     ep_square = (state >> 4) & 0xFF;

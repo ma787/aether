@@ -313,16 +313,4 @@ void unmake_move(int mv) {
     }
 
     restore_state();
-
-    bool flipped = false;
-    if (side == BLACK) {
-        flip_position();
-        flipped = true;
-    }
-
-    set_hash();
-
-    if (flipped) {
-        flip_position();
-    }
 }

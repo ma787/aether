@@ -134,7 +134,6 @@ typedef struct {
 
 /* board and position state definitions */
 
-extern int prev_state[STACK_SIZE];
 extern int ply;
 
 extern unsigned int board[256];
