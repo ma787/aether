@@ -179,6 +179,7 @@ void unmake_move(int mv);
 /* move generation functions */
 
 void all_moves(move_list *moves);
+bool move_exists(int mv);
 
 /* perft and divide functions */
 

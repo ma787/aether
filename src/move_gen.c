@@ -263,3 +263,30 @@ void all_moves(move_list *moves) {
         }
     }
 }
+
+bool move_exists(int mv) {
+    move_list *moves = malloc(sizeof(move_list));
+    moves->index = 0;
+    all_moves(moves);
+
+    for (int i = 0; i < moves->index; i++) {
+        int m = moves->moves[i];
+
+        if (get_side(m) != side) {
+            free(moves);
+            return false;
+        }
+
+        if (make_move(m) == 0) {
+            if (m == mv) {
+                unmake_move(m);
+                free(moves);
+                return true;
+            };
+        }
+        unmake_move(m);
+    }
+
+    free(moves);
+    return false;
+}
