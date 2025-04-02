@@ -132,6 +132,19 @@ typedef struct {
     int n_entries;
 } HASH_TABLE;
 
+typedef struct {
+    int start_time;
+    int stop_time;
+    int depth;
+    int depth_lim;
+    int time_lim;
+    int move_lim;
+    int infinite;
+    int quit;
+    int stopped;
+    long nodes;
+} SEARCH_INFO;
+
 /* board and position state definitions */
 
 extern int ply;
@@ -201,7 +214,7 @@ int get_pv_line(int depth);
 
 /* engine search functions */
 
-void search(int depth);
+void search(SEARCH_INFO *s_info);
 
 /* string-related functions */
 

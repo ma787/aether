@@ -92,7 +92,10 @@ int main(void) {
                     int n;
                     
                     if ((n = strtol(cmd, &end, 10)) != 0) {
-                        search(n);
+                        SEARCH_INFO *s_info = malloc(sizeof(SEARCH_INFO));
+                        s_info->depth = n;
+                        search(s_info);
+                        free(s_info);
                     }
                 }
             } 
