@@ -60,7 +60,7 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
     int n = 0;
 
     for (int i = 0; i < moves->index; i++) {
-        int mv = moves->moves[i];
+        int mv = moves->moves[i].move;
         if (make_move(mv) == 0) {
             n++;
             score = -alpha_beta(-beta, -alpha, depth - 1, s_info);

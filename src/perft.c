@@ -13,7 +13,7 @@ uint64_t perft(int depth) {
     all_moves(moves);
 
     for (int i = 0; i < moves->index; i++) {
-        int mv = moves->moves[i];
+        int mv = moves->moves[i].move;
         if (make_move(mv) == 0) {
             total += perft(depth - 1);
         }
@@ -35,7 +35,7 @@ void divide(int depth) {
     all_moves(moves);
 
     for (int i = 0; i < moves->index; i++) {
-        int mv = moves->moves[i];
+        int mv = moves->moves[i].move;
         char mstr[6];
         move_to_string(mv, mstr);
         if (make_move(mv) == 0) {

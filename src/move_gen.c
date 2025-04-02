@@ -1,46 +1,64 @@
 #include <stdlib.h>
 #include "aether.h"
 
-void add_move(int start, int dest, int flags, move_list *moves) {
-    if (flags & PROMO_FLAG) {
-        for (int i = 0; i < 4; i++) {
-            moves->moves[moves->index++] = encode_move(start, dest, flags | i);
-        }
-        
+void add_quiet_move(int mv, move_list *moves) {
+    move_info m_info = {.move = mv, .score = 0};
+    moves->moves[moves->index++] = m_info;
+}
+
+void add_capture_move(int mv, move_list *moves) {
+    move_info m_info;
+    m_info.move = mv;
+    m_info.score = MVV_LVA_SCORES[board[get_dest(mv)] & 0xFC][board[get_start(mv)] & 0xFC];
+    moves->moves[moves->index++] = m_info;
+}
+
+void add_ep_capture_move(int mv, move_list *moves) {
+    move_info m_info = {.move = mv, .score = 105};
+    moves->moves[moves->index++] = m_info;
+}
+
+void add_pawn_quiet_move(int start, int dest, move_list *moves) {
+    if (get_rank(dest) == 7) {
+        add_quiet_move(encode_move(start, dest, KNIGHT_PROMO), moves);
+        add_quiet_move(encode_move(start, dest, BISHOP_PROMO), moves);
+        add_quiet_move(encode_move(start, dest, ROOK_PROMO), moves);
+        add_quiet_move(encode_move(start, dest, QUEEN_PROMO), moves);
     } else {
-        moves->moves[moves->index++] = encode_move(start, dest, flags);
+        add_quiet_move(encode_move(start, dest, Q_FLAG), moves);
+    }
+}
+
+void add_pawn_capture_move(int start, int dest, move_list *moves) {
+    if (get_rank(dest) == 7) {
+        add_capture_move(encode_move(start, dest, KNIGHT_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(encode_move(start, dest, BISHOP_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(encode_move(start, dest, ROOK_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(encode_move(start, dest, QUEEN_PROMO | CAPTURE_FLAG), moves);
+    } else {
+        add_capture_move(encode_move(start, dest, CAPTURE_FLAG), moves);
     }
 }
 
 void gen_pawn_move(int pos, int vec, move_list *moves) {
-    int flags = Q_FLAG;
     int current = pos + vec;
     int sq = board[current];
-
-    if (get_rank(current) == 7) {
-        flags |= PROMO_FLAG;
-    }
 
     if (vec == N) {
         if (sq) {
             return;
         }
 
-        if (get_rank(current) == 2 && !(board[current + vec])) {
-            add_move(pos, current + vec, DPP_FLAG, moves);
-        }
-    } else {
-        flags |= CAPTURE_FLAG;
-        if ((sq & COLOUR_MASK) != BLACK) {
-            if (current == ep_square && !sq) {
-                flags |= EP_FLAG;
-            } else {
-                return;
-            }
-        }
-    }
+        add_pawn_quiet_move(pos, current, moves);
 
-    add_move(pos, current, flags, moves);
+        if (get_rank(current) == 2 && !(board[current + vec])) {
+            add_quiet_move(encode_move(pos, current + vec, DPP_FLAG), moves);
+        }
+    } else if ((sq & COLOUR_MASK) == BLACK) {
+        add_pawn_capture_move(pos, current, moves);
+    } else if (current == ep_square && !sq) {
+        add_ep_capture_move(encode_move(pos, current, EP_FLAG), moves);
+    }
 }
 
 void gen_step(int pos, int vec, move_list *moves) {
@@ -48,9 +66,9 @@ void gen_step(int pos, int vec, move_list *moves) {
     int sq = board[current];
 
     if ((sq & COLOUR_MASK) == BLACK) {
-        add_move(pos, current, CAPTURE_FLAG, moves);
+        add_capture_move(encode_move(pos, current, CAPTURE_FLAG), moves);
     } else if (!sq) {
-        add_move(pos, current, Q_FLAG, moves);
+        add_quiet_move(encode_move(pos, current, Q_FLAG), moves);
     }
 }
 
@@ -62,10 +80,10 @@ void gen_slider(int pos, int vec, move_list *moves) {
         int sq = board[current];
 
         if (!sq) {
-            add_move(pos, current, Q_FLAG, moves);
+            add_quiet_move(encode_move(pos, current, Q_FLAG), moves);
             continue;
         } else if ((sq & COLOUR_MASK) == BLACK) {
-            add_move(pos, current, CAPTURE_FLAG, moves);
+            add_capture_move(encode_move(pos, current, CAPTURE_FLAG), moves);
         }
 
         return;
@@ -98,7 +116,6 @@ void gen_moves_in_check(int pos, move_list *moves) {
     if (is_attacking(piece, pos, checker)) {
         int current = pos + vec;
         int blocked = 0;
-        int flags = CAPTURE_FLAG;
 
         while (current != checker) {
             if (board[current]) {
@@ -109,15 +126,16 @@ void gen_moves_in_check(int pos, move_list *moves) {
         }
         
         if (!blocked) {
-            if ((piece & PAWN) && get_rank(checker) == 7) {
-                flags |= PROMO_FLAG;
+            if (piece & PAWN) {
+                add_pawn_capture_move(pos, checker, moves);
+            } else {
+                add_capture_move(encode_move(pos, checker, CAPTURE_FLAG), moves);
             }
-            add_move(pos, checker, flags, moves);
         }
     }
 
     if ((checker == (ep_square + S)) && (piece & PAWN) && is_attacking(piece, pos, ep_square)) {
-        add_move(pos, ep_square, EP_FLAG, moves);
+        add_ep_capture_move(encode_move(pos, ep_square, EP_FLAG), moves);
     }
 
     // generate moves which might block the checker
@@ -129,12 +147,14 @@ void gen_moves_in_check(int pos, move_list *moves) {
 
     // check if each move actually blocks the checker
     for (int i = 0; i < blocking_moves->index; i++) {
-        int mv = blocking_moves->moves[i], dest = get_dest(mv);
+        move_info m_info = blocking_moves->moves[i];
+        int dest = get_dest(m_info.move);
+
         if (get_step(k_pos, dest) == k_step) {
             int current = k_pos + k_step;
             while (current != checker) {
                 if (current == dest) {
-                    moves->moves[moves->index++] = mv;
+                    moves->moves[moves->index++] = m_info;
                     break;
                 }
                 current += k_step;
@@ -248,14 +268,14 @@ void all_moves(move_list *moves) {
         }
 
         if (c_rights & WHITE_KINGSIDE && !(board[F1] | board[G1])) {
-            add_move(E1, G1, K_CASTLE_FLAG, moves);
+            add_quiet_move(encode_move(E1, G1, K_CASTLE_FLAG), moves);
         }
 
         if (
             c_rights & WHITE_QUEENSIDE
             && !(board[B1] | board[C1] | board[D1])
         ) {
-            add_move(E1, C1, Q_CASTLE_FLAG, moves);
+            add_quiet_move(encode_move(E1, C1, Q_CASTLE_FLAG), moves);
         }
     } else if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
         for (int i = 0; i < len; i++) {
@@ -270,12 +290,7 @@ bool move_exists(int mv) {
     all_moves(moves);
 
     for (int i = 0; i < moves->index; i++) {
-        int m = moves->moves[i];
-
-        if (get_side(m) != side) {
-            free(moves);
-            return false;
-        }
+        int m = moves->moves[i].move;
 
         if (make_move(m) == 0) {
             if (m == mv) {

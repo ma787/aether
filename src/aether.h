@@ -62,6 +62,11 @@
 #define EP_FLAG 5
 #define PROMO_FLAG 8
 
+#define KNIGHT_PROMO 8
+#define BISHOP_PROMO 9
+#define ROOK_PROMO 10
+#define QUEEN_PROMO 11
+
 #define NULL_MOVE 0
 
 #define EP_OFF -13
@@ -102,22 +107,22 @@ extern unsigned int UNIT_VEC[239];
 
 extern int PIECE_VALS[];
 
-extern int PAWN_TABLE[];
-extern int KNIGHT_TABLE[];
-extern int BISHOP_TABLE[];
-extern int ROOK_TABLE[];
-extern int QUEEN_TABLE[];
-extern int KING_TABLE[];
-
 extern int *EVAL_TABLES[];
+
+extern int *MVV_LVA_SCORES[];
 
 extern uint64_t HASH_VALUES[781];
 
 /* structs and typedefs */
 
 typedef struct {
+    int move;
+    int score;
+} move_info;
+
+typedef struct {
     int index;
-    int moves[256];
+    move_info moves[256];
 } move_list;
 
 typedef void (*MOVE_GENERATOR)(int, int, move_list*);
