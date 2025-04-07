@@ -2,19 +2,29 @@
 #include "aether.h"
 
 void add_quiet_move(int mv, MOVE_LIST *moves) {
-    MOVE_INFO m_info = {.move = mv, .score = 0};
+    MOVE_INFO m_info;
+    m_info.move = mv;
+
+    if (search_killers[0][ply] == mv) {
+        m_info.score = FIRST_KILLER_VALUE;
+    } else if (search_killers[1][ply] == mv) {
+        m_info.score = SECOND_KILLER_VALUE;
+    } else {
+        m_info.score = 0;
+    }
+
     moves->moves[moves->index++] = m_info;
 }
 
 void add_capture_move(int mv, MOVE_LIST *moves) {
     MOVE_INFO m_info;
     m_info.move = mv;
-    m_info.score = MVV_LVA_SCORES[board[get_dest(mv)] & 0xFC][board[get_start(mv)] & 0xFC];
+    m_info.score = MVV_LVA_SCORES[board[get_dest(mv)] & 0xFC][board[get_start(mv)] & 0xFC] + CAP_VALUE;
     moves->moves[moves->index++] = m_info;
 }
 
 void add_ep_capture_move(int mv, MOVE_LIST *moves) {
-    MOVE_INFO m_info = {.move = mv, .score = 105};
+    MOVE_INFO m_info = {.move = mv, .score = 105 + CAP_VALUE};
     moves->moves[moves->index++] = m_info;
 }
 

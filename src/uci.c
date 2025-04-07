@@ -8,7 +8,7 @@ char best_move[6];
 
 int main(void) {
     set_position(START_POS);
-    init_table();
+    init_tables();
 
     while (1) {
         char buf[256];
@@ -111,7 +111,7 @@ int main(void) {
             printf("id author %s\n", AUTHOR);
             printf("uciok\n");
         } else if (strcmp(cmd, "quit") == 0) {
-            free(pv_table->table);
+            free_tables();
             return 0;
         }
     }

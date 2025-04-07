@@ -37,6 +37,14 @@ int evaluate(void) {
 
 void init_search(SEARCH_INFO *s_info) {
     memset(pv_line, NULL_MOVE, MAX_DEPTH * sizeof(int));
+    memset(search_killers, NULL_MOVE, 2 * MAX_DEPTH * sizeof(int));
+
+    memset(search_history[PAWN], 0, H8 * sizeof(int));
+    memset(search_history[KNIGHT], 0, H8 * sizeof(int));
+    memset(search_history[BISHOP], 0, H8 * sizeof(int));
+    memset(search_history[ROOK], 0, H8 * sizeof(int));
+    memset(search_history[QUEEN], 0, H8 * sizeof(int));
+    memset(search_history[KING], 0, H8 * sizeof(int));
     
     s_info->start_time = get_time();
     s_info->stopped = 0;
@@ -120,6 +128,12 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
                     s_info->fhf++;
                 }
                 s_info->fh++;
+
+                if (!(get_flags(mv) & CAPTURE_FLAG)) {
+                    search_killers[1][ply] = search_killers[0][ply];
+                    search_killers[0][ply] = mv;
+                }
+                
                 free(moves);
                 return beta;
             }
@@ -167,7 +181,10 @@ void search(SEARCH_INFO *s_info) {
             printf(" %s", mstr);
         }
         printf("\n");
-        printf("fhf: %.2f, fh: %.2f, ordering: %.2f\n", s_info->fhf, s_info->fh, (s_info->fhf/s_info->fh));
+
+        if (current_depth > 1) {
+            printf("fhf: %.2f, fh: %.2f, ordering: %.2f\n", s_info->fhf, s_info->fh, (s_info->fhf/s_info->fh));
+        }
     }
 
     move_to_string(best_move, mstr);

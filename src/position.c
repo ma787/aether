@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include "aether.h"
 
@@ -40,6 +41,12 @@ uint64_t board_hash;
 
 HASH_TABLE pv_table[1];
 int pv_line[MAX_DEPTH];
+
+int *search_history[] = {
+    [PAWN] = NULL, [KNIGHT] = NULL, [BISHOP] = NULL, [ROOK] = NULL, [QUEEN] = NULL, [KING] = NULL
+};
+
+int search_killers[2][MAX_DEPTH];
 
 void flip_position(void) {
     c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
@@ -275,4 +282,31 @@ void restore_state(void) {
     ep_square = (state >> 4) & 0xFF;
     h_clk = (state >> 12) & 0x3F;
     check_info = (state >> 18) & 0x3FFFF;
+}
+
+void init_tables(void) {
+    // allocate memory for pv table
+    pv_table->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
+    pv_table->n_entries -= 2; // ensures that memory is not overrun
+    free(pv_table->table);
+    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
+    clear_table();
+
+    // allocate memory for history table
+    search_history[PAWN] = malloc(HISTORY_TABLE_SIZE);
+    search_history[KNIGHT] = malloc(HISTORY_TABLE_SIZE);
+    search_history[BISHOP] = malloc(HISTORY_TABLE_SIZE);
+    search_history[ROOK] = malloc(HISTORY_TABLE_SIZE);
+    search_history[QUEEN] = malloc(HISTORY_TABLE_SIZE);
+    search_history[KING] = malloc(HISTORY_TABLE_SIZE);
+}
+
+void free_tables(void) {
+    free(pv_table->table);
+    free(search_history[PAWN]);
+    free(search_history[KNIGHT]);
+    free(search_history[BISHOP]);
+    free(search_history[ROOK]);
+    free(search_history[QUEEN]);
+    free(search_history[KING]);
 }

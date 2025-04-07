@@ -11,12 +11,17 @@
 
 #define STACK_SIZE 50
 #define MOVE_LIST_SIZE 256
-#define TABLE_SIZE 0x100000 * 2
+#define PV_TABLE_SIZE 0x100000 * 2
+#define HISTORY_TABLE_SIZE (H8 + 1) * sizeof(int)
 
 #define MAX_DEPTH 64
 #define INFINITY 10000000
 
 #define MATE 32768
+
+#define CAP_VALUE 1000000
+#define FIRST_KILLER_VALUE 900000
+#define SECOND_KILLER_VALUE 800000
 
 #define START_POS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -171,6 +176,9 @@ extern uint64_t board_hash;
 extern HASH_TABLE pv_table[1];
 extern int pv_line[MAX_DEPTH];
 
+extern int* search_history[];
+extern int search_killers[2][MAX_DEPTH];
+
 /* functions to set/update/modify the current position */
 
 void flip_position(void);
@@ -180,6 +188,11 @@ void switch_side(void);
 
 void save_state(void);
 void restore_state(void);
+
+/* (de)allocating tables */
+
+void init_tables(void);
+void free_tables(void);
 
 /* move encoding and decoding functions */
 
@@ -213,7 +226,6 @@ void set_hash(void);
 void update_hash(int mv);
 
 void clear_table(void);
-void init_table(void);
 
 void store_move(int mv);
 int get_pv_move(void);

@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include "aether.h"
 
 uint64_t get_hash(uint64_t pos, uint64_t piece) {
@@ -148,14 +147,6 @@ void clear_table(void) {
         t_entry->best_move = NULL_MOVE;
         t_entry++;
     }
-}
-
-void init_table(void) {
-    pv_table->n_entries = TABLE_SIZE / sizeof(TABLE_ENTRY);
-    pv_table->n_entries -= 2; // ensures that memory is not overrun
-    free(pv_table->table);
-    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
-    clear_table();
 }
 
 void store_move(int mv) {
