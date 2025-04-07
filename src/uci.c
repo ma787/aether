@@ -8,6 +8,7 @@ char best_move[6];
 
 int main(void) {
     set_position(START_POS);
+    init_table();
 
     while (1) {
         char buf[256];
@@ -27,38 +28,40 @@ int main(void) {
         if (strcmp(cmd, "position") == 0) {
             if ((cmd = strtok(NULL, " ")) == NULL) {
                 continue;
-            } else if (strcmp(cmd, "startpos") == 0) {
+            }
+
+            if (strcmp(cmd, "startpos") == 0) {
                 set_position(START_POS);
-                continue;
-            } else if (strcmp(cmd, "fen") != 0) {
-                continue;
-            }
-
-            int res = 0;
-            fen_str[0] = '\0';
-
-            for (int i = 2; i < 8; i++) {
-                if ((cmd = strtok(NULL, " ")) == NULL) {
-                    res = -1;
-                    break;
-                }
-                strcat(fen_str, cmd);
-                strcat(fen_str, " ");
-            }
-
-            int end = strcspn(fen_str, "\0");
-            fen_str[end - 1] = '\0';
-
-            if (res != 0 || !fen_match(fen_str)) {
+            } else if (strcmp(cmd, "fen") == 0) {
+                int res = 0;
                 fen_str[0] = '\0';
+
+                for (int i = 2; i < 8; i++) {
+                    if ((cmd = strtok(NULL, " ")) == NULL) {
+                        res = -1;
+                        break;
+                    }
+                    strcat(fen_str, cmd);
+                    strcat(fen_str, " ");
+                }
+
+                int end = strcspn(fen_str, "\0");
+                fen_str[end - 1] = '\0';
+
+                if (res != 0 || !fen_match(fen_str)) {
+                    fen_str[0] = '\0';
+                    continue;
+                }
+
+                if (set_position(fen_str) != 0) {
+                    return -1;
+                }
+
+                fen_str[0] = '\0';
+            } else {
                 continue;
             }
 
-            if (set_position(fen_str) != 0) {
-                return -1;
-            }
-            
-            fen_str[0] = '\0';
             int mv;
 
             if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "moves") == 0) {
@@ -102,12 +105,13 @@ int main(void) {
         } else if (strcmp(cmd, "d") == 0) {
             char fen_str[92];
             board_to_fen(fen_str);
-            printf("%s\n", fen_str);
+            printf("%s\n%lu\n", fen_str, board_hash);
         } else if (strcmp(cmd, "uci") == 0) {
             printf("id name %s\n", NAME);
             printf("id author %s\n", AUTHOR);
             printf("uciok\n");
         } else if (strcmp(cmd, "quit") == 0) {
+            free(pv_table->table);
             return 0;
         }
     }

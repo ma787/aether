@@ -1,24 +1,24 @@
 #include <stdlib.h>
 #include "aether.h"
 
-void add_quiet_move(int mv, move_list *moves) {
-    move_info m_info = {.move = mv, .score = 0};
+void add_quiet_move(int mv, MOVE_LIST *moves) {
+    MOVE_INFO m_info = {.move = mv, .score = 0};
     moves->moves[moves->index++] = m_info;
 }
 
-void add_capture_move(int mv, move_list *moves) {
-    move_info m_info;
+void add_capture_move(int mv, MOVE_LIST *moves) {
+    MOVE_INFO m_info;
     m_info.move = mv;
     m_info.score = MVV_LVA_SCORES[board[get_dest(mv)] & 0xFC][board[get_start(mv)] & 0xFC];
     moves->moves[moves->index++] = m_info;
 }
 
-void add_ep_capture_move(int mv, move_list *moves) {
-    move_info m_info = {.move = mv, .score = 105};
+void add_ep_capture_move(int mv, MOVE_LIST *moves) {
+    MOVE_INFO m_info = {.move = mv, .score = 105};
     moves->moves[moves->index++] = m_info;
 }
 
-void add_pawn_quiet_move(int start, int dest, move_list *moves) {
+void add_pawn_quiet_move(int start, int dest, MOVE_LIST *moves) {
     if (get_rank(dest) == 7) {
         add_quiet_move(encode_move(start, dest, KNIGHT_PROMO), moves);
         add_quiet_move(encode_move(start, dest, BISHOP_PROMO), moves);
@@ -29,7 +29,7 @@ void add_pawn_quiet_move(int start, int dest, move_list *moves) {
     }
 }
 
-void add_pawn_capture_move(int start, int dest, move_list *moves) {
+void add_pawn_capture_move(int start, int dest, MOVE_LIST *moves) {
     if (get_rank(dest) == 7) {
         add_capture_move(encode_move(start, dest, KNIGHT_PROMO | CAPTURE_FLAG), moves);
         add_capture_move(encode_move(start, dest, BISHOP_PROMO | CAPTURE_FLAG), moves);
@@ -40,7 +40,7 @@ void add_pawn_capture_move(int start, int dest, move_list *moves) {
     }
 }
 
-void gen_pawn_move(int pos, int vec, move_list *moves) {
+void gen_pawn_move(int pos, int vec, MOVE_LIST *moves) {
     int current = pos + vec;
     int sq = board[current];
 
@@ -61,7 +61,7 @@ void gen_pawn_move(int pos, int vec, move_list *moves) {
     }
 }
 
-void gen_step(int pos, int vec, move_list *moves) {
+void gen_step(int pos, int vec, MOVE_LIST *moves) {
     int current = pos + vec;
     int sq = board[current];
 
@@ -72,7 +72,7 @@ void gen_step(int pos, int vec, move_list *moves) {
     }
 }
 
-void gen_slider(int pos, int vec, move_list *moves) {
+void gen_slider(int pos, int vec, MOVE_LIST *moves) {
     int current = pos;
 
     for (;;) {
@@ -90,7 +90,7 @@ void gen_slider(int pos, int vec, move_list *moves) {
     }
 }
 
-void gen_moves_from_position(int pos, move_list *moves) {
+void gen_moves_from_position(int pos, MOVE_LIST *moves) {
     int p_type = board[pos] & 0xFC;
     MOVE_GENERATOR gen;
 
@@ -107,7 +107,7 @@ void gen_moves_from_position(int pos, move_list *moves) {
     }
 }
 
-void gen_moves_in_check(int pos, move_list *moves) {
+void gen_moves_in_check(int pos, MOVE_LIST *moves) {
     int piece = board[pos];
     int checker = (check_info >> 2) & 0xFF;
     int vec = get_step(pos, checker);
@@ -141,13 +141,13 @@ void gen_moves_in_check(int pos, move_list *moves) {
     // generate moves which might block the checker
     int k_pos = w_pieces[0];
     int k_step = get_step(k_pos, checker);
-    move_list *blocking_moves = malloc(sizeof(move_list));
+    MOVE_LIST *blocking_moves = malloc(sizeof(MOVE_LIST));
     blocking_moves->index = 0;
     gen_moves_from_position(pos, blocking_moves);
 
     // check if each move actually blocks the checker
     for (int i = 0; i < blocking_moves->index; i++) {
-        move_info m_info = blocking_moves->moves[i];
+        MOVE_INFO m_info = blocking_moves->moves[i];
         int dest = get_dest(m_info.move);
 
         if (get_step(k_pos, dest) == k_step) {
@@ -192,7 +192,7 @@ int find_pinned_piece(int vec, int *pinned_loc) {
     }
 }
 
-int gen_pinned_pieces(move_list *moves, int *piece_locs) {
+int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs) {
     int pinned_pieces[15];
     int n_pinned = 0;
 
@@ -253,7 +253,7 @@ int gen_pinned_pieces(move_list *moves, int *piece_locs) {
     return piece_locs_index;
 }
 
-void all_moves(move_list *moves) {
+void all_moves(MOVE_LIST *moves) {
     int piece_locs[15];
     int len = gen_pinned_pieces(moves, piece_locs);
 
@@ -285,7 +285,7 @@ void all_moves(move_list *moves) {
 }
 
 bool move_exists(int mv) {
-    move_list *moves = malloc(sizeof(move_list));
+    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(moves);
 

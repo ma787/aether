@@ -69,9 +69,9 @@
 
 #define NULL_MOVE 0
 
-#define EP_OFF -13
-#define C_OFF -5
-#define SIDE_OFF -1
+#define EP_OFF 768
+#define C_OFF 776
+#define SIDE_OFF 780
 
 enum SQUARES {
     A1 = 0x44, B1, C1, D1, E1, F1, G1, H1,
@@ -118,14 +118,14 @@ extern uint64_t HASH_VALUES[781];
 typedef struct {
     int move;
     int score;
-} move_info;
+} MOVE_INFO;
 
 typedef struct {
     int index;
-    move_info moves[256];
-} move_list;
+    MOVE_INFO moves[256];
+} MOVE_LIST;
 
-typedef void (*MOVE_GENERATOR)(int, int, move_list*);
+typedef void (*MOVE_GENERATOR)(int, int, MOVE_LIST*);
 
 typedef struct {
     uint64_t key;
@@ -148,6 +148,9 @@ typedef struct {
     int quit;
     int stopped;
     long nodes;
+
+    float fh;
+    float fhf;
 } SEARCH_INFO;
 
 /* board and position state definitions */
@@ -196,7 +199,7 @@ void unmake_move(int mv);
 
 /* move generation functions */
 
-void all_moves(move_list *moves);
+void all_moves(MOVE_LIST *moves);
 bool move_exists(int mv);
 
 /* perft and divide functions */

@@ -2,8 +2,6 @@
 #include <string.h>
 #include "aether.h"
 
-#include <stdio.h>
-
 void test_fen(char *fen_str){
     char parsed_str[92];
     board_to_fen(parsed_str);
@@ -374,6 +372,11 @@ int main(void) {
 
     assert(set_position("r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1") == 0);
     test_update_hash("b7b8q");
+
+    // move_exists tests
+
+    assert(set_position(START_POS) == 0);
+    assert(move_exists(string_to_move("b1a3")));
 
     return 0;
 }

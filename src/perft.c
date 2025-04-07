@@ -8,7 +8,7 @@ uint64_t perft(int depth) {
     }
     uint64_t total = 0UL;
 
-    move_list *moves = malloc(sizeof(move_list));
+    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(moves);
 
@@ -30,7 +30,7 @@ void divide(int depth) {
     }
 
     uint64_t total = 0;
-    move_list *moves = malloc(sizeof(move_list));
+    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(moves);
 

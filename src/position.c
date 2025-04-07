@@ -248,7 +248,6 @@ int set_position(char *fen_str) {
         }
     }
 
-    init_table();
     set_hash();
     set_check();
 

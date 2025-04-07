@@ -2,7 +2,11 @@
 #include "aether.h"
 
 uint64_t get_hash(uint64_t pos, uint64_t piece) {
-    int sq_off = (6 * get_rank(pos)) + (12 * get_file(pos));
+    int sq_off = (96 * get_rank(pos)) + (12 * get_file(pos));
+
+    if (piece & BLACK) {
+        sq_off += 6;
+    }
 
     switch(piece & 0xFC) {
         case PAWN:
@@ -115,7 +119,7 @@ void update_hash(int mv) {
         int cap_pos = dest, cap_piece = get_captured_piece(mv), off = S;
 
         if (side == BLACK) {
-            cap_piece = (cap_piece & 0xFC) | BLACK;
+            cap_piece = (cap_piece & 0xFC) | WHITE;
             off = N;
         }
         
@@ -186,7 +190,6 @@ int get_pv_line(int depth) {
             break;
         }
         mv = get_pv_move();
-        move_to_string(mv, mstr);
     }
 
     for (int i = count - 1; i >= 0; i--) {

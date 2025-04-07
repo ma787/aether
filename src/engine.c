@@ -41,6 +41,9 @@ void init_search(SEARCH_INFO *s_info) {
     s_info->start_time = get_time();
     s_info->stopped = 0;
     s_info->nodes = 0L;
+
+    s_info->fh = 0;
+    s_info->fhf = 0;
 }
 
 int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
@@ -50,7 +53,7 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
         return evaluate();
     }
 
-    move_list *moves = malloc(sizeof(move_list));
+    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(moves);
 
@@ -61,22 +64,29 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
 
     for (int i = 0; i < moves->index; i++) {
         int mv = moves->moves[i].move;
-        if (make_move(mv) == 0) {
-            n++;
-            score = -alpha_beta(-beta, -alpha, depth - 1, s_info);
 
-            if (score > alpha) {
-                if (score >= beta) {
-                    unmake_move(mv);
-                    free(moves);
-                    return beta;
-                }
-
-                alpha = score;
-                best_move = mv;
-            }
+        if (make_move(mv) != 0) {
+            unmake_move(mv);
+            continue;
         }
+
+        n++;
+        score = -alpha_beta(-beta, -alpha, depth - 1, s_info);
         unmake_move(mv);
+
+        if (score > alpha) {
+            if (score >= beta) {
+                if (n == 1) {
+                    s_info->fhf++;
+                }
+                s_info->fh++;
+                free(moves);
+                return beta;
+            }
+
+            alpha = score;
+            best_move = mv;
+        }
     }
 
     free(moves);
@@ -94,7 +104,7 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
         store_move(best_move);
     }
 
-    return score;
+    return alpha;
 }
 
 void search(SEARCH_INFO *s_info) {
@@ -117,6 +127,7 @@ void search(SEARCH_INFO *s_info) {
             printf(" %s", mstr);
         }
         printf("\n");
+        printf("fhf: %.2f, fh: %.2f, ordering: %.2f\n", s_info->fhf, s_info->fh, (s_info->fhf/s_info->fh));
     }
 
     move_to_string(best_move, mstr);
