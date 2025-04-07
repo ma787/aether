@@ -46,6 +46,45 @@ void init_search(SEARCH_INFO *s_info) {
     s_info->fhf = 0;
 }
 
+int make_next_move(MOVE_LIST *moves) {
+    MOVE_INFO m_info;
+    int best_index = -1;
+
+    for (int i = 0; i < moves->index; i++) {
+        m_info = moves->moves[i];
+        if (m_info.move != NULL_MOVE) {
+            best_index = i;
+            break;
+        };
+    }
+
+    if (best_index == -1) {
+        return NULL_MOVE;
+    }
+
+    MOVE_INFO new_info;
+
+    for (int j = best_index + 1; j < moves->index; j++) {
+        new_info = moves->moves[j];
+
+        if (new_info.move != NULL_MOVE && new_info.score > m_info.score) {
+            m_info = new_info;
+            best_index = j;
+        }
+    }
+
+    int best_move = m_info.move;
+
+    if (make_move(best_move) != 0) {
+        unmake_move(best_move);
+        best_move = -1;
+    }
+
+    moves->moves[best_index].move = NULL_MOVE;
+
+    return best_move;
+}
+
 int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
     s_info->nodes++;
 
@@ -62,11 +101,12 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
     int score = -INFINITY;
     int n = 0;
 
-    for (int i = 0; i < moves->index; i++) {
-        int mv = moves->moves[i].move;
+    while (1) {
+        int mv = make_next_move(moves);
 
-        if (make_move(mv) != 0) {
-            unmake_move(mv);
+        if (mv == NULL_MOVE) {
+            break;
+        } else if (mv == -1) {
             continue;
         }
 
