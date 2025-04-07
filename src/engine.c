@@ -108,6 +108,16 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
     int old_alpha = alpha;
     int score = -INFINITY;
     int n = 0;
+    int pv_move = get_pv_move();
+
+    if (pv_move != NULL_MOVE) {
+        for (int i = 0; i < moves->index; i++) {
+            if (moves->moves[i].move == pv_move) {
+                moves->moves[i].score = CAP_VALUE * 2;
+                break;
+            }
+        }
+    }
 
     while (1) {
         int mv = make_next_move(moves);
@@ -136,6 +146,10 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
                 
                 free(moves);
                 return beta;
+            }
+
+            if (!(get_flags(mv) & CAPTURE_FLAG)) {
+                search_history[board[get_start(mv)] & 0xFC][get_dest(mv)] += depth;
             }
 
             alpha = score;

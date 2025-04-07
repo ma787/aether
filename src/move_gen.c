@@ -10,7 +10,7 @@ void add_quiet_move(int mv, MOVE_LIST *moves) {
     } else if (search_killers[1][ply] == mv) {
         m_info.score = SECOND_KILLER_VALUE;
     } else {
-        m_info.score = 0;
+        m_info.score = search_history[board[get_start(mv)] & 0xFC][get_dest(mv)];
     }
 
     moves->moves[moves->index++] = m_info;
