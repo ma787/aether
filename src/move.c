@@ -124,6 +124,7 @@ int make_move(int mv) {
     ply++;
     move_history[ply] = mv;
     update_hash(mv);
+    repetition_table[board_hash & 0x00003FFF] += 1;
 
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
 
@@ -283,6 +284,7 @@ int make_move(int mv) {
 }
 
 void unmake_move() {
+    repetition_table[board_hash & 0x00003FFF] -= 1;
     int mv = move_history[ply];
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
 

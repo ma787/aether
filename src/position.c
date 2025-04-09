@@ -38,6 +38,7 @@ int ply = 0;
 
 HISTORY_ENTRY history[HISTORY_TABLE_SIZE];
 int move_history[HISTORY_TABLE_SIZE] = {NULL_MOVE};
+uint8_t repetition_table[REPETITION_TABLE_SIZE];
 
 HASH_TABLE pv_table[1];
 int pv_line[MAX_DEPTH];
@@ -186,6 +187,9 @@ void init_tables(void) {
     memset(white_pieces, 0, 16 * sizeof(int));
     memset(black_pieces, 0, 16 * sizeof(int));
 
+    // initialise repetition table
+    memset(repetition_table, 0, REPETITION_TABLE_SIZE);
+
     // initialise killer table
     memset(search_killers, NULL_MOVE, 2 * HISTORY_TABLE_SIZE * sizeof(int));
 }
@@ -280,4 +284,18 @@ int set_position(char *fen_str) {
     save_state();
 
     return 0;
+}
+
+bool is_repetition(void) {
+    if (!(repetition_table[board_hash & 0x00003FFF])) {
+        return false;
+    }
+
+    for (int i = ply - h_clk; i < ply; i++) {
+        if (history[i].board_hash == board_hash) {
+            return true;
+        }
+    }
+
+    return false;
 }

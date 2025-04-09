@@ -99,6 +99,11 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
         return evaluate();
     }
 
+    // assign draw score to repetitions
+    if (is_repetition() || h_clk >= 100) {
+        return 0;
+    }
+
     MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(moves);

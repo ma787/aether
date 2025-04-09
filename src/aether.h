@@ -12,6 +12,7 @@
 #define STACK_SIZE 50
 #define MOVE_LIST_SIZE 256
 #define HISTORY_TABLE_SIZE 1024
+#define REPETITION_TABLE_SIZE 32768
 #define PV_TABLE_SIZE 0x100000 * 2
 #define S_HIS_TABLE_SIZE (H8 + 1) * sizeof(int)
 
@@ -182,15 +183,16 @@ extern unsigned int check_info;
 
 extern uint64_t board_hash;
 
+extern int move_history[HISTORY_TABLE_SIZE];
+extern uint8_t repetition_table[REPETITION_TABLE_SIZE];
+
 extern HASH_TABLE pv_table[1];
 extern int pv_line[MAX_DEPTH];
-
-extern int move_history[HISTORY_TABLE_SIZE];
 
 extern int* search_history[];
 extern int search_killers[2][HISTORY_TABLE_SIZE];
 
-/* functions to set/update/modify the current position */
+/* functions to change/query the current position */
 
 void flip_position(void);
 int set_position(char *fen_str);
@@ -199,6 +201,8 @@ void switch_side(void);
 
 void save_state(void);
 void restore_state(void);
+
+bool is_repetition(void);
 
 /* deallocating tables */
 
