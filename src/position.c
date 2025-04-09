@@ -2,10 +2,6 @@
 #include <string.h>
 #include "aether.h"
 
-int prev_state[STACK_SIZE];
-uint64_t prev_hashes[STACK_SIZE];
-int ply = 0;
-
 unsigned int board[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -38,6 +34,9 @@ unsigned int h_clk = 0;
 unsigned int check_info = 0;
 
 uint64_t board_hash;
+int ply = 0;
+
+HISTORY_ENTRY history[HISTORY_TABLE_SIZE];
 
 HASH_TABLE pv_table[1];
 int pv_line[MAX_DEPTH];
@@ -46,7 +45,7 @@ int *search_history[] = {
     [PAWN] = NULL, [KNIGHT] = NULL, [BISHOP] = NULL, [ROOK] = NULL, [QUEEN] = NULL, [KING] = NULL
 };
 
-int search_killers[2][MAX_DEPTH];
+int search_killers[2][HISTORY_TABLE_SIZE];
 
 void flip_position(void) {
     c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
@@ -146,52 +145,67 @@ void set_check(void) {
     }
 }
 
-int parse_board_string(char *fen_str) {
-    if (!fen_match(fen_str)) {
-        return -1;
-    }
+void switch_side(void) { side = ~side & 3; }
 
-    int i = A8, j = 0, count = 0;
-
-    for (;;) {
-        char val = fen_str[j++];
-        switch(val) {
-            case ' ':
-                if (count != 8) {
-                    return -1;
-                }
-                return j;
-            case '/':
-                if (count != 8) {
-                    return -1;
-                }
-                i -= 0x18;
-                count = 0;
-                break;
-            default:
-                int piece = PIECES[(int) val];
-                if (piece) {
-                    board[i++] = piece;
-                    count++;
-                } else {
-                    int inc = val - '0';
-                    i += inc;
-                    count += inc;
-                }
-        }
-    }
+void save_state(void) {
+    HISTORY_ENTRY h_entry = {board_hash, c_rights, ep_square, h_clk, check_info};
+    history[ply] = h_entry;
 }
 
-int set_position(char *fen_str) {
-    // clear previous board position
+void restore_state(void) {
+    HISTORY_ENTRY h_entry = history[ply];
+
+
+    board_hash = h_entry.board_hash;
+    c_rights = h_entry.c_rights;
+    ep_square = h_entry.ep_square;
+    h_clk = h_entry.h_clk;
+    check_info = h_entry.check_info;
+}
+
+void init_tables(void) {
+    // allocate memory for pv table
+    pv_table->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
+    pv_table->n_entries -= 2; // ensures that memory is not overrun
+    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
+    clear_table();
+
+    // allocate and zero initialise memory for history table
+    search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[KNIGHT] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[BISHOP] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[ROOK] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[QUEEN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[KING] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+
+    // clear board
     for (int i = A1; i <= A8; i += 0x10) {
         memset(board + i, 0, 8 * sizeof(int));
     }
     memset(white_pieces, 0, 16 * sizeof(int));
     memset(black_pieces, 0, 16 * sizeof(int));
+
+    // initialise killer table
+    memset(search_killers, NULL_MOVE, 2 * HISTORY_TABLE_SIZE * sizeof(int));
+}
+
+void free_tables(void) {
+    free(pv_table->table);
+    free(search_history[PAWN]);
+    free(search_history[KNIGHT]);
+    free(search_history[BISHOP]);
+    free(search_history[ROOK]);
+    free(search_history[QUEEN]);
+    free(search_history[KING]);
+}
+
+int set_position(char *fen_str) {
+    free_tables();
+    init_tables();
+
     ply = 0;
 
-    int idx = parse_board_string(fen_str);
+    int idx = fen_to_board_array(fen_str);
 
     if (idx == -1) {
         return -1;
@@ -262,51 +276,7 @@ int set_position(char *fen_str) {
         flip_position();
     }
 
+    save_state();
+
     return 0;
-}
-
-void switch_side(void) { side = ~side & 3; }
-
-void save_state(void) {
-    prev_state[ply] = (
-        c_rights | (ep_square << 4) | (h_clk << 12) | (check_info << 18)
-    );
-    prev_hashes[ply++] = board_hash;
-}
-
-void restore_state(void) {
-    board_hash = prev_hashes[--ply];
-    int state = prev_state[ply];
-
-    c_rights = state & 0xF;
-    ep_square = (state >> 4) & 0xFF;
-    h_clk = (state >> 12) & 0x3F;
-    check_info = (state >> 18) & 0x3FFFF;
-}
-
-void init_tables(void) {
-    // allocate memory for pv table
-    pv_table->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
-    pv_table->n_entries -= 2; // ensures that memory is not overrun
-    free(pv_table->table);
-    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
-    clear_table();
-
-    // allocate memory for history table
-    search_history[PAWN] = malloc(HISTORY_TABLE_SIZE);
-    search_history[KNIGHT] = malloc(HISTORY_TABLE_SIZE);
-    search_history[BISHOP] = malloc(HISTORY_TABLE_SIZE);
-    search_history[ROOK] = malloc(HISTORY_TABLE_SIZE);
-    search_history[QUEEN] = malloc(HISTORY_TABLE_SIZE);
-    search_history[KING] = malloc(HISTORY_TABLE_SIZE);
-}
-
-void free_tables(void) {
-    free(pv_table->table);
-    free(search_history[PAWN]);
-    free(search_history[KNIGHT]);
-    free(search_history[BISHOP]);
-    free(search_history[ROOK]);
-    free(search_history[QUEEN]);
-    free(search_history[KING]);
 }

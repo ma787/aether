@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "aether.h"
 
@@ -110,6 +111,8 @@ int main(void) {
     );
     test_fen("r1bq1r2/pp2n3/4N1Pk/3pPp2/1b1n2Q1/2N5/PP3PP1/R1B1K2R b KQ - 0 1");
 
+    printf("passed set_position tests\n");
+
     /* is_square_attacked tests */
 
     assert(set_position("rnb1kbnr/1pp1pppp/p7/8/2p5/NQ1qB3/PP2PPPP/R3KBNR w KQkq - 0 1") == 0);
@@ -126,6 +129,8 @@ int main(void) {
 
     assert(set_position("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1") == 0);
     assert(is_square_attacked(D1));
+
+    printf("passed is_square_attacked tests\n");
 
     /* string_to_move tests */
 
@@ -167,6 +172,8 @@ int main(void) {
         (string_to_move("b2a1n") & 0x0FFFFFFF) 
         == (B7 | (A8 << 8) | ((CAPTURE_FLAG | PROMO_FLAG) << 16) | ((BLACK | ROOK) << 20))
     );
+
+    printf("passed string_to_move tests\n");
 
     /* make_move tests */
 
@@ -225,6 +232,8 @@ int main(void) {
     assert(set_position("rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1") == 0);
     assert(make_move(string_to_move("d5e6")) == 0);
     test_fen("rnbqkbnr/1ppp1ppp/p3P3/8/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1");
+
+    printf("passed make_move tests\n");
 
     /* unmake_move tests */
     int mv;
@@ -304,6 +313,8 @@ int main(void) {
     unmake_move(mv);
     test_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
+    printf("passed unmake_move tests\n");
+
     /* update_check tests */
 
     assert(set_position("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1") == 0);
@@ -337,6 +348,8 @@ int main(void) {
     assert(set_position("4k2r/8/8/8/8/8/8/5K2 b k - 1 1") == 0);
     assert(make_move(string_to_move("e8g8")) == 0);
     assert(check_info == (DISTANT_CHECK | (F8 << 2)));
+
+    printf("passed update_check tests\n");
 
     /* update_hash tests */
 
@@ -373,10 +386,16 @@ int main(void) {
     assert(set_position("r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1") == 0);
     test_update_hash("b7b8q");
 
+    printf("passed update_hash tests\n");
+
     // move_exists tests
 
     assert(set_position(START_POS) == 0);
     assert(move_exists(string_to_move("b1a3")));
+
+    printf("passed move_exists tests\n");
+
+    free_tables();
 
     return 0;
 }

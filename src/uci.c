@@ -8,7 +8,6 @@ char best_move[6];
 
 int main(void) {
     set_position(START_POS);
-    init_tables();
 
     while (1) {
         char buf[256];

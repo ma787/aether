@@ -37,7 +37,6 @@ int evaluate(void) {
 
 void init_search(SEARCH_INFO *s_info) {
     memset(pv_line, NULL_MOVE, MAX_DEPTH * sizeof(int));
-    memset(search_killers, NULL_MOVE, 2 * MAX_DEPTH * sizeof(int));
 
     memset(search_history[PAWN], 0, H8 * sizeof(int));
     memset(search_history[KNIGHT], 0, H8 * sizeof(int));

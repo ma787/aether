@@ -121,6 +121,7 @@ int make_move(int mv) {
     int legal = 0;
     int kp_square = 0;
     save_state();
+    ply++;
     update_hash(mv);
 
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
@@ -312,5 +313,6 @@ void unmake_move(int mv) {
             break;
     }
 
+    ply--;
     restore_state();
 }

@@ -11,8 +11,9 @@
 
 #define STACK_SIZE 50
 #define MOVE_LIST_SIZE 256
+#define HISTORY_TABLE_SIZE 1024
 #define PV_TABLE_SIZE 0x100000 * 2
-#define HISTORY_TABLE_SIZE (H8 + 1) * sizeof(int)
+#define S_HIS_TABLE_SIZE (H8 + 1) * sizeof(int)
 
 #define MAX_DEPTH 64
 #define INFINITY 10000000
@@ -121,6 +122,14 @@ extern uint64_t HASH_VALUES[781];
 /* structs and typedefs */
 
 typedef struct {
+    uint64_t board_hash;
+    int c_rights;
+    int ep_square;
+    int h_clk;
+    int check_info;
+} HISTORY_ENTRY;
+
+typedef struct {
     int move;
     int score;
 } MOVE_INFO;
@@ -177,7 +186,7 @@ extern HASH_TABLE pv_table[1];
 extern int pv_line[MAX_DEPTH];
 
 extern int* search_history[];
-extern int search_killers[2][MAX_DEPTH];
+extern int search_killers[2][HISTORY_TABLE_SIZE];
 
 /* functions to set/update/modify the current position */
 
@@ -189,9 +198,8 @@ void switch_side(void);
 void save_state(void);
 void restore_state(void);
 
-/* (de)allocating tables */
+/* deallocating tables */
 
-void init_tables(void);
 void free_tables(void);
 
 /* move encoding and decoding functions */
@@ -239,6 +247,7 @@ void search(SEARCH_INFO *s_info);
 /* string-related functions */
 
 void board_to_fen(char *fen_str);
+int fen_to_board_array(char *fen_str);
 bool fen_match(char *fen_str);
 
 void move_to_string(int mv, char* mstr);

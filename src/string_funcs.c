@@ -8,6 +8,21 @@ int string_to_coord(char *sqr_str) {
 
 char* coord_to_string(int pos) { return COORDS[to_index(pos)]; }
 
+bool fen_match(char *fen_str) {
+    regex_t preg;
+    int res;
+
+    regcomp(&preg, FEN_REGEX, REG_EXTENDED);
+    res = regexec(&preg, fen_str, (size_t) 0, NULL, 0);
+    regfree(&preg);
+
+    if (res != 0) {
+        return false;
+    }
+
+    return true;
+}
+
 void board_to_fen(char *fen_str) {
     if (side != WHITE) {
         flip_position();
@@ -69,19 +84,40 @@ void board_to_fen(char *fen_str) {
     fen_str[j] = '\0';
 }
 
-bool fen_match(char *fen_str) {
-    regex_t preg;
-    int res;
-
-    regcomp(&preg, FEN_REGEX, REG_EXTENDED);
-    res = regexec(&preg, fen_str, (size_t) 0, NULL, 0);
-    regfree(&preg);
-
-    if (res != 0) {
-        return false;
+int fen_to_board_array(char *fen_str) {
+    if (!fen_match(fen_str)) {
+        return -1;
     }
 
-    return true;
+    int i = A8, j = 0, count = 0;
+
+    for (;;) {
+        char val = fen_str[j++];
+        switch(val) {
+            case ' ':
+                if (count != 8) {
+                    return -1;
+                }
+                return j;
+            case '/':
+                if (count != 8) {
+                    return -1;
+                }
+                i -= 0x18;
+                count = 0;
+                break;
+            default:
+                int piece = PIECES[(int) val];
+                if (piece) {
+                    board[i++] = piece;
+                    count++;
+                } else {
+                    int inc = val - '0';
+                    i += inc;
+                    count += inc;
+                }
+        }
+    }
 }
 
 void move_to_string(int mv, char* mstr) {
