@@ -170,9 +170,6 @@ int get_pv_line(int depth) {
     int mv = get_pv_move();
     int count = 0;
 
-    char mstr[6];
-    move_to_string(mv, mstr);
-
     while (mv != NULL_MOVE && count < depth) {
         if (move_exists(mv)) {
             pv_line[count++] = mv;
@@ -184,8 +181,7 @@ int get_pv_line(int depth) {
     }
 
     for (int i = count - 1; i >= 0; i--) {
-        move_to_string(pv_line[i], mstr);
-        unmake_move(pv_line[i]);
+        unmake_move();
     }
 
     return count;

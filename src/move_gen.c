@@ -304,12 +304,12 @@ bool move_exists(int mv) {
 
         if (make_move(m) == 0) {
             if (m == mv) {
-                unmake_move(m);
+                unmake_move();
                 free(moves);
                 return true;
             };
         }
-        unmake_move(m);
+        unmake_move();
     }
 
     free(moves);

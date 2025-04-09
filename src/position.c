@@ -37,6 +37,7 @@ uint64_t board_hash;
 int ply = 0;
 
 HISTORY_ENTRY history[HISTORY_TABLE_SIZE];
+int move_history[HISTORY_TABLE_SIZE] = {NULL_MOVE};
 
 HASH_TABLE pv_table[1];
 int pv_line[MAX_DEPTH];

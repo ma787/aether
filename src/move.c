@@ -122,6 +122,7 @@ int make_move(int mv) {
     int kp_square = 0;
     save_state();
     ply++;
+    move_history[ply] = mv;
     update_hash(mv);
 
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
@@ -281,7 +282,8 @@ int make_move(int mv) {
         return legal;
 }
 
-void unmake_move(int mv) {
+void unmake_move() {
+    int mv = move_history[ply];
     int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
 
     flip_position();

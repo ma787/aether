@@ -83,7 +83,7 @@ int make_next_move(MOVE_LIST *moves) {
     int best_move = m_info.move;
 
     if (make_move(best_move) != 0) {
-        unmake_move(best_move);
+        unmake_move();
         best_move = -1;
     }
 
@@ -129,7 +129,7 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
 
         n++;
         score = -alpha_beta(-beta, -alpha, depth - 1, s_info);
-        unmake_move(mv);
+        unmake_move();
 
         if (score > alpha) {
             if (score >= beta) {

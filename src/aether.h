@@ -185,6 +185,8 @@ extern uint64_t board_hash;
 extern HASH_TABLE pv_table[1];
 extern int pv_line[MAX_DEPTH];
 
+extern int move_history[HISTORY_TABLE_SIZE];
+
 extern int* search_history[];
 extern int search_killers[2][HISTORY_TABLE_SIZE];
 
@@ -216,7 +218,7 @@ int get_side(int mv);
 
 int is_square_attacked(int pos);
 int make_move(int mv);
-void unmake_move(int mv);
+void unmake_move();
 
 /* move generation functions */
 
