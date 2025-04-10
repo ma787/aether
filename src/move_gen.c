@@ -187,33 +187,6 @@ void gen_moves_in_check(int pos, MOVE_LIST *moves) {
     free(blocking_moves);
 }
 
-int remove_pinned_pieces(int n_pinned, int *pinned_pieces, int *piece_locs) {
-    int piece_locs_index = 0;
-
-    for (int i = 1; i < 16; i++) {
-        int pos = w_pieces[i];
-
-        if (!pos) {
-            continue;
-        }
-
-        int found = 0;
-
-        for (int j = 0; j < n_pinned; j++) {
-            if (pos == pinned_pieces[j]) {
-                found = 1;
-                break;
-            }
-        }
-
-        if (!found) {
-            piece_locs[piece_locs_index++] = pos;
-        }
-    }
-
-    return piece_locs_index;
-}
-
 bool find_pinned_piece(int vec, int *pinned_loc, int *pinning_piece) {
     int possible_pin = 0, current = w_pieces[0], sq;
 
@@ -241,10 +214,7 @@ bool find_pinned_piece(int vec, int *pinned_loc, int *pinning_piece) {
     }
 }
 
-int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs, bool captures_only) {
-    int pinned_pieces[15];
-    int n_pinned = 0;
-
+void gen_pinned_pieces(MOVE_LIST *moves, int *temp_removed, bool captures_only) {
     for (int i = 0; i < 8; i++) {
         int vec = KING_OFFS[i];
         int pinned_loc = 0, pinning_piece = 0;
@@ -252,7 +222,9 @@ int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs, bool captures_only) {
 
         if (is_pinned) {
             int pinned_piece = board[pinned_loc];
-            pinned_pieces[n_pinned++] = pinned_loc;
+            int p_list_index = pinned_piece >> 8;
+            w_pieces[p_list_index] = 0;
+            temp_removed[p_list_index] = pinned_loc;
 
             if (check_info) {
                 continue;
@@ -291,37 +263,42 @@ int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs, bool captures_only) {
             }
         }
     }
-
-    return remove_pinned_pieces(n_pinned, pinned_pieces, piece_locs);
 }
 
 void all_moves(MOVE_LIST *moves) {
-    int piece_locs[15];
-    int len = gen_pinned_pieces(moves, piece_locs, false);
+    int temp_removed[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    gen_pinned_pieces(moves, temp_removed, false);
 
     // generate king moves
     gen_moves_from_position(w_pieces[0], moves);
 
     int check = check_info & 3;
 
-    if (check == NO_CHECK) {
-        for (int i = 0; i < len; i++) {
-            gen_moves_from_position(piece_locs[i], moves);
+    if (check < DOUBLE_CHECK) {
+        GEN_FROM_POSITION gen;
+        
+        if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
+            gen = gen_moves_in_check;
+        } else {
+            gen = gen_moves_from_position;
+
+            if (c_rights & WHITE_KINGSIDE && !(board[F1] | board[G1])) {
+                add_quiet_move(encode_move(E1, G1, K_CASTLE_FLAG), moves);
+            }
+
+            if (c_rights & WHITE_QUEENSIDE && !(board[B1] | board[C1] | board[D1])) {
+                add_quiet_move(encode_move(E1, C1, Q_CASTLE_FLAG), moves);
+            }
         }
 
-        if (c_rights & WHITE_KINGSIDE && !(board[F1] | board[G1])) {
-            add_quiet_move(encode_move(E1, G1, K_CASTLE_FLAG), moves);
+        for (int i = 1; i < 16; i++) {
+            gen(w_pieces[i], moves);
         }
+    }
 
-        if (
-            c_rights & WHITE_QUEENSIDE
-            && !(board[B1] | board[C1] | board[D1])
-        ) {
-            add_quiet_move(encode_move(E1, C1, Q_CASTLE_FLAG), moves);
-        }
-    } else if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
-        for (int i = 0; i < len; i++) {
-            gen_moves_in_check(piece_locs[i], moves);
+    for (int i = 0; i < 16; i++) {
+        if (temp_removed[i]) {
+            w_pieces[i] = temp_removed[i];
         }
     }
 }

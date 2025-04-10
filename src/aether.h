@@ -140,6 +140,7 @@ typedef struct {
     MOVE_INFO moves[256];
 } MOVE_LIST;
 
+typedef void (*GEN_FROM_POSITION)(int, MOVE_LIST*);
 typedef void (*MOVE_GENERATOR)(int, int, MOVE_LIST*);
 
 typedef struct {
