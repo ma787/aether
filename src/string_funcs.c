@@ -1,4 +1,5 @@
 #include <regex.h>
+#include <stdio.h>
 #include <string.h>
 #include "aether.h"
 
@@ -118,6 +119,26 @@ int fen_to_board_array(char *fen_str) {
                 }
         }
     }
+}
+
+void print_board(void) {
+    char b_str[72];
+    int i = 0xB4, j = 0, sq;
+
+    while (i != 0x4C) {
+        sq = board[i];
+
+        if (sq == G) {
+            b_str[j++] = '\n';
+            i -= 0x18;
+        } else {
+            b_str[j++] = SYMBOLS[sq & 0xFF];
+            i++;
+        }
+    }
+    
+    b_str[j] = '\0';
+    printf("%s\n", b_str);
 }
 
 void move_to_string(int mv, char* mstr) {

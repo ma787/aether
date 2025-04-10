@@ -256,6 +256,7 @@ void search(SEARCH_INFO *s_info);
 void board_to_fen(char *fen_str);
 int fen_to_board_array(char *fen_str);
 bool fen_match(char *fen_str);
+void print_board(void);
 
 void move_to_string(int mv, char* mstr);
 int string_to_move(char *mstr);

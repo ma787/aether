@@ -276,7 +276,7 @@ void all_moves(MOVE_LIST *moves) {
 
     if (check < DOUBLE_CHECK) {
         GEN_FROM_POSITION gen;
-        
+
         if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
             gen = gen_moves_in_check;
         } else {
@@ -296,7 +296,7 @@ void all_moves(MOVE_LIST *moves) {
         }
     }
 
-    for (int i = 0; i < 16; i++) {
+    for (int i = 1; i < 16; i++) {
         if (temp_removed[i]) {
             w_pieces[i] = temp_removed[i];
         }

@@ -104,7 +104,8 @@ int main(void) {
         } else if (strcmp(cmd, "d") == 0) {
             char fen_str[92];
             board_to_fen(fen_str);
-            printf("%s\n%lu\n", fen_str, board_hash);
+            print_board();
+            printf("\nFEN: %s\nKey: %lu\n", fen_str, board_hash);
         } else if (strcmp(cmd, "uci") == 0) {
             printf("id name %s\n", NAME);
             printf("id author %s\n", AUTHOR);

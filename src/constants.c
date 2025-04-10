@@ -31,6 +31,7 @@ unsigned int PIECES[] = {
 };
 
 char SYMBOLS[] = {
+    [0] = '-',
     [WHITE | PAWN] = 'P',
     [WHITE | KNIGHT] = 'N',
     [WHITE | BISHOP] = 'B',
