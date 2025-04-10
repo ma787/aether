@@ -117,36 +117,48 @@ void gen_moves_from_position(int pos, MOVE_LIST *moves) {
     }
 }
 
-void gen_moves_in_check(int pos, MOVE_LIST *moves) {
-    int piece = board[pos];
-    int checker = (check_info >> 2) & 0xFF;
-    int vec = get_step(pos, checker);
-
-    // attempt to capture the checker
-    if (is_attacking(piece, pos, checker)) {
-        int current = pos + vec;
-        int blocked = 0;
-
-        while (current != checker) {
-            if (board[current]) {
-                blocked = 1;
-                break;
-            }
-            current += vec;
-        }
-        
-        if (!blocked) {
-            if (piece & PAWN) {
-                add_pawn_capture_move(pos, checker, moves);
-            } else {
-                add_capture_move(encode_move(pos, checker, CAPTURE_FLAG), moves);
-            }
-        }
+bool can_capture(int piece, int pos, int enemy_pos) {
+    if (!is_attacking(piece, pos, enemy_pos)) {
+        return false;
     }
 
-    if ((checker == (ep_square + S)) && (piece & PAWN) && is_attacking(piece, pos, ep_square)) {
+    int vec = get_step(pos, enemy_pos);
+    int current = pos + vec;
+
+    while (current != enemy_pos) {
+        if (board[current]) {
+            return false;
+            break;
+        }
+        current += vec;
+    }
+
+    return true;
+}
+
+void gen_capture(int pos, int enemy_pos, MOVE_LIST *moves) {
+    int piece = board[pos];
+
+    if (can_capture(piece, pos, enemy_pos)) {
+        if (piece & PAWN) {
+            add_pawn_capture_move(pos, enemy_pos, moves);
+        } else {
+            add_capture_move(encode_move(pos, enemy_pos, CAPTURE_FLAG), moves);
+        }
+    } else if (
+        piece & PAWN
+        && enemy_pos == (ep_square + S) 
+        && is_attacking(piece, pos, ep_square)
+    ) {
         add_ep_capture_move(encode_move(pos, ep_square, EP_FLAG), moves);
     }
+}
+
+void gen_moves_in_check(int pos, MOVE_LIST *moves) {
+    int checker = (check_info >> 2) & 0xFF;
+
+    // attempt to capture the checker
+    gen_capture(pos, checker, moves);
 
     // generate moves which might block the checker
     int k_pos = w_pieces[0];
@@ -175,68 +187,7 @@ void gen_moves_in_check(int pos, MOVE_LIST *moves) {
     free(blocking_moves);
 }
 
-int find_pinned_piece(int vec, int *pinned_loc) {
-    int possible_pin = 0;
-    int current = w_pieces[0];
-
-    for (;;) {
-        current += vec;
-        int sq = board[current];
-
-        switch (sq & COLOUR_MASK) {
-            case G:
-                return 0;
-            case WHITE:
-                if (possible_pin) {
-                    return 0;
-                }
-                possible_pin = 1;
-                *pinned_loc = current;
-                break;
-            case BLACK:
-                if (possible_pin && is_attacking(sq, current, w_pieces[0])) {
-                    return 1;
-                }
-                return 0;
-            }
-    }
-}
-
-int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs) {
-    int pinned_pieces[15];
-    int n_pinned = 0;
-
-    for (int i = 0; i < 8; i++) {
-        int vec = KING_OFFS[i];
-        int pinned_loc = 0;
-        int is_pinned = find_pinned_piece(vec, &pinned_loc);
-
-        if (is_pinned) {
-            int pinned_piece = board[pinned_loc];
-            pinned_pieces[n_pinned++] = pinned_loc;
-
-            if (check_info) {
-                continue;
-            }
-            
-            if (pinned_piece & PAWN) {
-                if (vec == N || vec == S) {
-                    gen_pawn_move(pinned_loc, N, moves);
-                } else if (is_attacking(pinned_piece, pinned_loc, pinned_loc + vec)) {
-                    gen_pawn_move(pinned_loc, vec, moves);
-                } else if (is_attacking(pinned_piece, pinned_loc, pinned_loc - vec)) {
-                    gen_pawn_move(pinned_loc, -vec, moves);
-                }
-            } else if (pinned_piece & (BISHOP | ROOK | QUEEN)) {
-                if (!(is_attacking(pinned_piece, pinned_loc, pinned_loc + vec))) {
-                    continue;
-                }
-                gen_slider(pinned_loc, vec, moves);
-                gen_slider(pinned_loc, -vec, moves);
-            }
-        }
-    }
-    
+int remove_pinned_pieces(int n_pinned, int *pinned_pieces, int *piece_locs) {
     int piece_locs_index = 0;
 
     for (int i = 1; i < 16; i++) {
@@ -263,9 +214,90 @@ int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs) {
     return piece_locs_index;
 }
 
+bool find_pinned_piece(int vec, int *pinned_loc, int *pinning_piece) {
+    int possible_pin = 0, current = w_pieces[0], sq;
+
+    for (;;) {
+        current += vec;
+        sq = board[current];
+
+        switch (sq & COLOUR_MASK) {
+            case G:
+                return false;
+            case WHITE:
+                if (possible_pin) {
+                    return false;
+                }
+                possible_pin = 1;
+                *pinned_loc = current;
+                break;
+            case BLACK:
+                if (possible_pin && is_attacking(sq, current, w_pieces[0])) {
+                    *pinning_piece = current;
+                    return true;
+                }
+                return false;
+            }
+    }
+}
+
+int gen_pinned_pieces(MOVE_LIST *moves, int *piece_locs, bool captures_only) {
+    int pinned_pieces[15];
+    int n_pinned = 0;
+
+    for (int i = 0; i < 8; i++) {
+        int vec = KING_OFFS[i];
+        int pinned_loc = 0, pinning_piece = 0;
+        int is_pinned = find_pinned_piece(vec, &pinned_loc, &pinning_piece);
+
+        if (is_pinned) {
+            int pinned_piece = board[pinned_loc];
+            pinned_pieces[n_pinned++] = pinned_loc;
+
+            if (check_info) {
+                continue;
+            }
+
+            if (captures_only) {
+                if (is_attacking(pinned_piece, pinned_loc, pinned_loc + vec)) {
+                    if (pinned_piece & PAWN) {
+                        gen_pawn_move(pinned_loc, vec, moves);
+                    } else {
+                        add_capture_move(encode_move(pinned_loc, pinning_piece, CAPTURE_FLAG), moves);
+                    }
+                } else if (
+                        pinned_piece & PAWN
+                        && is_attacking(pinned_piece, pinned_loc, pinned_loc - vec)
+                    ) {
+                        gen_pawn_move(pinned_loc, -vec, moves);
+                    }
+                continue;
+            }
+            
+            if (pinned_piece & PAWN) {
+                if (vec == N || vec == S) {
+                    gen_pawn_move(pinned_loc, N, moves);
+                } else if (is_attacking(pinned_piece, pinned_loc, pinned_loc + vec)) {
+                    gen_pawn_move(pinned_loc, vec, moves);
+                } else if (is_attacking(pinned_piece, pinned_loc, pinned_loc - vec)) {
+                    gen_pawn_move(pinned_loc, -vec, moves);
+                }
+            } else if (pinned_piece & (BISHOP | ROOK | QUEEN)) {
+                if (!(is_attacking(pinned_piece, pinned_loc, pinned_loc + vec))) {
+                    continue;
+                }
+                gen_slider(pinned_loc, vec, moves);
+                gen_slider(pinned_loc, -vec, moves);
+            }
+        }
+    }
+
+    return remove_pinned_pieces(n_pinned, pinned_pieces, piece_locs);
+}
+
 void all_moves(MOVE_LIST *moves) {
     int piece_locs[15];
-    int len = gen_pinned_pieces(moves, piece_locs);
+    int len = gen_pinned_pieces(moves, piece_locs, false);
 
     // generate king moves
     gen_moves_from_position(w_pieces[0], moves);
