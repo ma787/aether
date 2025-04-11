@@ -56,8 +56,8 @@ void set_hash(void) {
     }
 }
 
-void update_hash(int mv) {
-    int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
+void update_hash(move_t mv) {
+    int start = mv.start, dest = mv.dest;
     int piece = board[start];
 
     int new_c_rights = c_rights & (
@@ -83,9 +83,9 @@ void update_hash(int mv) {
 
     board_hash ^= HASH_VALUES[SIDE_OFF];
 
-    if (flags == K_CASTLE_FLAG || flags == Q_CASTLE_FLAG) {
-        int r_start = (flags == K_CASTLE_FLAG) ? H1 : A1;
-        int r_dest = (flags == K_CASTLE_FLAG) ? F1 : D1;
+    if (mv.flags == K_CASTLE_FLAG || mv.flags == Q_CASTLE_FLAG) {
+        int r_start = (mv.flags == K_CASTLE_FLAG) ? H1 : A1;
+        int r_dest = (mv.flags == K_CASTLE_FLAG) ? F1 : D1;
 
         if (side == BLACK) {
             r_start = flip_square(r_start);
@@ -104,25 +104,25 @@ void update_hash(int mv) {
         return;
     }
 
-    if (flags == DPP_FLAG) {
+    if (mv.flags == DPP_FLAG) {
         board_hash ^= HASH_VALUES[EP_OFF + get_file(dest)];
         return;
     }
 
-    if (flags & PROMO_FLAG) {
+    if (mv.flags & PROMO_FLAG) {
         board_hash ^= get_hash(dest, piece);
-        board_hash ^= get_hash(dest, side | PROMOTIONS[flags & 3]);
+        board_hash ^= get_hash(dest, side | PROMOTIONS[mv.flags & 3]);
     }
 
-    if (flags & CAPTURE_FLAG) {
-        int cap_pos = dest, cap_piece = get_captured_piece(mv), off = S;
+    if (mv.flags & CAPTURE_FLAG) {
+        int cap_pos = dest, cap_piece = mv.captured_piece, off = S;
 
         if (side == BLACK) {
             cap_piece = (cap_piece & 0xFC) | WHITE;
             off = N;
         }
         
-        if (flags == EP_FLAG) {
+        if (mv.flags == EP_FLAG) {
             cap_pos += off;
         }
 
@@ -149,14 +149,14 @@ void clear_table(void) {
     }
 }
 
-void store_move(int mv) {
+void store_move(move_t mv) {
     int index = board_hash % pv_table->n_entries;
 
     pv_table->table[index].key = board_hash;
     pv_table->table[index].best_move = mv;
 }
 
-int get_pv_move(void) {
+move_t get_pv_move(void) {
     int index = board_hash % pv_table->n_entries;
 
     if (pv_table->table[index].key == board_hash) {
@@ -167,10 +167,10 @@ int get_pv_move(void) {
 }
 
 int get_pv_line(int depth) {
-    int mv = get_pv_move();
+    move_t mv = get_pv_move();
     int count = 0;
 
-    while (mv != NULL_MOVE && count < depth) {
+    while (!is_null_move(mv) && count < depth) {
         if (move_exists(mv)) {
             pv_line[count++] = mv;
             make_move(mv);
@@ -181,7 +181,7 @@ int get_pv_line(int depth) {
     }
 
     for (int i = count - 1; i >= 0; i--) {
-        unmake_move();
+        unmake_move(pv_line[i]);
     }
 
     return count;

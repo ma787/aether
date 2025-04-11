@@ -1,52 +1,47 @@
 #include <stdlib.h>
 #include "aether.h"
 
-void add_quiet_move(int mv, MOVE_LIST *moves) {
-    MOVE_INFO m_info;
-    m_info.move = mv;
-
-    if (search_killers[0][ply] == mv) {
-        m_info.score = FIRST_KILLER_VALUE;
-    } else if (search_killers[1][ply] == mv) {
-        m_info.score = SECOND_KILLER_VALUE;
+void add_quiet_move(move_t mv, MOVE_LIST *moves) {
+    if (moves_equal(search_killers[0][ply], mv)) {
+        mv.score = FIRST_KILLER_VALUE;
+    } else if (moves_equal(search_killers[1][ply], mv)) {
+        mv.score = SECOND_KILLER_VALUE;
     } else {
-        m_info.score = search_history[board[get_start(mv)] & 0xFC][get_dest(mv)];
+        mv.score = search_history[board[mv.start] & 0xFC][mv.dest];
     }
 
-    moves->moves[moves->index++] = m_info;
+    moves->moves[moves->index++] = mv;
 }
 
-void add_capture_move(int mv, MOVE_LIST *moves) {
-    MOVE_INFO m_info;
-    m_info.move = mv;
-    m_info.score = MVV_LVA_SCORES[board[get_dest(mv)] & 0xFC][board[get_start(mv)] & 0xFC] + CAP_VALUE;
-    moves->moves[moves->index++] = m_info;
+void add_capture_move(move_t mv, MOVE_LIST *moves) {
+    mv.score = MVV_LVA_SCORES[board[mv.dest] & 0xFC][board[mv.start] & 0xFC] + CAP_VALUE;
+    moves->moves[moves->index++] = mv;
 }
 
-void add_ep_capture_move(int mv, MOVE_LIST *moves) {
-    MOVE_INFO m_info = {.move = mv, .score = 105 + CAP_VALUE};
-    moves->moves[moves->index++] = m_info;
+void add_ep_capture_move(move_t mv, MOVE_LIST *moves) {
+    mv.score = 105 + CAP_VALUE;
+    moves->moves[moves->index++] = mv;
 }
 
 void add_pawn_quiet_move(int start, int dest, MOVE_LIST *moves) {
     if (get_rank(dest) == 7) {
-        add_quiet_move(encode_move(start, dest, KNIGHT_PROMO), moves);
-        add_quiet_move(encode_move(start, dest, BISHOP_PROMO), moves);
-        add_quiet_move(encode_move(start, dest, ROOK_PROMO), moves);
-        add_quiet_move(encode_move(start, dest, QUEEN_PROMO), moves);
+        add_quiet_move(get_move(start, dest, KNIGHT_PROMO), moves);
+        add_quiet_move(get_move(start, dest, BISHOP_PROMO), moves);
+        add_quiet_move(get_move(start, dest, ROOK_PROMO), moves);
+        add_quiet_move(get_move(start, dest, QUEEN_PROMO), moves);
     } else {
-        add_quiet_move(encode_move(start, dest, Q_FLAG), moves);
+        add_quiet_move(get_move(start, dest, Q_FLAG), moves);
     }
 }
 
 void add_pawn_capture_move(int start, int dest, MOVE_LIST *moves) {
     if (get_rank(dest) == 7) {
-        add_capture_move(encode_move(start, dest, KNIGHT_PROMO | CAPTURE_FLAG), moves);
-        add_capture_move(encode_move(start, dest, BISHOP_PROMO | CAPTURE_FLAG), moves);
-        add_capture_move(encode_move(start, dest, ROOK_PROMO | CAPTURE_FLAG), moves);
-        add_capture_move(encode_move(start, dest, QUEEN_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(get_move(start, dest, KNIGHT_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(get_move(start, dest, BISHOP_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(get_move(start, dest, ROOK_PROMO | CAPTURE_FLAG), moves);
+        add_capture_move(get_move(start, dest, QUEEN_PROMO | CAPTURE_FLAG), moves);
     } else {
-        add_capture_move(encode_move(start, dest, CAPTURE_FLAG), moves);
+        add_capture_move(get_move(start, dest, CAPTURE_FLAG), moves);
     }
 }
 
@@ -62,12 +57,12 @@ void gen_pawn_move(int pos, int vec, MOVE_LIST *moves) {
         add_pawn_quiet_move(pos, current, moves);
 
         if (get_rank(current) == 2 && !(board[current + vec])) {
-            add_quiet_move(encode_move(pos, current + vec, DPP_FLAG), moves);
+            add_quiet_move(get_move(pos, current + vec, DPP_FLAG), moves);
         }
     } else if ((sq & COLOUR_MASK) == BLACK) {
         add_pawn_capture_move(pos, current, moves);
     } else if (current == ep_square && !sq) {
-        add_ep_capture_move(encode_move(pos, current, EP_FLAG), moves);
+        add_ep_capture_move(get_move(pos, current, EP_FLAG), moves);
     }
 }
 
@@ -76,9 +71,9 @@ void gen_step(int pos, int vec, MOVE_LIST *moves) {
     int sq = board[current];
 
     if ((sq & COLOUR_MASK) == BLACK) {
-        add_capture_move(encode_move(pos, current, CAPTURE_FLAG), moves);
+        add_capture_move(get_move(pos, current, CAPTURE_FLAG), moves);
     } else if (!sq) {
-        add_quiet_move(encode_move(pos, current, Q_FLAG), moves);
+        add_quiet_move(get_move(pos, current, Q_FLAG), moves);
     }
 }
 
@@ -90,10 +85,10 @@ void gen_slider(int pos, int vec, MOVE_LIST *moves) {
         int sq = board[current];
 
         if (!sq) {
-            add_quiet_move(encode_move(pos, current, Q_FLAG), moves);
+            add_quiet_move(get_move(pos, current, Q_FLAG), moves);
             continue;
         } else if ((sq & COLOUR_MASK) == BLACK) {
-            add_capture_move(encode_move(pos, current, CAPTURE_FLAG), moves);
+            add_capture_move(get_move(pos, current, CAPTURE_FLAG), moves);
         }
 
         return;
@@ -143,14 +138,14 @@ void gen_capture(int pos, int enemy_pos, MOVE_LIST *moves) {
         if (piece & PAWN) {
             add_pawn_capture_move(pos, enemy_pos, moves);
         } else {
-            add_capture_move(encode_move(pos, enemy_pos, CAPTURE_FLAG), moves);
+            add_capture_move(get_move(pos, enemy_pos, CAPTURE_FLAG), moves);
         }
     } else if (
         piece & PAWN
         && enemy_pos == (ep_square + S) 
         && is_attacking(piece, pos, ep_square)
     ) {
-        add_ep_capture_move(encode_move(pos, ep_square, EP_FLAG), moves);
+        add_ep_capture_move(get_move(pos, ep_square, EP_FLAG), moves);
     }
 }
 
@@ -169,14 +164,13 @@ void gen_moves_in_check(int pos, MOVE_LIST *moves) {
 
     // check if each move actually blocks the checker
     for (int i = 0; i < blocking_moves->index; i++) {
-        MOVE_INFO m_info = blocking_moves->moves[i];
-        int dest = get_dest(m_info.move);
+        move_t mv = blocking_moves->moves[i];
 
-        if (get_step(k_pos, dest) == k_step) {
+        if (get_step(k_pos, mv.dest) == k_step) {
             int current = k_pos + k_step;
             while (current != checker) {
-                if (current == dest) {
-                    moves->moves[moves->index++] = m_info;
+                if (current == mv.dest) {
+                    moves->moves[moves->index++] = mv;
                     break;
                 }
                 current += k_step;
@@ -218,9 +212,8 @@ void gen_pinned_pieces(MOVE_LIST *moves, int *temp_removed, bool captures_only) 
     for (int i = 0; i < 8; i++) {
         int vec = KING_OFFS[i];
         int pinned_loc = 0, pinning_piece = 0;
-        int is_pinned = find_pinned_piece(vec, &pinned_loc, &pinning_piece);
 
-        if (is_pinned) {
+        if (find_pinned_piece(vec, &pinned_loc, &pinning_piece)) {
             int pinned_piece = board[pinned_loc];
             int p_list_index = pinned_piece >> 8;
             w_pieces[p_list_index] = 0;
@@ -235,7 +228,7 @@ void gen_pinned_pieces(MOVE_LIST *moves, int *temp_removed, bool captures_only) 
                     if (pinned_piece & PAWN) {
                         gen_pawn_move(pinned_loc, vec, moves);
                     } else {
-                        add_capture_move(encode_move(pinned_loc, pinning_piece, CAPTURE_FLAG), moves);
+                        add_capture_move(get_move(pinned_loc, pinning_piece, CAPTURE_FLAG), moves);
                     }
                 } else if (
                         pinned_piece & PAWN
@@ -283,11 +276,11 @@ void all_moves(MOVE_LIST *moves) {
             gen = gen_moves_from_position;
 
             if (c_rights & WHITE_KINGSIDE && !(board[F1] | board[G1])) {
-                add_quiet_move(encode_move(E1, G1, K_CASTLE_FLAG), moves);
+                add_quiet_move(get_move(E1, G1, K_CASTLE_FLAG), moves);
             }
 
             if (c_rights & WHITE_QUEENSIDE && !(board[B1] | board[C1] | board[D1])) {
-                add_quiet_move(encode_move(E1, C1, Q_CASTLE_FLAG), moves);
+                add_quiet_move(get_move(E1, C1, Q_CASTLE_FLAG), moves);
             }
         }
 
@@ -303,22 +296,22 @@ void all_moves(MOVE_LIST *moves) {
     }
 }
 
-bool move_exists(int mv) {
+bool move_exists(move_t mv) {
     MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(moves);
 
     for (int i = 0; i < moves->index; i++) {
-        int m = moves->moves[i].move;
+        move_t m = moves->moves[i];
 
         if (make_move(m) == 0) {
-            if (m == mv) {
-                unmake_move();
+            if (moves_equal(m, mv)) {
+                unmake_move(m);
                 free(moves);
                 return true;
             };
         }
-        unmake_move();
+        unmake_move(m);
     }
 
     free(moves);

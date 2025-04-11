@@ -141,28 +141,23 @@ void print_board(void) {
     printf("%s\n", b_str);
 }
 
-void move_to_string(int mv, char* mstr) {
-    if (mv == NULL_MOVE) {
-        strcpy(mstr, "none");
-        return;
-    }
+void move_to_string(move_t mv, char* mstr) {
+    int start = mv.start, dest = mv.dest;
 
-    int start = get_start(mv), dest = get_dest(mv), flags = get_flags(mv);
-
-    if (get_side(mv) == BLACK) {
+    if (mv.side == BLACK) {
         start = flip_square(start);
         dest = flip_square(dest);
     }
 
     strcpy(mstr, coord_to_string(start));
     strcpy(mstr + 2, coord_to_string(dest));
-    if (flags & PROMO_FLAG) {
-        mstr[4] = SYMBOLS[PROMOTIONS[flags & 3] | BLACK];
+    if (mv.flags & PROMO_FLAG) {
+        mstr[4] = SYMBOLS[PROMOTIONS[mv.flags & 3] | BLACK];
         mstr[5] = '\0';
     }
 }
 
-int string_to_move(char *mstr) {
+move_t string_to_move(char *mstr) {
     regex_t preg;
     int res;
 
@@ -206,18 +201,18 @@ int string_to_move(char *mstr) {
                 flags |= PROMO_FLAG;
                 switch(PIECES[(int) mstr[4]] & 0xFC) {
                     case BISHOP:
-                        flags |= 1;
+                        flags++;
                         break;
                     case ROOK:
-                        flags |= 2;
+                        flags += 2;
                         break;
                     case QUEEN:
-                        flags |= 3;
+                        flags += 3;
                         break;
                 }
             }
             break;
     }
 
-    return encode_move(start, dest, flags);
+    return get_move(start, dest, flags);
 }

@@ -12,11 +12,13 @@ uint64_t perft(int depth) {
     moves->index = 0;
     all_moves(moves);
 
+    move_t mv;
+
     for (int i = 0; i < moves->index; i++) {
-        if (make_move(moves->moves[i].move) == 0) {
+        if (make_move((mv = moves->moves[i])) == 0) {
             total += perft(depth - 1);
         }
-        unmake_move();
+        unmake_move(mv);
     }
 
     free(moves);
@@ -33,8 +35,10 @@ void divide(int depth) {
     moves->index = 0;
     all_moves(moves);
 
+    move_t mv;
+
     for (int i = 0; i < moves->index; i++) {
-        int mv = moves->moves[i].move;
+        mv = moves->moves[i];
         char mstr[6];
         move_to_string(mv, mstr);
         if (make_move(mv) == 0) {
@@ -42,7 +46,7 @@ void divide(int depth) {
             total += n;
             printf("%s %lu\n", mstr, n);
         }
-        unmake_move();
+        unmake_move(mv);
     }
 
     free(moves);

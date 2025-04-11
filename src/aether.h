@@ -74,8 +74,6 @@
 #define ROOK_PROMO 10
 #define QUEEN_PROMO 11
 
-#define NULL_MOVE 0
-
 #define EP_OFF 768
 #define C_OFF 776
 #define SIDE_OFF 780
@@ -131,13 +129,19 @@ typedef struct {
 } HISTORY_ENTRY;
 
 typedef struct {
-    int move;
-    int score;
-} MOVE_INFO;
+    unsigned int start: 8;
+    unsigned int dest: 8;
+    unsigned int flags: 4;
+    unsigned int captured_piece: 12;
+    unsigned int side: 2;
+    unsigned int score: 21;
+} move_t;
+
+extern move_t NULL_MOVE;
 
 typedef struct {
     int index;
-    MOVE_INFO moves[256];
+    move_t moves[256];
 } MOVE_LIST;
 
 typedef void (*GEN_FROM_POSITION)(int, MOVE_LIST*);
@@ -145,7 +149,7 @@ typedef void (*MOVE_GENERATOR)(int, int, MOVE_LIST*);
 
 typedef struct {
     uint64_t key;
-    int best_move;
+    move_t best_move;
 } TABLE_ENTRY;
 
 typedef struct {
@@ -184,14 +188,14 @@ extern unsigned int check_info;
 
 extern uint64_t board_hash;
 
-extern int move_history[HISTORY_TABLE_SIZE];
+extern move_t move_history[HISTORY_TABLE_SIZE];
 extern uint8_t repetition_table[REPETITION_TABLE_SIZE];
 
 extern HASH_TABLE pv_table[1];
-extern int pv_line[MAX_DEPTH];
+extern move_t pv_line[MAX_DEPTH];
 
 extern int* search_history[];
-extern int search_killers[2][HISTORY_TABLE_SIZE];
+extern move_t search_killers[2][HISTORY_TABLE_SIZE];
 
 /* functions to change/query the current position */
 
@@ -209,26 +213,26 @@ bool is_repetition(void);
 
 void free_tables(void);
 
-/* move encoding and decoding functions */
+/* move encoding/decoding, getting and comparison functions */
 
-int encode_move(int start, int dest, int flags);
+move_t get_move(int start, int dest, int flags);
 
-int get_start(int mv);
-int get_dest(int mv);
-int get_flags(int mv);
-int get_captured_piece(int mv);
-int get_side(int mv);
+bool moves_equal(move_t mv1, move_t mv2);
+bool is_null_move(move_t mv);
+
+int move_to_int(move_t mv);
+move_t move_of_int(int m_int);
 
 /* move-making functions */
 
 int is_square_attacked(int pos);
-int make_move(int mv);
-void unmake_move();
+int make_move(move_t mv);
+void unmake_move(move_t mv);
 
 /* move generation functions */
 
 void all_moves(MOVE_LIST *moves);
-bool move_exists(int mv);
+bool move_exists(move_t mv);
 
 /* perft and divide functions */
 
@@ -238,12 +242,12 @@ void divide(int depth);
 /* hashing-related functions */
 
 void set_hash(void);
-void update_hash(int mv);
+void update_hash(move_t mv);
 
 void clear_table(void);
 
-void store_move(int mv);
-int get_pv_move(void);
+void store_move(move_t mv);
+move_t get_pv_move(void);
 
 int get_pv_line(int depth);
 
@@ -258,8 +262,8 @@ int fen_to_board_array(char *fen_str);
 bool fen_match(char *fen_str);
 void print_board(void);
 
-void move_to_string(int mv, char* mstr);
-int string_to_move(char *mstr);
+void move_to_string(move_t mv, char* mstr);
+move_t string_to_move(char *mstr);
 
 int string_to_coord(char *sqr_str);
 char* coord_to_string(int pos);

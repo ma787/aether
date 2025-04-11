@@ -37,17 +37,17 @@ uint64_t board_hash;
 int ply = 0;
 
 HISTORY_ENTRY history[HISTORY_TABLE_SIZE];
-int move_history[HISTORY_TABLE_SIZE] = {NULL_MOVE};
+move_t move_history[HISTORY_TABLE_SIZE];
 uint8_t repetition_table[REPETITION_TABLE_SIZE];
 
 HASH_TABLE pv_table[1];
-int pv_line[MAX_DEPTH];
+move_t pv_line[MAX_DEPTH];
 
 int *search_history[] = {
     [PAWN] = NULL, [KNIGHT] = NULL, [BISHOP] = NULL, [ROOK] = NULL, [QUEEN] = NULL, [KING] = NULL
 };
 
-int search_killers[2][HISTORY_TABLE_SIZE];
+move_t search_killers[2][HISTORY_TABLE_SIZE];
 
 void flip_position(void) {
     c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
@@ -191,7 +191,10 @@ void init_tables(void) {
     memset(repetition_table, 0, REPETITION_TABLE_SIZE);
 
     // initialise killer table
-    memset(search_killers, NULL_MOVE, 2 * HISTORY_TABLE_SIZE * sizeof(int));
+    for (int i = 0; i < HISTORY_TABLE_SIZE; i++) {
+        search_killers[0][i] = NULL_MOVE;
+        search_killers[1][i] = NULL_MOVE;
+    }
 }
 
 void free_tables(void) {

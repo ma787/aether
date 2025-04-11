@@ -61,11 +61,11 @@ int main(void) {
                 continue;
             }
 
-            int mv;
+            move_t mv;
 
             if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "moves") == 0) {
                 while ((cmd = strtok(NULL, " ")) != NULL) {
-                    if ((mv = string_to_move(cmd)) == NULL_MOVE) {
+                    if (is_null_move((mv = string_to_move(cmd)))) {
                         break;
                     }
                     make_move(mv);

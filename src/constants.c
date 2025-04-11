@@ -1,5 +1,7 @@
 #include "aether.h"
 
+move_t NULL_MOVE = {.start = 0, .dest = 0, .flags = 0, .captured_piece = 0, .score = 0};
+
 char *FILES = "abcdefgh";
 
 char *COORDS[64] = {

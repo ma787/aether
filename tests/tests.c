@@ -9,8 +9,24 @@ void test_fen(char *fen_str){
     assert(strcmp(fen_str, parsed_str) == 0);
 }
 
+void test_string_to_move(char *mstr, int start, int dest, int flags, int cap_piece_type, int side) {
+    if (cap_piece_type) {
+        cap_piece_type |= BLACK;
+    }
+
+    move_t mv = string_to_move(mstr);
+
+    assert(
+        mv.start == start 
+        && mv.dest == dest 
+        && mv.flags == flags
+        && (mv.captured_piece & 0xFF) == cap_piece_type
+        && mv.side == side
+    );
+}
+
 void test_update_hash(char *mstr) {
-    int mv = string_to_move(mstr);
+    move_t mv = string_to_move(mstr);
     assert(make_move(mv) == 0);
     uint64_t z_hash = board_hash;
 
@@ -135,43 +151,31 @@ int main(void) {
     /* string_to_move tests */
 
     assert(set_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") == 0);
-    assert(string_to_move("f2f3") == (F2 | (F3 << 8) | (WHITE << 20)));
+    test_string_to_move("f2f3", F2, F3, Q_FLAG, 0, WHITE);
 
     assert(set_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") == 0);
-    assert(string_to_move("e2e4") == (E2 | (E4 << 8) | (DPP_FLAG << 16) | (WHITE << 20)));
+    test_string_to_move("e2e4", E2, E4, DPP_FLAG, 0, WHITE);
 
     assert(set_position("rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1") == 0);
-    assert(string_to_move("e1g1") == (E1 | (G1 << 8) | (K_CASTLE_FLAG << 16) | (WHITE << 20)));
+    test_string_to_move("e1g1", E1, G1, K_CASTLE_FLAG, 0, WHITE);
 
     assert(set_position("r3kbnr/pppqpppp/n2p4/5b2/8/PPPP3P/4PPP1/RNBQKBNR b KQkq - 0 1") == 0);
-    assert(string_to_move("e8c8") == (E1 | (C1 << 8) | (Q_CASTLE_FLAG << 16) | (BLACK << 20)));
+    test_string_to_move("e8c8", E1, C1, Q_CASTLE_FLAG, 0, BLACK);
 
     assert(set_position("rnbqkbnr/1ppppppp/p7/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1") == 0);
-    assert(
-        (string_to_move("f1a6") & 0x0FFFFFFF) 
-        == (F1 | (A6 << 8) | (CAPTURE_FLAG << 16) | ((WHITE | PAWN) << 20))
-    );
+    test_string_to_move("f1a6", F1, A6, CAPTURE_FLAG, PAWN, WHITE);
 
     assert(set_position("rnbqkb1r/pppppppp/8/3n4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1") == 0);
-    assert(
-        (string_to_move("e4d5") & 0x0FFFFFFF)
-        == (E4 | (D5 << 8) | (CAPTURE_FLAG << 16) | ((WHITE | KNIGHT) << 20))
-    );
+    test_string_to_move("e4d5", E4, D5, CAPTURE_FLAG, KNIGHT, WHITE);
 
     assert(set_position("rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1") == 0);
-    assert(
-        (string_to_move("d5e6") & 0x0FFFFFFF) 
-        == (D5 | (E6 << 8) | (EP_FLAG << 16) | ((WHITE | PAWN) << 20))
-    );
+    test_string_to_move("d5e6", D5, E6, EP_FLAG, PAWN, WHITE);
 
     assert(set_position("r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1") == 0);
-    assert(string_to_move("b7b8q") == (B7 | (B8 << 8) | ((PROMO_FLAG | 3) << 16) | (WHITE << 20)));
+    test_string_to_move("b7b8q", B7, B8, (PROMO_FLAG + 3), 0, WHITE);
 
     assert(set_position("rnbqkbnr/pp1ppppp/8/7P/8/2N5/PpPPPPP1/R1BQKBNR b KQkq - 0 1") == 0);
-    assert(
-        (string_to_move("b2a1n") & 0x0FFFFFFF) 
-        == (B7 | (A8 << 8) | ((CAPTURE_FLAG | PROMO_FLAG) << 16) | ((BLACK | ROOK) << 20))
-    );
+    test_string_to_move("b2a1n", B7, A8, CAPTURE_FLAG | PROMO_FLAG, ROOK, BLACK);
 
     printf("passed string_to_move tests\n");
 
@@ -236,79 +240,82 @@ int main(void) {
     printf("passed make_move tests\n");
 
     /* unmake_move tests */
+
+    move_t mv;
+
     assert(set_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("a2a3")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("a2a3")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     assert(set_position("r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1") == 0);
-    assert(make_move(string_to_move("e8d8")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("e8d8")) == 0);
+    unmake_move(mv);
     test_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1");
 
     assert(set_position("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1") == 0);
-    assert(make_move(string_to_move("g2g1q")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("g2g1q")) == 0);
+    unmake_move(mv);
     test_fen("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1");
 
     assert(set_position("rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("e1c1")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("e1c1")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1");
 
     assert(set_position("rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("e1g1")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("e1g1")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1");
 
     assert(set_position("r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1") == 0);
-    assert(make_move(string_to_move("a1a2")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("a1a2")) == 0);
+    unmake_move(mv);
     test_fen("r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1");
 
     assert(set_position("rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("a8a7")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("a8a7")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1");
 
     assert(set_position("r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1") == 0);
-    assert(make_move(string_to_move("h1h2")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("h1h2")) == 0);
+    unmake_move(mv);
     test_fen("r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1");
 
     assert(set_position("rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("h8h7")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("h8h7")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1");
 
     assert(set_position("r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1") == 0);
-    assert(make_move(string_to_move("e1e2")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("e1e2")) == 0);
+    unmake_move(mv);
     test_fen("r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1");
 
     assert(set_position("rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("e8e7")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("e8e7")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1");
 
     assert(set_position("r1bqkbnr/p1pppppp/n7/1p6/P6P/8/1PPPPPP1/RNBQKBNR w Qkq - 0 1") == 0);
-    assert(make_move(string_to_move("a1a2")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("a1a2")) == 0);
+    unmake_move(mv);
     test_fen("r1bqkbnr/p1pppppp/n7/1p6/P6P/8/1PPPPPP1/RNBQKBNR w Qkq - 0 1");
 
     assert(set_position("rnbqkbnr/1ppppppp/8/8/p7/4P3/PPPP1PPP/RNBQKBNR w kq - 0 1") == 0);
-    assert(make_move(string_to_move("e1e2")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("e1e2")) == 0);
+    unmake_move(mv);
     test_fen("rnbqkbnr/1ppppppp/8/8/p7/4P3/PPPP1PPP/RNBQKBNR w kq - 0 1");
 
     assert(set_position("rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1") == 0);
-    assert(make_move(string_to_move("h6h1")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("h6h1")) == 0);
+    unmake_move(mv);
     test_fen("rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1");
 
     assert(set_position("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1") == 0);
-    assert(make_move(string_to_move("d5e6")) == 0);
-    unmake_move();
+    assert(make_move(mv = string_to_move("d5e6")) == 0);
+    unmake_move(mv);
     test_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
     printf("passed unmake_move tests\n");
