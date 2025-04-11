@@ -296,6 +296,40 @@ void all_moves(MOVE_LIST *moves) {
     }
 }
 
+void all_captures(MOVE_LIST *moves) {
+    int temp_removed[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    gen_pinned_pieces(moves, temp_removed, true);
+
+    // generate king captures
+    for (int i = 0; i < 16; i++) {
+        gen_capture(w_pieces[0], b_pieces[i], moves);
+    }
+    
+    int check = check_info & 3;
+
+    if (check < DOUBLE_CHECK) {
+        if (check == CONTACT_CHECK || check == DISTANT_CHECK) {
+            int checker = (check_info >> 2) & 0xFF;
+
+            for (int i = 1; i < 16; i++) {
+                gen_capture(w_pieces[i], checker, moves);
+            }
+        } else {
+            for (int i = 1; i < 16; i++) {
+                for (int j = 1; j < 16; j++) {
+                    gen_capture(w_pieces[i], b_pieces[j], moves);
+                }
+            }
+        }
+    }
+
+    for (int i = 1; i < 16; i++) {
+        if (temp_removed[i]) {
+            w_pieces[i] = temp_removed[i];
+        }
+    }
+}
+
 bool move_exists(move_t mv) {
     MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;

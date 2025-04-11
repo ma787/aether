@@ -52,3 +52,40 @@ void divide(int depth) {
     free(moves);
     printf("\n%lu\n", total);
 }
+
+uint64_t count_captures(int depth) {
+    if (depth == 0) {
+        return 0;
+    }
+    uint64_t total = 0UL;
+
+    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
+    moves->index = 0;
+    all_moves(moves);
+    move_t mv;
+
+    if (depth == 1) {
+        MOVE_LIST *captures = malloc(sizeof(MOVE_LIST));
+        captures->index = 0;
+        all_captures(captures);
+
+        for (int i = 0; i < captures->index; i++) {
+            if (make_move((mv = captures->moves[i])) == 0) {
+                total += 1;
+            }
+            unmake_move(mv);
+        }
+
+        
+    } else {
+        for (int i = 0; i < moves->index; i++) {
+            if (make_move((mv = moves->moves[i])) == 0) {
+                total += count_captures(depth - 1);
+            }
+            unmake_move(mv);
+        }
+    }
+
+    free(moves);
+    return total;
+}

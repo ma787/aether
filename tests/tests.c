@@ -3,6 +3,8 @@
 #include <string.h>
 #include "aether.h"
 
+#include <stdlib.h>
+
 void test_fen(char *fen_str){
     char parsed_str[92];
     board_to_fen(parsed_str);
@@ -399,6 +401,35 @@ int main(void) {
     assert(move_exists(string_to_move("b1a3")));
 
     printf("passed move_exists tests\n");
+
+    // gen_captures tests
+
+    assert(set_position(START_POS) == 0);
+    assert(count_captures(1) == 0UL);
+    assert(count_captures(2) == 0UL);
+    assert(count_captures(3) == 34UL);
+    assert(count_captures(4) == 1576UL);
+    assert(count_captures(5) == 82719UL);
+
+    assert(set_position("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1") == 0);
+    assert(count_captures(1) == 8UL);
+    assert(count_captures(2) == 351UL);
+    assert(count_captures(3) == 17102UL);
+
+    assert(set_position("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1") == 0);
+    assert(count_captures(1) == 1UL);
+    assert(count_captures(2) == 14UL);
+    assert(count_captures(3) == 209UL);
+    assert(count_captures(4) == 3348UL);
+    assert(count_captures(5) == 52051UL);
+
+    assert(set_position("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1") == 0);
+    assert(count_captures(1) == 0UL);
+    assert(count_captures(2) == 87UL);
+    assert(count_captures(3) == 1021UL);
+    assert(count_captures(4) == 131393UL);
+
+    printf("passed gen_captures tests\n");
 
     free_tables();
 

@@ -232,11 +232,13 @@ void unmake_move(move_t mv);
 /* move generation functions */
 
 void all_moves(MOVE_LIST *moves);
+void all_captures(MOVE_LIST *moves);
 bool move_exists(move_t mv);
 
 /* perft and divide functions */
 
 uint64_t perft(int depth);
+uint64_t count_captures(int depth);
 void divide(int depth);
 
 /* hashing-related functions */

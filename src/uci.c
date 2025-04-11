@@ -105,7 +105,14 @@ int main(void) {
             char fen_str[92];
             board_to_fen(fen_str);
             print_board();
-            printf("\nFEN: %s\nKey: %lu\n", fen_str, board_hash);
+            printf("\nFEN: %s\nKey: %lu\nCheckers: ", fen_str, board_hash);
+            if (check_info) {
+                printf("%s", coord_to_string((check_info >> 2) & 0xFF));
+                if ((check_info & 3) == DOUBLE_CHECK) {
+                    printf(", %s", coord_to_string(check_info >> 10));
+                }
+            }
+            printf("\n");
         } else if (strcmp(cmd, "uci") == 0) {
             printf("id name %s\n", NAME);
             printf("id author %s\n", AUTHOR);
