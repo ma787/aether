@@ -158,19 +158,13 @@ typedef struct {
 } HASH_TABLE;
 
 typedef struct {
-    int start_time;
-    int stop_time;
+    uint64_t start_time;
+    uint64_t stop_time;
     int depth;
-    int depth_lim;
-    int time_lim;
-    int move_lim;
-    int infinite;
-    int quit;
-    int stopped;
-    long nodes;
-
-    float fh;
-    float fhf;
+    bool time_set;
+    bool quit;
+    bool stopped;
+    uint64_t nodes;
 } SEARCH_INFO;
 
 /* board and position state definitions */
@@ -281,6 +275,7 @@ int square_diff(int start, int dest);
 int is_attacking(int p_type, int start, int dest);
 int get_step(int start, int dest);
 
-int get_time(void);
+uint64_t get_time(void);
+int input_waiting(void);
 
 #endif

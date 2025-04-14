@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include "aether.h"
 
@@ -28,8 +29,20 @@ int is_attacking(int piece, int start, int dest) {
 
 int get_step(int start, int dest) { return UNIT_VEC[square_diff(start, dest)]; }
 
-int get_time(void) {
-    struct timeval t;
-    gettimeofday(&t, NULL);
-    return (t.tv_sec * 1000) + (t.tv_usec / 1000);
+uint64_t get_time(void) {
+    struct timeval tv;
+	gettimeofday (&tv, NULL);
+	return(tv.tv_sec * 1000LL + (tv.tv_usec / 1000));
+}
+
+int input_waiting(void) {
+	fd_set readfds;
+    struct timeval tv;
+
+	FD_ZERO (&readfds);
+	FD_SET (STDIN_FILENO, &readfds);
+	tv.tv_sec=0; tv.tv_usec=0;
+	select(16, &readfds, 0, 0, &tv);
+
+	return (FD_ISSET(STDIN_FILENO, &readfds));
 }
