@@ -9,12 +9,12 @@ int string_to_coord(char *sqr_str) {
 
 char* coord_to_string(int pos) { return COORDS[to_index(pos)]; }
 
-bool fen_match(char *fen_str) {
+bool reg_match(char *input_str, char *reg_str) {
     regex_t preg;
     int res;
 
-    regcomp(&preg, FEN_REGEX, REG_EXTENDED);
-    res = regexec(&preg, fen_str, (size_t) 0, NULL, 0);
+    regcomp(&preg, reg_str, REG_EXTENDED);
+    res = regexec(&preg, input_str, (size_t) 0, NULL, 0);
     regfree(&preg);
 
     if (res != 0) {
@@ -22,6 +22,14 @@ bool fen_match(char *fen_str) {
     }
 
     return true;
+}
+
+bool fen_match(char *fen_str) {
+    return reg_match(fen_str, FEN_REGEX);
+}
+
+bool move_match(char *mstr) {
+    return reg_match(mstr, MOVE_REGEX);
 }
 
 void board_to_fen(char *fen_str) {
@@ -142,6 +150,11 @@ void print_board(void) {
 }
 
 void move_to_string(move_t mv, char* mstr) {
+    if (is_null_move(mv)) {
+        strcpy(mstr, "none");
+        return;
+    }
+
     int start = mv.start, dest = mv.dest;
 
     if (mv.side == BLACK) {
@@ -158,14 +171,7 @@ void move_to_string(move_t mv, char* mstr) {
 }
 
 move_t string_to_move(char *mstr) {
-    regex_t preg;
-    int res;
-
-    regcomp(&preg, MOVE_REGEX, REG_EXTENDED);
-    res = regexec(&preg, mstr, (size_t) 0, NULL, 0);
-    regfree(&preg);
-
-    if (res != 0) {
+    if (move_match(mstr) == false) {
         return NULL_MOVE;
     }
 

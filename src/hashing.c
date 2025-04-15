@@ -139,7 +139,7 @@ void update_hash(move_t mv) {
     }
 }
 
-void clear_table(void) {
+void clear_pv_table(void) {
     TABLE_ENTRY *t_entry = pv_table->table;
 
     while (t_entry < pv_table->table + pv_table->n_entries) {

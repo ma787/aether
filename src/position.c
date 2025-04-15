@@ -165,21 +165,7 @@ void restore_state(void) {
     check_info = h_entry.check_info;
 }
 
-void init_tables(void) {
-    // allocate memory for pv table
-    pv_table->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
-    pv_table->n_entries -= 2; // ensures that memory is not overrun
-    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
-    clear_table();
-
-    // allocate and zero initialise memory for history table
-    search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[KNIGHT] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[BISHOP] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[ROOK] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[QUEEN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[KING] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-
+void clear_tables(void) {
     // clear board
     for (int i = A1; i <= A8; i += 0x10) {
         memset(board + i, 0, 8 * sizeof(int));
@@ -207,16 +193,33 @@ void free_tables(void) {
     free(search_history[KING]);
 }
 
+void init_engine(void) {
+    // allocate memory for pv table
+    pv_table->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
+    pv_table->n_entries -= 2; // ensures that memory is not overrun
+    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
+    clear_pv_table();
+
+    // allocate and zero initialise memory for history table
+    search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[KNIGHT] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[BISHOP] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[ROOK] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[QUEEN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    search_history[KING] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+
+    clear_tables();
+}
+
 int set_position(char *fen_str) {
-    free_tables();
-    init_tables();
+    clear_tables();
 
     ply = 0;
 
     int idx = fen_to_board_array(fen_str);
 
     if (idx == -1) {
-        return -1;
+        return 0;
     }
 
     side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
@@ -286,7 +289,7 @@ int set_position(char *fen_str) {
 
     save_state();
 
-    return 0;
+    return idx + 2;
 }
 
 bool is_repetition(void) {

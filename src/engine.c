@@ -49,6 +49,7 @@ void init_search(SEARCH_INFO *s_info) {
     memset(search_history[KING], 0, H8 * sizeof(int));
 
     s_info->stopped = false;
+    s_info->found_move = false;
     s_info->nodes = 0UL;
 }
 
@@ -76,7 +77,7 @@ void read_stdin(SEARCH_INFO *s_info) {
 }
 
 void check_status(SEARCH_INFO *s_info) {
-    if ((s_info->time_set == true) && (get_time() > s_info->stop_time)) {
+    if ((s_info->time_set == true) && (get_time() > s_info->stop_time) && s_info->found_move) {
         s_info->stopped = true;
     }
 
@@ -219,10 +220,6 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
 
     s_info->nodes++;
 
-    if (depth == 0) {
-        return evaluate();
-    }
-
     // assign draw score to repetitions
     if (is_repetition() || h_clk >= 100) {
         return 0;
@@ -322,13 +319,18 @@ void search(SEARCH_INFO *s_info) {
         pv_count = get_pv_line(current_depth);
         best_move = pv_line[0];
 
-        printf("info depth %d score cp %d nodes %lu pv", current_depth, score, s_info->nodes);
+        printf(
+            "info depth %d score cp %d nodes %lu time %lu pv", 
+            current_depth, score, s_info->nodes, (get_time() - s_info->start_time)
+        );
 
         for (int i = 0; i < pv_count; i++) {
             move_to_string(pv_line[i], mstr);
             printf(" %s", mstr);
         }
         printf("\n");
+        fflush(stdout);
+        s_info->found_move = true;
     }
 
     move_to_string(best_move, mstr);

@@ -3,66 +3,44 @@
 #include <stdlib.h>
 #include "aether.h"
 
-char fen_str[92];
-char best_move[6];
-
-void quit_engine(void) {
-    free_tables();
-    exit(0);
-}
-
 void parse_position(char *line) {
-    char *cmd = strtok(line, " ");
+    char *current_ptr = line + 8;
+    int idx;
 
-    if ((cmd = strtok(NULL, " ")) == NULL) {
+    if (strncmp(current_ptr, " startpos", 9) == 0) {
+        idx = set_position(START_POS);
+        current_ptr += 10;
+    } else if (strncmp(current_ptr, " fen ", 5) == 0) {
+        current_ptr += 5;
+        idx = set_position(current_ptr);
+        current_ptr += (idx + 2);
+    }
+
+    if (idx == -1) { // an invalid fen string was passed
         return;
     }
 
-    if (strcmp(cmd, "startpos") == 0) {
-        set_position(START_POS);
-    } else if (strcmp(cmd, "fen") == 0) {
-        int res = 0;
-        fen_str[0] = '\0';
+    if (strncmp(current_ptr, "moves ", 6) == 0) {
+        current_ptr += 6;
+        char *next;
+        move_t mv;
 
-        for (int i = 2; i < 8; i++) {
-            if ((cmd = strtok(NULL, " ")) == NULL) {
-                res = -1;
-                break;
-            }
-            strcat(fen_str, cmd);
-            strcat(fen_str, " ");
-        }
-
-        int end = strcspn(fen_str, "\0");
-        fen_str[end - 1] = '\0';
-
-        if (res != 0 || !fen_match(fen_str)) {
-            fen_str[0] = '\0';
-            return;
-        }
-
-        if (set_position(fen_str) != 0) {
-            exit(-1);
-        }
-
-        fen_str[0] = '\0';
-    } else {
-        return;
-    }
-
-    move_t mv;
-
-    if ((cmd = strtok(NULL, " ")) != NULL && strcmp(cmd, "moves") == 0) {
-        while ((cmd = strtok(NULL, " ")) != NULL) {
-            if (is_null_move((mv = string_to_move(cmd)))) {
+        while (true) {
+            if (is_null_move(mv = string_to_move(current_ptr))) {
                 break;
             }
             make_move(mv);
+
+            if ((next = strstr(current_ptr, " ")) == NULL) {
+                break;
+            }
+
+            current_ptr = next + 1;
         }
     }
 }
 
-void parse_go(char *line) {
+void parse_go(char *line, SEARCH_INFO *s_info) {
     char *cmd, *end;
     int n;
 
@@ -78,8 +56,6 @@ void parse_go(char *line) {
 
         return;
     }
-
-    SEARCH_INFO *s_info = malloc(sizeof(SEARCH_INFO));
 
     int depth = MAX_DEPTH, moves_to_go = 30, time = -1, inc = 0;
     s_info->time_set = false;
@@ -128,44 +104,57 @@ void parse_go(char *line) {
     }
 
     s_info->depth = depth;
+    s_info->start_time = get_time();
 
     if (time != -1) {
         time /= moves_to_go;
-        time -= 50; // avoid overrunning time
-
         s_info->time_set = true;
-        s_info->start_time = get_time();
         s_info->stop_time = s_info->start_time + time + inc;
     }
 
     search(s_info);
-    bool quit_prog = s_info->quit;
-    free(s_info);
-
-    if (quit_prog == true) {
-        quit_engine();
-    }
 }
 
-int main(void) {
-    set_position(START_POS);
+void uci_loop(void) {
+    setbuf(stdin, NULL);
+    setbuf(stdout, NULL);
 
-    while (1) {
-        char buf[256];
-        
-        if (fgets(buf, sizeof(buf), stdin) == NULL) {
-            printf("Error reading input\n");
-            return -1;
+    char buf[INPUT_BUFFER_SIZE];
+
+    printf("id name %s\n", NAME);
+    printf("id author %s\n", AUTHOR);
+    printf("uciok\n");
+
+    set_position(START_POS);
+    SEARCH_INFO *s_info = malloc(sizeof(SEARCH_INFO));
+
+    while (true) {
+        memset(buf, 0, sizeof(buf));
+        fflush(stdout);
+
+        if (
+            fgets(buf, sizeof(buf), stdin) == NULL
+            || buf[0] == '\n'
+        ) {
+            continue;
         }
 
-        buf[strcspn(buf, "\n")] = 0;
-        char *cmd;
-
-        if ((cmd = strstr(buf, "position")) != NULL) {
-            parse_position(cmd);
-        } else if ((cmd = strstr(buf, "go")) != NULL) {
-            parse_go(cmd);
-        } else if (strcmp(buf, "d") == 0) {
+        if (strncmp(buf, "isready", 7) == 0) {
+            printf("readyok\n");
+            continue;
+        } else if (strncmp(buf, "position", 8) == 0) {
+            parse_position(buf);
+        } else if (strncmp(buf, "ucinewgame", 10) == 0) {
+            set_position(START_POS);
+        } else if (strncmp(buf, "go", 2) == 0) {
+            parse_go(buf, s_info);
+        } else if (strncmp(buf, "quit", 4) == 0) {
+            s_info->quit = true;
+        } else if (strncmp(buf, "uci", 3) == 0) {
+            printf("id name %s\n", NAME);
+            printf("id author %s\n", AUTHOR);
+            printf("uciok\n");
+        } else if (strncmp(buf, "d", 1) == 0) {
             char fen_str[92];
             board_to_fen(fen_str);
             print_board();
@@ -177,12 +166,19 @@ int main(void) {
                 }
             }
             printf("\n");
-        } else if (strcmp(buf, "uci") == 0) {
-            printf("id name %s\n", NAME);
-            printf("id author %s\n", AUTHOR);
-            printf("uciok\n");
-        } else if (strcmp(buf, "quit") == 0) {
-            quit_engine();
+        }
+
+        if (s_info->quit == true) {
+            break;
         }
     }
+
+    free(s_info);
+}
+
+int main(void) {
+    init_engine();
+    uci_loop();
+    free_tables();
+    return 0;
 }

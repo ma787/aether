@@ -9,7 +9,7 @@
 #define NAME "Aether"
 #define AUTHOR "Mohamed Omar"
 
-#define STACK_SIZE 50
+#define INPUT_BUFFER_SIZE 2400
 #define MOVE_LIST_SIZE 256
 #define HISTORY_TABLE_SIZE 1024
 #define REPETITION_TABLE_SIZE 32768
@@ -141,7 +141,7 @@ extern move_t NULL_MOVE;
 
 typedef struct {
     int index;
-    move_t moves[256];
+    move_t moves[MOVE_LIST_SIZE];
 } MOVE_LIST;
 
 typedef void (*GEN_FROM_POSITION)(int, MOVE_LIST*);
@@ -164,6 +164,7 @@ typedef struct {
     bool time_set;
     bool quit;
     bool stopped;
+    bool found_move;
     uint64_t nodes;
 } SEARCH_INFO;
 
@@ -203,8 +204,9 @@ void restore_state(void);
 
 bool is_repetition(void);
 
-/* deallocating tables */
+/* de(allocating) memory for program init and exit */
 
+void init_engine(void);
 void free_tables(void);
 
 /* move encoding/decoding, getting and comparison functions */
@@ -240,7 +242,7 @@ void divide(int depth);
 void set_hash(void);
 void update_hash(move_t mv);
 
-void clear_table(void);
+void clear_pv_table(void);
 
 void store_move(move_t mv);
 move_t get_pv_move(void);
@@ -255,8 +257,10 @@ void search(SEARCH_INFO *s_info);
 
 void board_to_fen(char *fen_str);
 int fen_to_board_array(char *fen_str);
-bool fen_match(char *fen_str);
 void print_board(void);
+
+bool fen_match(char *fen_str);
+bool move_match(char *mstr);
 
 void move_to_string(move_t mv, char* mstr);
 move_t string_to_move(char *mstr);
