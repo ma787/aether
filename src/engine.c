@@ -4,49 +4,41 @@
 #include <unistd.h>
 #include "aether.h"
 
-int evaluate(void) {
-    int score = 0, i = 0x44;
+int evaluate(POSITION *pstn) {
+    int score = 0, pos, p_type;
 
-    while (i < 0xBC) {
-        int sq = board[i];
-        int p_type = sq & 0xFC;
-
-        switch(sq & COLOUR_MASK) {
-            case WHITE:
-                score += PIECE_VALS[p_type] + EVAL_TABLES[p_type][to_index(i++)];
-                break;
-            case BLACK:
-                score -= (
-                    PIECE_VALS[p_type] 
-                    + EVAL_TABLES[p_type][to_index(flip_square(i++))]
-                );
-                break;
-            case G:
-                i += 8;
-                break;
-            case 0:
-                i++;
+    for (int i = 0; i < 16; i++) {
+        if ((pos = pstn->w_pieces[i])) {
+            p_type = pstn->board[pos] & 0xFC;
+            score += PIECE_VALS[p_type] + EVAL_TABLES[p_type][to_index(i++)];
         }
     }
 
-    if (side == BLACK) {
+    for (int i = 0; i < 16; i++) {
+        if ((pos = pstn->b_pieces[i])) {
+            p_type = pstn->board[pos] & 0xFC;
+            score -= (PIECE_VALS[p_type] + EVAL_TABLES[p_type][to_index(i++)]);
+        }
+    }
+
+    if (pstn->side == BLACK) {
         score *= -1;
     }
 
     return score;
 }
 
-void init_search(SEARCH_INFO *s_info) {
+void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
     for (int i = 0; i < MAX_DEPTH; i++) {
-        pv_line[i] = NULL_MOVE;
+        pstn->pv_line[i] = NULL_MOVE;
     }
 
-    memset(search_history[PAWN], 0, H8 * sizeof(int));
-    memset(search_history[KNIGHT], 0, H8 * sizeof(int));
-    memset(search_history[BISHOP], 0, H8 * sizeof(int));
-    memset(search_history[ROOK], 0, H8 * sizeof(int));
-    memset(search_history[QUEEN], 0, H8 * sizeof(int));
-    memset(search_history[KING], 0, H8 * sizeof(int));
+    memset(pstn->search_history[PAWN], 0, H8 * sizeof(int));
+    memset(pstn->search_history[KNIGHT], 0, H8 * sizeof(int));
+    memset(pstn->search_history[BISHOP], 0, H8 * sizeof(int));
+    memset(pstn->search_history[ROOK], 0, H8 * sizeof(int));
+    memset(pstn->search_history[QUEEN], 0, H8 * sizeof(int));
+    memset(pstn->search_history[KING], 0, H8 * sizeof(int));
 
     s_info->stopped = false;
     s_info->found_move = false;
@@ -84,7 +76,7 @@ void check_status(SEARCH_INFO *s_info) {
     read_stdin(s_info);
 }
 
-int make_next_move(MOVE_LIST *moves, move_t *move_to_return) {
+int make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
     move_t best_move;
     int m_index = 0;
 
@@ -117,28 +109,28 @@ int make_next_move(MOVE_LIST *moves, move_t *move_to_return) {
     *move_to_return = best_move;
     moves->moves[best_move_index] = NULL_MOVE;
 
-    if (make_move(best_move) != 0) {
+    if (make_move(pstn, best_move) != 0) {
         return 1;
     }
 
     return 0;
 }
 
-int quiescence(int alpha, int beta, SEARCH_INFO *s_info) {
+int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
     if ((s_info->nodes & 2047) == 0) {
         check_status(s_info);
     }
 
     s_info->nodes++;
 
-    if (ply > MAX_DEPTH - 1) {
-        return evaluate();
+    if (pstn->ply > MAX_DEPTH - 1) {
+        return evaluate(pstn);
     }
 
     MOVE_LIST *moves;
 
-    if (!check_info) {
-        int stand_pat = evaluate();
+    if (!pstn->check) {
+        int stand_pat = evaluate(pstn);
 
         if (stand_pat >= beta) {
             return beta;
@@ -150,17 +142,17 @@ int quiescence(int alpha, int beta, SEARCH_INFO *s_info) {
 
         moves = malloc(sizeof(MOVE_LIST));
         moves->index = 0;
-        all_captures(moves);
+        all_captures(pstn, moves);
     } else {
         moves = malloc(sizeof(MOVE_LIST));
         moves->index = 0;
-        all_moves(moves);
+        all_moves(pstn, moves);
     }
 
     move_t best_move = NULL_MOVE;
     int old_alpha = alpha;
     int score = -INFINITY;
-    move_t pv_move = get_pv_move();
+    move_t pv_move = get_pv_move(pstn);
 
     if (!is_null_move(pv_move)) {
         for (int i = 0; i < moves->index; i++) {
@@ -173,17 +165,17 @@ int quiescence(int alpha, int beta, SEARCH_INFO *s_info) {
 
     while (1) {
         move_t mv;
-        int res = make_next_move(moves, &mv);
+        int res = make_next_move(pstn, moves, &mv);
 
         if (res != 0) {
-            unmake_move(mv);
+            unmake_move(pstn, mv);
             continue;
         } else if (is_null_move(mv)) {
             break;
         }
 
-        score = -quiescence(-beta, -alpha, s_info);
-        unmake_move(mv);
+        score = -quiescence(pstn, -beta, -alpha, s_info);
+        unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
             return 0;
@@ -203,15 +195,15 @@ int quiescence(int alpha, int beta, SEARCH_INFO *s_info) {
     free(moves);
 
     if (alpha != old_alpha) {
-        store_move(best_move);
+        store_move(pstn, best_move);
     }
 
     return alpha;
 }
 
-int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
+int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_info) {
     if (depth == 0) {
-        return quiescence(alpha, beta, s_info);
+        return quiescence(pstn, alpha, beta, s_info);
     }
 
     if ((s_info->nodes & 2047) == 0) {
@@ -221,19 +213,19 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
     s_info->nodes++;
 
     // assign draw score to repetitions
-    if (is_repetition() || h_clk >= 100) {
+    if (is_repetition(pstn) || pstn->h_clk >= 100) {
         return 0;
     }
 
     MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
-    all_moves(moves);
+    all_moves(pstn, moves);
 
     move_t best_move = NULL_MOVE;
     int old_alpha = alpha;
     int score = -INFINITY;
     int n = 0;
-    move_t pv_move = get_pv_move();
+    move_t pv_move = get_pv_move(pstn);
 
     if (!(is_null_move(pv_move))) {
         for (int i = 0; i < moves->index; i++) {
@@ -246,18 +238,18 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
 
     while (1) {
         move_t mv;
-        int res = make_next_move(moves, &mv);
+        int res = make_next_move(pstn, moves, &mv);
 
         if (res != 0) {
-            unmake_move(mv);
+            unmake_move(pstn, mv);
             continue;
         } else if (is_null_move(mv)) {
             break;
         }
 
         n++;
-        score = -alpha_beta(-beta, -alpha, depth - 1, s_info);
-        unmake_move(mv);
+        score = -alpha_beta(pstn, -beta, -alpha, depth - 1, s_info);
+        unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
             return 0;
@@ -266,8 +258,8 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
         if (score > alpha) {
             if (score >= beta) {
                 if (!(mv.flags & CAPTURE_FLAG)) {
-                    search_killers[1][ply] = search_killers[0][ply];
-                    search_killers[0][ply] = mv;
+                    pstn->search_killers[1][pstn->ply] = pstn->search_killers[0][pstn->ply];
+                    pstn->search_killers[0][pstn->ply] = mv;
                 }
                 
                 free(moves);
@@ -275,7 +267,7 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
             }
 
             if (!(mv.flags & CAPTURE_FLAG)) {
-                search_history[board[mv.start] & 0xFC][mv.dest] += depth;
+                pstn->search_history[pstn->board[mv.start] & 0xFC][mv.dest] += depth;
             }
 
             alpha = score;
@@ -287,37 +279,37 @@ int alpha_beta(int alpha, int beta, int depth, SEARCH_INFO *s_info) {
 
     // end of game - check for mate
     if (n == 0) {
-        if (is_square_attacked(w_pieces[0])) {
-            return -MATE + ply;
+        if (is_square_attacked(pstn, pstn->w_pieces[0])) {
+            return -MATE + pstn->ply;
         } else {
             return 0;
         }
     }
 
     if (alpha != old_alpha) {
-        store_move(best_move);
+        store_move(pstn, best_move);
     }
 
     return alpha;
 }
 
-void search(SEARCH_INFO *s_info) {
+void search(POSITION *pstn, SEARCH_INFO *s_info) {
     move_t best_move = NULL_MOVE;
     int score = -INFINITY;
     int current_depth = 0, pv_count = 0;
     char mstr[6];
 
-    init_search(s_info);
+    init_search(pstn, s_info);
 
     for (current_depth = 1; current_depth <= s_info->depth; current_depth++) {
-        score = alpha_beta(-INFINITY, INFINITY, current_depth, s_info);
+        score = alpha_beta(pstn, -INFINITY, INFINITY, current_depth, s_info);
 
         if (s_info->stopped == true) {
             break;
         }
 
-        pv_count = get_pv_line(current_depth);
-        best_move = pv_line[0];
+        pv_count = get_pv_line(pstn, current_depth);
+        best_move = pstn->pv_line[0];
 
         printf(
             "info depth %d score cp %d nodes %lu time %lu pv", 
@@ -325,7 +317,7 @@ void search(SEARCH_INFO *s_info) {
         );
 
         for (int i = 0; i < pv_count; i++) {
-            move_to_string(pv_line[i], mstr);
+            move_to_string(pstn->pv_line[i], mstr);
             printf(" %s", mstr);
         }
         printf("\n");

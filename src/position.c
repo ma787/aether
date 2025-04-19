@@ -2,105 +2,58 @@
 #include <string.h>
 #include "aether.h"
 
-unsigned int board[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, G, G, G, G, G, G, G, G, G, G, G, G, 0, 0,
-    0, 0, G, G, G, G, G, G, G, G, G, G, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, 0, 0, 0, 0, 0, 0, 0, 0, G, G, 0, 0,
-    0, 0, G, G, G, G, G, G, G, G, G, G, G, G, 0, 0,
-    0, 0, G, G, G, G, G, G, G, G, G, G, G, G, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
+void swap_piece_lists(int **w_pieces, int **b_pieces) {
+    int *tmp = *w_pieces;
+    *w_pieces = *b_pieces;
+    *b_pieces = tmp;
+}
 
-unsigned int white_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-unsigned int black_pieces[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+void flip_position(POSITION *pstn) {
+    pstn->c_rights = ( 
+    ((pstn->c_rights & 12) >> 2) 
+    | ((pstn->c_rights & 3) << 2)
+    );
 
-unsigned int *w_pieces = white_pieces;
-unsigned int *b_pieces = black_pieces;
+    swap_piece_lists(&(pstn->w_pieces), &(pstn->b_pieces));
 
-unsigned int side = WHITE;
-unsigned int c_rights = 0xF;
-unsigned int ep_square = 0;
-unsigned int h_clk = 0;
-unsigned int check_info = 0;
-
-uint64_t board_hash;
-int ply = 0;
-
-HISTORY_ENTRY history[HISTORY_TABLE_SIZE];
-move_t move_history[HISTORY_TABLE_SIZE];
-uint8_t repetition_table[REPETITION_TABLE_SIZE];
-
-HASH_TABLE pv_table[1];
-move_t pv_line[MAX_DEPTH];
-
-int *search_history[] = {
-    [PAWN] = NULL, [KNIGHT] = NULL, [BISHOP] = NULL, [ROOK] = NULL, [QUEEN] = NULL, [KING] = NULL
-};
-
-move_t search_killers[2][HISTORY_TABLE_SIZE];
-
-void flip_position(void) {
-    c_rights = ((c_rights & 12) >> 2) | ((c_rights & 3) << 2);
-
-    // swap pointers for white and black piece lists
-    unsigned int **pwp = &w_pieces;
-    unsigned int **pbp = &b_pieces;
-    unsigned int *tmp = w_pieces;
-    *pwp = *pbp;
-    *pbp = tmp;
-
-    for (int i = 0; i < 16; i++) {
-        if (w_pieces[i]) {
-            w_pieces[i] = flip_square(w_pieces[i]);
-        }
-        if (b_pieces[i]) {
-            b_pieces[i] = flip_square(b_pieces[i]);
+    for (int i = 0; i < 32; i++) {
+        if (pstn->piece_list[i]) {
+            pstn->piece_list[i] = flip_square(pstn->piece_list[i]);
         }
     }
 
-    if (ep_square) {
-        ep_square = flip_square(ep_square);
+    if (pstn->ep_sq) {
+        pstn->ep_sq = flip_square(pstn->ep_sq);
     }
 
-    if (check_info) {
-        int check = check_info & 3;
-        int first_checker = flip_square((check_info >> 2) & 0xFF);
-        if (check == DOUBLE_CHECK) {
-            check |= (flip_square((check_info >> 10) & 0xFF) << 10);
+    if (pstn->check) {
+        pstn->fst_checker = flip_square(pstn->fst_checker);
+        if (pstn->check == DOUBLE_CHECK) {
+            pstn->snd_checker = flip_square(pstn->snd_checker);
         }
-        check_info = (check | (first_checker << 2));
     }
     
     for (int i = A1; i < A5; i += 0x10) {
         for (int j = 0; j < 8; j++) {
             int k = flip_square(i);
-            int sq1 = board[i + j];
-            int sq2 = board[k + j];
-            board[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
-            board[k + j] = sq1 ? (sq1 & 0xFFC) | (~sq1 & 3) : 0;
+            int sq1 = pstn->board[i + j];
+            int sq2 = pstn->board[k + j];
+            pstn->board[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
+            pstn->board[k + j] = sq1 ? (sq1 & 0xFFC) | (~sq1 & 3) : 0;
         }       
     };
 }
 
-void set_check(void) {
-    int flipped = 0;
-    if (side == WHITE) {
-        flipped = 1;
-        flip_position();
+void set_check(POSITION *pstn) {
+    if (pstn->side == WHITE) {
+        flip_position(pstn);
     }
 
-    check_info = 0;
-    int k_pos = b_pieces[0];
+    pstn->check = 0;
+    pstn->fst_checker = 0;
+    pstn->snd_checker = 0;
+
+    int k_pos = pstn->b_pieces[0];
 
     for (int i = 0; i < 16; i++) {
         int vec = SUPERPIECE[i];
@@ -108,122 +61,187 @@ void set_check(void) {
         int sq;
 
         for (;;) {
-            sq = board[current];
+            sq = pstn->board[current];
             int colour = sq & COLOUR_MASK;
 
             if (colour == G || colour == BLACK) {
-                goto exit_loop;
+                break;
             } else if (colour == WHITE) {
                 int attack = is_attacking(sq, current, k_pos);
 
                 if (attack) {
-                    check_info |= attack;
-                    if ((check_info >> 2) & 0xFF) {
-                        check_info |= (current << 10);
-                        check_info |= DOUBLE_CHECK;
+                    pstn->check |= attack;
+                    if (pstn->fst_checker) {
+                        pstn->snd_checker = current;
+                        pstn->check = DOUBLE_CHECK;
                     } else {
-                        check_info |= (current << 2);
+                        pstn->fst_checker = current;
                     }
                 }
-                goto exit_loop;
+                break;
             } else if (i > 8) {  // cannot move >1 step in knight direction
-                goto exit_loop;
+                break;
             } 
               else {
                 current += vec;
             }
         }
-        exit_loop:
-            if (check_info == DOUBLE_CHECK) {
-                if (flipped) {
-                    flip_position();
-                }
-                return;
-            }
+
+        if (pstn->check == DOUBLE_CHECK) {
+            break;
+        }
     }
 
-    if (flipped) {
-        flip_position();
+    if (pstn->side == WHITE) {
+        flip_position(pstn);
     }
 }
 
-void switch_side(void) { side = ~side & 3; }
+void set_piece_list(POSITION *pstn) {
+    int i = A1, sq, colour;
+    int king_offs[2] = {0, 16};
+    int list_offs[2] = {1, 17};
 
-void save_state(void) {
-    HISTORY_ENTRY h_entry = {board_hash, c_rights, ep_square, h_clk, check_info};
-    history[ply] = h_entry;
+    while (i <= H8) {
+        sq = pstn->board[i];
+        colour = sq & COLOUR_MASK;
+
+        if (!sq) {
+            i++;
+        } else if (colour == G) {
+            i += 8;
+        } else if (sq & KING) {
+            pstn->piece_list[king_offs[colour - 1]] = i++;
+        } else {
+            pstn->piece_list[list_offs[colour - 1]] = i;
+            pstn->board[i++] |= (list_offs[colour - 1]++ << 8);
+        }
+    }
 }
 
-void restore_state(void) {
-    HISTORY_ENTRY h_entry = history[ply];
+void switch_side(POSITION *pstn) { pstn->side = ~(pstn->side) & 3; }
 
-
-    board_hash = h_entry.board_hash;
-    c_rights = h_entry.c_rights;
-    ep_square = h_entry.ep_square;
-    h_clk = h_entry.h_clk;
-    check_info = h_entry.check_info;
+void save_state(POSITION *pstn) {
+    HISTORY_ENTRY h_entry = {
+        pstn->key, 
+        pstn->c_rights, 
+        pstn->ep_sq,
+        pstn->h_clk,
+        pstn->check,
+        pstn->fst_checker,
+        pstn->snd_checker
+    };
+    pstn->history[pstn->ply] = h_entry;
 }
 
-void clear_tables(void) {
+void restore_state(POSITION *pstn) {
+    HISTORY_ENTRY h_entry = pstn->history[pstn->ply];
+
+    pstn->key = h_entry.key;
+    pstn->c_rights = h_entry.c_rights;
+    pstn->ep_sq = h_entry.ep_sq;
+    pstn->h_clk = h_entry.h_clk;
+    pstn->check = h_entry.check;
+    pstn->fst_checker = h_entry.fst_checker;
+    pstn->snd_checker = h_entry.snd_checker;
+}
+
+void clear_tables(POSITION *pstn) {
     // clear board
     for (int i = A1; i <= A8; i += 0x10) {
-        memset(board + i, 0, 8 * sizeof(int));
+        memset(pstn->board + i, 0, 8 * sizeof(int));
     }
-    memset(white_pieces, 0, 16 * sizeof(int));
-    memset(black_pieces, 0, 16 * sizeof(int));
+
+    // reset piece lists
+    memset(pstn->piece_list, 0, 32 * sizeof(int));
+    pstn->w_pieces = &(pstn->piece_list[0]);
+    pstn->b_pieces = &(pstn->piece_list[16]);
 
     // initialise repetition table
-    memset(repetition_table, 0, REPETITION_TABLE_SIZE);
+    memset(pstn->rep_table, 0, REPETITION_TABLE_SIZE);
 
     // initialise killer table
     for (int i = 0; i < HISTORY_TABLE_SIZE; i++) {
-        search_killers[0][i] = NULL_MOVE;
-        search_killers[1][i] = NULL_MOVE;
+        pstn->search_killers[0][i] = NULL_MOVE;
+        pstn->search_killers[1][i] = NULL_MOVE;
     }
 }
 
-void free_tables(void) {
-    free(pv_table->table);
-    free(search_history[PAWN]);
-    free(search_history[KNIGHT]);
-    free(search_history[BISHOP]);
-    free(search_history[ROOK]);
-    free(search_history[QUEEN]);
-    free(search_history[KING]);
-}
+POSITION* new_position(void) {
+    // allocate struct and set up initial position
+    POSITION *pstn = malloc(sizeof(POSITION));
+    clear_tables(pstn);
 
-void init_engine(void) {
+    // adding guard squares to board
+    for (int i = 0x20; i < 0xE0; i += 0x10) {
+        int row = i >> 4;
+    
+        if (row == 2 || row == 3 || row == 0xC || row == 0xD) {
+            for (int j = 2; j < 14; j++) {
+                pstn->board[i + j] = G;
+            }
+        } else {
+            pstn->board[i + 2] = G;
+            pstn->board[i + 3] = G;
+            pstn->board[i + 12] = G;
+            pstn->board[i + 13] = G;
+        }
+    }
+
+    pstn->ply = 0;
+    pstn->side = WHITE;
+    pstn->c_rights = 0b1111;
+    pstn->ep_sq = 0;
+    pstn->h_clk = 0;
+    pstn->check = 0;
+    pstn->fst_checker = 0;
+    pstn->snd_checker = 0;
+
+    fen_to_board_array(pstn, START_POS);
+    set_piece_list(pstn);
+
     // allocate memory for pv table
-    pv_table->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
-    pv_table->n_entries -= 2; // ensures that memory is not overrun
-    pv_table->table = (TABLE_ENTRY *) malloc(pv_table->n_entries * sizeof(TABLE_ENTRY));
-    clear_pv_table();
+    (pstn->pv_table)->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
+    (pstn->pv_table)->n_entries -= 2; // ensures that memory is not overrun
+    (pstn->pv_table)->table = (TABLE_ENTRY *) malloc((pstn->pv_table)->n_entries * sizeof(TABLE_ENTRY));
+    clear_pv_table(pstn);
 
     // allocate and zero initialise memory for history table
-    search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[KNIGHT] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[BISHOP] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[ROOK] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[QUEEN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    search_history[KING] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    pstn->search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    pstn->search_history[KNIGHT] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    pstn->search_history[BISHOP] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    pstn->search_history[ROOK] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    pstn->search_history[QUEEN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    pstn->search_history[KING] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
 
-    clear_tables();
+    return pstn;
 }
 
-int set_position(char *fen_str) {
-    clear_tables();
+void free_position(POSITION *pstn) {
+    free((pstn->pv_table)->table);
+    free(pstn->search_history[PAWN]);
+    free(pstn->search_history[KNIGHT]);
+    free(pstn->search_history[BISHOP]);
+    free(pstn->search_history[ROOK]);
+    free(pstn->search_history[QUEEN]);
+    free(pstn->search_history[KING]);
+    free(pstn);
+}
 
-    ply = 0;
+int update_position(POSITION *pstn, char *fen_str) {
+    clear_tables(pstn);
 
-    int idx = fen_to_board_array(fen_str);
+    pstn->ply = 0;
+    pstn->c_rights = 0;
+    pstn->ep_sq = 0;
 
-    if (idx == -1) {
+    int idx;
+
+    if ((idx = fen_to_board_array(pstn, fen_str)) == -1) {
         return 0;
     }
 
-    side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
-    c_rights = 0;
+    pstn->side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
 
     if (fen_str[++idx] == '-') {    
         idx += 2;
@@ -231,74 +249,35 @@ int set_position(char *fen_str) {
         char val;
         do {
             val = fen_str[idx++];
-            c_rights |= CASTLING_RIGHTS[(int) val];
+            pstn->c_rights |= CASTLING_RIGHTS[(int) val];
         } while (val != ' ');
     }
 
-    if (fen_str[idx] == '-') {
-        ep_square = 0;
-        idx += 2;
-    } else {
-        ep_square = string_to_coord(fen_str + idx);
-        idx += 3;
+    if (fen_str[idx] != '-') {
+        pstn->ep_sq = string_to_coord(fen_str + idx++);
     }
+    idx += 2;
 
-    h_clk = fen_str[idx] - '0';
+    pstn->h_clk = fen_str[idx] - '0';
 
-    int i = A1, w_off = 1, b_off = 1;
+    set_piece_list(pstn);
+    set_check(pstn);
+    set_hash(pstn);
 
-    while (i <= H8) {
-        int sq = board[i];
-        int colour = sq & COLOUR_MASK;
-
-        if (!sq) {
-            i++;
-            continue;
-        }
-
-        if (sq & KING) {
-            if (colour == WHITE) {
-                w_pieces[0] = i++;
-            } else {
-                b_pieces[0] = i++;
-            }
-            continue;
-        }
-
-        switch (colour) {
-            case G:
-                i += 8;
-                continue;
-            case WHITE:
-                w_pieces[w_off] = i;
-                board[i++] |= (w_off++ << 8);
-                break;
-            case BLACK:
-                b_pieces[b_off] = i;
-                board[i++] |= (b_off++ << 8);
-                break;
-        }
+    if (pstn->side == BLACK) {
+        flip_position(pstn);
     }
-
-    set_hash();
-    set_check();
-
-    if (side == BLACK) {
-        flip_position();
-    }
-
-    save_state();
 
     return idx + 2;
 }
 
-bool is_repetition(void) {
-    if (!(repetition_table[board_hash & 0x00003FFF])) {
+bool is_repetition(POSITION *pstn) {
+    if (!(pstn->rep_table[pstn->key & 0x00003FFF])) {
         return false;
     }
 
-    for (int i = ply - h_clk; i < ply; i++) {
-        if (history[i].board_hash == board_hash) {
+    for (int i = pstn->ply - pstn->h_clk; i < pstn->ply; i++) {
+        if (pstn->history[i].key == pstn->key) {
             return true;
         }
     }

@@ -7,7 +7,7 @@ int string_to_coord(char *sqr_str) {
     return ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1;
 }
 
-char* coord_to_string(int pos) { return COORDS[to_index(pos)]; }
+char* coord_to_string(int pos) { return COORDS[pos]; }
 
 bool reg_match(char *input_str, char *reg_str) {
     regex_t preg;
@@ -32,15 +32,15 @@ bool move_match(char *mstr) {
     return reg_match(mstr, MOVE_REGEX);
 }
 
-void board_to_fen(char *fen_str) {
-    if (side != WHITE) {
-        flip_position();
+void board_to_fen(POSITION *pstn, char *fen_str) {
+    if (pstn->side != WHITE) {
+        flip_position(pstn);
     }
 
     int i = A8, j = 0, sq;
 
     while (i != 0x4C) {
-        sq = board[i];
+        sq = pstn->board[i];
 
         if (sq == G) {
             fen_str[j++] = '/';
@@ -49,7 +49,7 @@ void board_to_fen(char *fen_str) {
             int count = 0;
             while (sq == 0) {
                 count++;
-                sq = board[++i];
+                sq = pstn->board[++i];
             }
             fen_str[j++] = '0' + count;
         } else {
@@ -59,20 +59,20 @@ void board_to_fen(char *fen_str) {
     }
 
     fen_str[j++] = ' ';
-    fen_str[j++] = side == WHITE ? 'w' : 'b';
+    fen_str[j++] = pstn->side == WHITE ? 'w' : 'b';
     fen_str[j++] = ' ';
 
-    if (c_rights) {
-        if (c_rights & WHITE_KINGSIDE) {
+    if (pstn->c_rights) {
+        if (pstn->c_rights & WHITE_KINGSIDE) {
             fen_str[j++] = 'K';
         }
-        if (c_rights & WHITE_QUEENSIDE) {
+        if (pstn->c_rights & WHITE_QUEENSIDE) {
             fen_str[j++] = 'Q';
         }
-        if (c_rights & BLACK_KINGSIDE) {
+        if (pstn->c_rights & BLACK_KINGSIDE) {
             fen_str[j++] = 'k';
         }
-        if (c_rights & BLACK_QUEENSIDE) {
+        if (pstn->c_rights & BLACK_QUEENSIDE) {
             fen_str[j++] = 'q';
         }
     } else {
@@ -80,20 +80,24 @@ void board_to_fen(char *fen_str) {
     }
     fen_str[j++] = ' ';
 
-    if (ep_square) {
-        strcpy(fen_str + j, coord_to_string(ep_square));
+    if (pstn->ep_sq) {
+        strcpy(fen_str + j, coord_to_string(pstn->ep_sq));
         j += 2;
     } else {
         fen_str[j++] = '-';
     }
     fen_str[j++] = ' ';
-    fen_str[j++] = '0' + h_clk;
+    fen_str[j++] = '0' + pstn->h_clk;
     fen_str[j++] = ' ';
     fen_str[j++] = '1'; // fullmove number not implemented
     fen_str[j] = '\0';
+
+    if (pstn->side != WHITE) {
+        flip_position(pstn);
+    }
 }
 
-int fen_to_board_array(char *fen_str) {
+int fen_to_board_array(POSITION *pstn, char *fen_str) {
     if (!fen_match(fen_str)) {
         return -1;
     }
@@ -118,7 +122,7 @@ int fen_to_board_array(char *fen_str) {
             default:
                 int piece = PIECES[(int) val];
                 if (piece) {
-                    board[i++] = piece;
+                    pstn->board[i++] = piece;
                     count++;
                 } else {
                     int inc = val - '0';
@@ -129,12 +133,12 @@ int fen_to_board_array(char *fen_str) {
     }
 }
 
-void print_board(void) {
+void print_board(POSITION *pstn) {
     char b_str[72];
     int i = 0xB4, j = 0, sq;
 
     while (i != 0x4C) {
-        sq = board[i];
+        sq = pstn->board[i];
 
         if (sq == G) {
             b_str[j++] = '\n';
@@ -170,7 +174,7 @@ void move_to_string(move_t mv, char* mstr) {
     }
 }
 
-move_t string_to_move(char *mstr) {
+move_t string_to_move(POSITION *pstn, char *mstr) {
     if (move_match(mstr) == false) {
         return NULL_MOVE;
     }
@@ -179,16 +183,16 @@ move_t string_to_move(char *mstr) {
     int dest = string_to_coord(mstr + 2);
     int flags = Q_FLAG;
 
-    if (side == BLACK) {
+    if (pstn->side == BLACK) {
         start = flip_square(start);
         dest = flip_square(dest);
     }
 
-    if (board[dest]) {
+    if (pstn->board[dest]) {
         flags |= CAPTURE_FLAG;
     };
 
-    switch(board[start] & 0x0FC) {
+    switch(pstn->board[start] & 0x0FC) {
         case KING:
             if (start == E1) {
                 if (dest == C1) {
@@ -201,7 +205,7 @@ move_t string_to_move(char *mstr) {
         case PAWN:
             if (get_rank(start) == 1 && get_rank(dest) == 3) {
                 flags = DPP_FLAG;
-            } else if (dest == ep_square) {
+            } else if (dest == pstn->ep_sq) {
                 flags = EP_FLAG;
             } else if (get_rank(dest) == 7) {
                 flags |= PROMO_FLAG;
@@ -220,5 +224,5 @@ move_t string_to_move(char *mstr) {
             break;
     }
 
-    return get_move(start, dest, flags);
+    return get_move(pstn, start, dest, flags);
 }
