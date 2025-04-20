@@ -330,14 +330,13 @@ bool move_exists(POSITION *pstn, move_t mv) {
     for (int i = 0; i < moves->index; i++) {
         move_t m = moves->moves[i];
 
-        if (make_move(pstn, m) == 0) {
+        if (make_move(pstn, m)) {
+            unmake_move(pstn, m);
             if (moves_equal(m, mv)) {
-                unmake_move(pstn, m);
                 free(moves);
                 return true;
             };
         }
-        unmake_move(pstn, m);
     }
 
     free(moves);

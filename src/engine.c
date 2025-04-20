@@ -76,7 +76,7 @@ void check_status(SEARCH_INFO *s_info) {
     read_stdin(s_info);
 }
 
-int make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
+bool make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
     move_t best_move;
     int m_index = 0;
 
@@ -90,7 +90,7 @@ int make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
 
     if (m_index == moves->index) {
         *move_to_return = NULL_MOVE;
-        return 0;
+        return false;
     }
 
     move_t current_move;
@@ -109,11 +109,7 @@ int make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
     *move_to_return = best_move;
     moves->moves[best_move_index] = NULL_MOVE;
 
-    if (make_move(pstn, best_move) != 0) {
-        return 1;
-    }
-
-    return 0;
+    return make_move(pstn, best_move);
 }
 
 int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
@@ -165,13 +161,11 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
 
     while (1) {
         move_t mv;
-        int res = make_next_move(pstn, moves, &mv);
-
-        if (res != 0) {
-            unmake_move(pstn, mv);
+        if (!make_next_move(pstn, moves, &mv)) {
+            if (is_null_move(mv)) {
+                break;
+            }
             continue;
-        } else if (is_null_move(mv)) {
-            break;
         }
 
         score = -quiescence(pstn, -beta, -alpha, s_info);
@@ -238,13 +232,11 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
 
     while (1) {
         move_t mv;
-        int res = make_next_move(pstn, moves, &mv);
-
-        if (res != 0) {
-            unmake_move(pstn, mv);
+        if (!make_next_move(pstn, moves, &mv)) {
+            if (is_null_move(mv)) {
+                break;
+            }
             continue;
-        } else if (is_null_move(mv)) {
-            break;
         }
 
         n++;

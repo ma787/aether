@@ -30,7 +30,7 @@ void test_string_to_move(
 
 void test_update_hash(POSITION *pstn, char *mstr) {
     move_t mv = string_to_move(pstn, mstr);
-    assert(make_move(pstn, mv) == 0);
+    assert(make_move(pstn, mv));
     uint64_t z_hash = pstn->key;
 
     bool flipped = false;
@@ -202,59 +202,59 @@ int main(void) {
     /* make_move tests */
 
     assert(update_position(pstn, START_POS));
-    assert(make_move(pstn, string_to_move(pstn, "a2a3")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "a2a3")));
     test_fen(pstn, "rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 1");
 
     assert(update_position(pstn, "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e4d5")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e4d5")));
     test_fen(pstn, "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1");
 
     assert(update_position(pstn, "rnbqkbnr/pppp1ppp/8/1N6/4p3/8/PPPPPPPP/R1BQKBNR w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "f2f4")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "f2f4")));
     test_fen(pstn, "rnbqkbnr/pppp1ppp/8/1N6/4pP2/8/PPPPP1PP/R1BQKBNR b KQkq f3 0 1");
 
     assert(update_position(pstn, "rnbqkbnr/1ppppppp/p7/3P4/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e7e5")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e7e5")));
     test_fen(pstn, "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1");
 
     assert(update_position(pstn, "r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "b7b8q")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "b7b8q")));
     test_fen(pstn, "rQbqkbnr/p1pppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR b KQkq - 0 1");
 
     assert(update_position(pstn, "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1"));
-    assert(make_move(pstn, string_to_move(pstn, "a1a2")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "a1a2")));
     test_fen(pstn, "r1bqkbnr/pppppppp/n7/8/P7/8/RPPPPPPP/1NBQKBNR b Kkq - 2 1");
 
     assert(update_position(pstn, "rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "a8a7")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "a8a7")));
     test_fen(pstn, "1nbqkbnr/rppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR w KQk - 1 1");
 
     assert(update_position(pstn, "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1"));
-    assert(make_move(pstn, string_to_move(pstn, "h1h2")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "h1h2")));
     test_fen(pstn, "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPPR/RNBQKBN1 b Qkq - 2 1");
 
     assert(update_position(pstn, "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "h8h7")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "h8h7")));
     test_fen(pstn, "rnbqkbn1/pppppppr/7p/7P/8/8/PPPPPPP1/RNBQKBNR w KQq - 1 1");
 
     assert(update_position(pstn, "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e1e2")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e1e2")));
     test_fen(pstn, "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPPKPPP/RNBQ1BNR b kq - 2 1");
 
     assert(update_position(pstn, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e8e7")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e8e7")));
     test_fen(pstn, "rnbq1bnr/ppppkppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQ - 1 1");
 
     assert(update_position(pstn, "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e1c1")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e1c1")));
     test_fen(pstn, "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/2KR1BNR b kq - 1 1");
 
     assert(update_position(pstn, "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e1g1")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e1g1")));
     test_fen(pstn, "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQ1RK1 b kq - 1 1");
 
     assert(update_position(pstn, "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "d5e6")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "d5e6")));
     test_fen(pstn, "rnbqkbnr/1ppp1ppp/p3P3/8/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1");
 
     printf("passed make_move tests\n");
@@ -264,77 +264,77 @@ int main(void) {
     move_t mv;
 
     assert(update_position(pstn, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "a2a3")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "a2a3")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "e8d8")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "e8d8")));
     unmake_move(pstn, mv);
     test_fen(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1");
 
     assert(update_position(pstn, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "g2g1q")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "g2g1q")));
     unmake_move(pstn, mv);
     test_fen(pstn, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1");
 
     assert(update_position(pstn, "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "e1c1")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "e1c1")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/4pppp/pppp4/8/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1");
 
     assert(update_position(pstn, "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "e1g1")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "e1g1")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1");
 
     assert(update_position(pstn, "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "a1a2")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "a1a2")));
     unmake_move(pstn, mv);
     test_fen(pstn, "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 1 1");
 
     assert(update_position(pstn, "rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "a8a7")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "a8a7")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1");
 
     assert(update_position(pstn, "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "h1h2")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "h1h2")));
     unmake_move(pstn, mv);
     test_fen(pstn, "r1bqkbnr/pppppppp/n7/8/7P/8/PPPPPPP1/RNBQKBNR w KQkq - 1 1");
 
     assert(update_position(pstn, "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "h8h7")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "h8h7")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1");
 
     assert(update_position(pstn, "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "e1e2")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "e1e2")));
     unmake_move(pstn, mv);
     test_fen(pstn, "r1bqkbnr/pppppppp/n7/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 1 1");
 
     assert(update_position(pstn, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "e8e7")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "e8e7")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1");
 
     assert(update_position(pstn, "r1bqkbnr/p1pppppp/n7/1p6/P6P/8/1PPPPPP1/RNBQKBNR w Qkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "a1a2")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "a1a2")));
     unmake_move(pstn, mv);
     test_fen(pstn, "r1bqkbnr/p1pppppp/n7/1p6/P6P/8/1PPPPPP1/RNBQKBNR w Qkq - 0 1");
 
     assert(update_position(pstn, "rnbqkbnr/1ppppppp/8/8/p7/4P3/PPPP1PPP/RNBQKBNR w kq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "e1e2")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "e1e2")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rnbqkbnr/1ppppppp/8/8/p7/4P3/PPPP1PPP/RNBQKBNR w kq - 0 1");
 
     assert(update_position(pstn, "rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "h6h1")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "h6h1")));
     unmake_move(pstn, mv);
     test_fen(pstn, "rn1qkbn1/ppp1ppp1/3p3r/P7/6b1/3P4/1PP1PPP1/RN1QKBNR b KQq - 0 1");
 
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
-    assert(make_move(pstn, mv = string_to_move(pstn, "d5e6")) == 0);
+    assert(make_move(pstn, mv = string_to_move(pstn, "d5e6")));
     unmake_move(pstn, mv);
     test_fen(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
@@ -343,36 +343,40 @@ int main(void) {
     /* update_check tests */
 
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "f3h5")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "f3h5")));
     assert(pstn->check == NO_CHECK);
 
     assert(update_position(pstn, "rnbqkbnr/pp2pppp/2pp4/8/Q7/2P5/PP1PPPPP/RNB1KBNR w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "a4c6")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "a4c6")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == C3);
 
     assert(update_position(pstn, "Q7/1PP5/2k5/8/8/8/4Kppp/8 w - - 1 1"));
-    assert(make_move(pstn, string_to_move(pstn, "b7b8q")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "b7b8q")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == A1);
 
     assert(update_position(pstn, "r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R4K1R b kq - 1 1"));
-    assert(make_move(pstn, string_to_move(pstn, "a6b5")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "a6b5")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == B5);
 
     assert(update_position(pstn, "rnbqkbnr/pppp1ppp/8/8/4P3/5N2/PpP2PPP/R1BQKB1R w KQkq - 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "d1d7")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "d1d7")));
     assert(pstn->check == CONTACT_CHECK && pstn->fst_checker == D2);
 
     assert(update_position(pstn, "r6r/Pp1pkppp/1P3nbN/nPp5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w - c6 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "b5c6")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "b5c6")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == B5);
 
     assert(update_position(pstn, "2kr3r/p2pqpb1/bn2pnp1/2pPN3/1p2P3/2Q4p/PPPBBPPP/RN2K2R w KQ c6 0 1"));
-    assert(make_move(pstn, string_to_move(pstn, "d5c6")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "d5c6")));
     assert(pstn->check == NO_CHECK);
 
     assert(update_position(pstn, "4k2r/8/8/8/8/8/8/5K2 b k - 1 1"));
-    assert(make_move(pstn, string_to_move(pstn, "e8g8")) == 0);
+    assert(make_move(pstn, string_to_move(pstn, "e8g8")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == F8);
+
+    assert(update_position(pstn, "k7/B7/1B6/1B6/8/8/8/K6b w - - 0 1"));
+    assert(make_move(pstn, string_to_move(pstn, "b5c6")));
+    assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == C3);
 
     printf("passed update_check tests\n");
 

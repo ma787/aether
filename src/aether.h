@@ -227,7 +227,7 @@ move_t move_of_int(int m_int);
 /* move-making functions */
 
 int is_square_attacked(POSITION *pstn, int pos);
-int make_move(POSITION *pstn, move_t mv);
+bool make_move(POSITION *pstn, move_t mv);
 void unmake_move(POSITION *pstn, move_t mv);
 
 /* move generation functions */

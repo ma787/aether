@@ -199,6 +199,7 @@ POSITION* new_position(void) {
 
     fen_to_board_array(pstn, START_POS);
     set_piece_list(pstn);
+    set_hash(pstn);
 
     // allocate memory for pv table
     (pstn->pv_table)->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);

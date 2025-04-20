@@ -15,10 +15,10 @@ uint64_t perft(POSITION *pstn, int depth) {
     move_t mv;
 
     for (int i = 0; i < moves->index; i++) {
-        if (make_move(pstn, (mv = moves->moves[i])) == 0) {
+        if (make_move(pstn, (mv = moves->moves[i]))) {
             total += perft(pstn, depth - 1);
+            unmake_move(pstn, mv);
         }
-        unmake_move(pstn, mv);
     }
 
     free(moves);
@@ -41,12 +41,12 @@ void divide(POSITION *pstn, int depth) {
         mv = moves->moves[i];
         char mstr[6];
         move_to_string(mv, mstr);
-        if (make_move(pstn, mv) == 0) {
+        if (make_move(pstn, mv)) {
             uint64_t n = perft(pstn, depth - 1);
             total += n;
             printf("%s %lu\n", mstr, n);
+            unmake_move(pstn, mv);
         }
-        unmake_move(pstn, mv);
     }
 
     free(moves);
@@ -70,19 +70,19 @@ uint64_t count_captures(POSITION *pstn, int depth) {
         all_captures(pstn, captures);
 
         for (int i = 0; i < captures->index; i++) {
-            if (make_move(pstn, (mv = captures->moves[i])) == 0) {
+            if (make_move(pstn, (mv = captures->moves[i]))) {
                 total += 1;
+                unmake_move(pstn, mv);
             }
-            unmake_move(pstn, mv);
         }
 
         
     } else {
         for (int i = 0; i < moves->index; i++) {
-            if (make_move(pstn, (mv = moves->moves[i])) == 0) {
+            if (make_move(pstn, (mv = moves->moves[i]))) {
                 total += count_captures(pstn, depth - 1);
+                unmake_move(pstn, mv);
             }
-            unmake_move(pstn, mv);
         }
     }
 
