@@ -115,6 +115,34 @@ void parse_go(POSITION *pstn, char *line, SEARCH_INFO *s_info) {
     search(pstn, s_info);
 }
 
+void display_info(POSITION *pstn) {
+    char fen_str[92];
+    board_to_fen(pstn, fen_str);
+    print_board(pstn);
+    printf("\nFEN: %s\nKey: %lu\nCheckers: ", fen_str, pstn->key);
+    if (pstn->check) {
+        printf("%s", coord_to_string(pstn->fst_checker));
+        if (pstn->check == DOUBLE_CHECK) {
+            printf(", %s", coord_to_string(pstn->snd_checker));
+        }
+    }
+    printf("\n");
+    printf("En passant: %s\nCastling Rights: ", coord_to_string(pstn->ep_sq));
+    if (pstn->c_rights & WHITE_KINGSIDE) {
+        printf("K");
+    }
+    if (pstn->c_rights & WHITE_QUEENSIDE) {
+        printf("Q");
+    }
+    if (pstn->c_rights & BLACK_KINGSIDE) {
+        printf("k");
+    }
+    if (pstn->c_rights & BLACK_QUEENSIDE) {
+        printf("q");
+    }
+    printf("\nPly: %d\n", pstn->ply);
+}
+
 void uci_loop(void) {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
@@ -155,17 +183,7 @@ void uci_loop(void) {
             printf("id author %s\n", AUTHOR);
             printf("uciok\n");
         } else if (strncmp(buf, "d", 1) == 0) {
-            char fen_str[92];
-            board_to_fen(pstn, fen_str);
-            print_board(pstn);
-            printf("\nFEN: %s\nKey: %lu\nCheckers: ", fen_str, pstn->key);
-            if (pstn->check) {
-                printf("%s", coord_to_string(pstn->fst_checker));
-                if (pstn->check == DOUBLE_CHECK) {
-                    printf(", %s", coord_to_string(pstn->snd_checker));
-                }
-            }
-            printf("\n");
+            display_info(pstn);
         }
 
         if (s_info->quit == true) {

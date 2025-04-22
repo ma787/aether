@@ -58,9 +58,11 @@ void set_hash(POSITION *pstn) {
 
 void update_hash(POSITION *pstn, move_t mv) {
     int start = mv.start, dest = mv.dest;
-    int piece = pstn->board[start];
+    int piece = pstn->board[dest];
 
-    int new_c_rights = pstn->c_rights & (
+    HISTORY_ENTRY old_info = pstn->history[pstn->ply - 1];
+
+    int new_c_rights = old_info.c_rights & (
         (start != A1)
         | ((start != H1) << 1)
         | ((dest != A8) << 2)
@@ -77,8 +79,8 @@ void update_hash(POSITION *pstn, move_t mv) {
     pstn->key ^= get_hash(start, piece);
     pstn->key ^= get_hash(dest, piece);
 
-    if (pstn->ep_sq) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(pstn->ep_sq)];
+    if (old_info.ep_sq) {
+        pstn->key ^= HASH_VALUES[EP_OFF + get_file(old_info.ep_sq)];
     }
 
     pstn->key ^= HASH_VALUES[SIDE_OFF];
@@ -110,8 +112,8 @@ void update_hash(POSITION *pstn, move_t mv) {
     }
 
     if (mv.flags & PROMO_FLAG) {
-        pstn->key ^= get_hash(dest, piece);
-        pstn->key ^= get_hash(dest, pstn->side | PROMOTIONS[mv.flags & 3]);
+        pstn->key ^= get_hash(start, PAWN | pstn->side);
+        pstn->key ^= get_hash(start, piece);
     }
 
     if (mv.flags & CAPTURE_FLAG) {
@@ -130,7 +132,7 @@ void update_hash(POSITION *pstn, move_t mv) {
     }
 
     for (int i = 0; i < 4; i++) {
-        if (pstn->c_rights & i) {
+        if (old_info.c_rights & i) {
             pstn->key ^= HASH_VALUES[C_OFF + i];
         }
         if (new_c_rights & i) {

@@ -203,28 +203,8 @@ bool confirm_ep_move(POSITION *pstn, move_t mv) {
     int k_pos = pstn->w_pieces[0];
     int b_pawn_pos = mv.dest + S;
 
-    // check for an undiscovered pin on king on ep rank
-    if (get_rank(k_pos) == get_rank(mv.start)) {
-        int vec = get_step(k_pos, mv.start);
-        int current = k_pos;
-
-        for (;;) {
-            current += vec;
-            if (current == mv.start || current == b_pawn_pos) {
-                continue;
-            }
-
-            int sq = pstn->board[current];
-
-            if (
-                (sq & COLOUR_MASK) == BLACK
-                && is_attacking(sq, current, k_pos)
-            ) {
-                return false;
-            } else if (sq) {
-                break;
-            }
-        }
+    if (is_square_attacked(pstn, k_pos)) {
+        return false;
     }
 
     int b_king_pos = pstn->b_pieces[0];
@@ -295,7 +275,6 @@ bool confirm_legal(POSITION *pstn, move_t mv) {
 void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     save_state(pstn);
     pstn->rep_table[pstn->key & 0x00003FFF] += 1;
-    update_hash(pstn, mv);
     pstn->ply++;
     pstn->move_history[pstn->ply] = mv;
 
@@ -374,13 +353,13 @@ void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
 
     pstn->ply--;
     restore_state(pstn);
-    pstn->rep_table[pstn->key & 0x00003FFF] -= 1;
 }
 
 bool make_move(POSITION *pstn, move_t mv) {
     make_pseudo_legal_move(pstn, mv);
 
     if (confirm_legal(pstn, mv)) {
+        update_hash(pstn, mv);
         switch_side(pstn);
         flip_position(pstn);
         return true;
