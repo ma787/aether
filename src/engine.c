@@ -10,14 +10,14 @@ int evaluate(POSITION *pstn) {
     for (int i = 0; i < 16; i++) {
         if ((pos = pstn->w_pieces[i])) {
             p_type = pstn->board[pos] & 0xFC;
-            score += PIECE_VALS[p_type] + EVAL_TABLES[p_type][to_index(i++)];
+            score += PIECE_VALS[p_type] + EVAL_TABLES[p_type][coord_to_index(i++)];
         }
     }
 
     for (int i = 0; i < 16; i++) {
         if ((pos = pstn->b_pieces[i])) {
             p_type = pstn->board[pos] & 0xFC;
-            score -= (PIECE_VALS[p_type] + EVAL_TABLES[p_type][to_index(i++)]);
+            score -= (PIECE_VALS[p_type] + EVAL_TABLES[p_type][coord_to_index(i++)]);
         }
     }
 

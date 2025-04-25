@@ -116,6 +116,8 @@ extern int *EVAL_TABLES[];
 
 extern int *MVV_LVA_SCORES[];
 
+extern int POP_COUNT_256[256];
+
 extern uint64_t HASH_VALUES[781];
 
 /* structs and typedefs */
@@ -172,6 +174,8 @@ typedef struct {
     int piece_list[32];
     int *w_pieces;
     int *b_pieces;
+    uint64_t w_pawns;
+    uint64_t b_pawns;
 
     int ply;
     int side;
@@ -254,6 +258,16 @@ move_t get_pv_move(POSITION *pstn);
 
 int get_pv_line(POSITION *pstn, int depth);
 
+/* bitboard functions */
+
+uint64_t get_bit(uint64_t bb, int i);
+void set_bit(uint64_t *bb, int i);
+void clear_bit(uint64_t *bb, int i);
+
+int pop_bit(uint64_t *bb);
+int count_bits(uint64_t bb);
+void flip_bits(uint64_t *bb);
+
 /* engine search functions */
 
 void search(POSITION *pstn, SEARCH_INFO *s_info);
@@ -277,7 +291,8 @@ char* coord_to_string(int pos);
 
 int get_rank(int pos);
 int get_file(int pos);
-int to_index(int pos);
+int coord_to_index(int pos);
+int index_to_coord(int index);
 int flip_square(int pos);
 
 int square_diff(int start, int dest);

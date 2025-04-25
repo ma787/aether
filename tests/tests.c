@@ -49,8 +49,110 @@ void test_update_hash(POSITION *pstn, char *mstr) {
     assert(pstn->key == z_hash);
 }
 
+void bitboard_to_arr(uint64_t bb, int *bb_arr) {
+    for (int i = 0; i < 64; i++) {
+        bb_arr[i] = (bb & (1ULL << i)) ? 1 : 0;
+    }
+}
+
+uint64_t arr_to_bitboard(int *bb_arr) {
+    uint64_t bb = 0ULL;
+
+    for (int i = 0; i < 64; i++) {
+        bb |= (((uint64_t) bb_arr[i]) << i);
+    }
+
+    return bb;
+}
+
+int sum_bitboard_arr(int *bb_arr) {
+    int count = 0;
+    for (int i = 0; i < 64; i++) {
+        count += bb_arr[i];
+    }
+    return count;
+}
+
+void flip_bitboard_arr(int *bb_arr) {
+    for (int i = 0; i < 32; i++) {
+        int tmp = bb_arr[i];
+        bb_arr[i] = bb_arr[i ^ 56];
+        bb_arr[i ^ 56] = tmp;
+    }
+}
+
+int pop_bitboard_arr(int *bb_arr) {
+    for (int i = 0; i < 64; i++) {
+        if (bb_arr[i]) {
+            bb_arr[i] = 0;
+            return i;
+        }
+    }
+    return -1;
+}
+
+void test_bitboard(uint64_t bb) {
+    int bb_arr[64];
+    bitboard_to_arr(bb, bb_arr);
+    int cnt;
+
+    assert(bb == arr_to_bitboard(bb_arr));
+
+    // testing get_bit
+    for (int i = 0; i < 64; i++) {
+        get_bit(bb, i) ? assert(bb_arr[i]) : assert(!bb_arr[i]);
+    }
+
+    assert(bb == arr_to_bitboard(bb_arr));
+
+    // testing flip_bits
+    uint64_t original = bb;
+    flip_bits(&bb);
+    flip_bitboard_arr(bb_arr);
+    assert(bb == arr_to_bitboard(bb_arr));
+    flip_bits(&bb);
+    flip_bitboard_arr(bb_arr);
+    assert(bb == original);
+
+    assert(bb == arr_to_bitboard(bb_arr));
+
+    // testing count_bits and pop_bit
+    while (bb) {
+        cnt = sum_bitboard_arr(bb_arr);
+        assert(count_bits(bb) == cnt);
+        assert(pop_bit(&bb) == pop_bitboard_arr(bb_arr));
+    }
+
+    assert(bb == arr_to_bitboard(bb_arr));
+
+    // testing set_bit and clear_bit
+    for (int i = 0; i < 64; i++) {
+        set_bit(&bb, i);
+    }
+    assert(bb == UINT64_MAX);
+    clear_bit(&bb, 0);
+    assert(bb == UINT64_MAX - 1);
+    for (int i = 0; i < 64; i++) {
+        clear_bit(&bb, i);
+    }
+    assert(!bb);
+    set_bit(&bb, 13);
+    assert(bb == 8192ULL);
+}
+
 int main(void) {
     POSITION *pstn = new_position();
+
+    /* bitboard tests */
+
+    test_bitboard(10321831619000076069ULL);
+    test_bitboard(7502027253552134462ULL);
+    test_bitboard(13321970187235385939ULL);
+    test_bitboard(155585894728860069ULL);
+    test_bitboard(0ULL);
+    test_bitboard(INT64_MAX);
+    
+    printf("passed bitboard tests\n");
 
     /* update_position tests */
 
@@ -427,29 +529,29 @@ int main(void) {
     // gen_captures tests
 
     assert(update_position(pstn, START_POS));
-    assert(count_captures(pstn, 1) == 0UL);
-    assert(count_captures(pstn, 2) == 0UL);
-    assert(count_captures(pstn, 3) == 34UL);
-    assert(count_captures(pstn, 4) == 1576UL);
-    assert(count_captures(pstn, 5) == 82719UL);
+    assert(count_captures(pstn, 1) == 0ULL);
+    assert(count_captures(pstn, 2) == 0ULL);
+    assert(count_captures(pstn, 3) == 34ULL);
+    assert(count_captures(pstn, 4) == 1576ULL);
+    assert(count_captures(pstn, 5) == 82719ULL);
 
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
-    assert(count_captures(pstn, 1) == 8UL);
-    assert(count_captures(pstn, 2) == 351UL);
-    assert(count_captures(pstn, 3) == 17102UL);
+    assert(count_captures(pstn, 1) == 8ULL);
+    assert(count_captures(pstn, 2) == 351ULL);
+    assert(count_captures(pstn, 3) == 17102ULL);
 
     assert(update_position(pstn, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"));
-    assert(count_captures(pstn, 1) == 1UL);
-    assert(count_captures(pstn, 2) == 14UL);
-    assert(count_captures(pstn, 3) == 209UL);
-    assert(count_captures(pstn, 4) == 3348UL);
-    assert(count_captures(pstn, 5) == 52051UL);
+    assert(count_captures(pstn, 1) == 1ULL);
+    assert(count_captures(pstn, 2) == 14ULL);
+    assert(count_captures(pstn, 3) == 209ULL);
+    assert(count_captures(pstn, 4) == 3348ULL);
+    assert(count_captures(pstn, 5) == 52051ULL);
 
     assert(update_position(pstn, "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"));
-    assert(count_captures(pstn, 1) == 0UL);
-    assert(count_captures(pstn, 2) == 87UL);
-    assert(count_captures(pstn, 3) == 1021UL);
-    assert(count_captures(pstn, 4) == 131393UL);
+    assert(count_captures(pstn, 1) == 0ULL);
+    assert(count_captures(pstn, 2) == 87ULL);
+    assert(count_captures(pstn, 3) == 1021ULL);
+    assert(count_captures(pstn, 4) == 131393ULL);
 
     printf("passed gen_captures tests\n");
 
