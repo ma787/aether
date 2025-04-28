@@ -7,7 +7,7 @@ uint64_t get_hash(uint64_t pos, uint64_t piece) {
         sq_off += 6;
     }
 
-    switch(piece & 0xFC) {
+    switch(get_piece_type(piece)) {
         case PAWN:
             return HASH_VALUES[sq_off];
         case KNIGHT:
@@ -72,7 +72,7 @@ void update_hash(POSITION *pstn, move_t mv) {
     if (pstn->side == BLACK) {
         start = flip_square(start);
         dest = flip_square(dest);
-        piece = (piece & 0xFFC) | BLACK;
+        piece = change_piece_colour(piece, BLACK);
         new_c_rights = ((new_c_rights & 12) >> 2) | ((new_c_rights & 3) << 2);
     }
 
@@ -120,7 +120,7 @@ void update_hash(POSITION *pstn, move_t mv) {
         int cap_pos = dest, cap_piece = mv.captured_piece, off = S;
 
         if (pstn->side == BLACK) {
-            cap_piece = (cap_piece & 0xFC) | WHITE;
+            cap_piece = change_piece_colour(cap_piece, WHITE);
             off = N;
         }
         

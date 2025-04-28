@@ -10,7 +10,6 @@ void set_bit(uint64_t *bb, int i) {
 
 void clear_bit(uint64_t *bb, int i) {
     get_bit(*bb, i) ? *bb ^= (1ULL << i) : 0;
-    // *bb &= ~(1ULL << i);
 }
 
 int count_bits(uint64_t bb) {

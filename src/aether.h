@@ -95,7 +95,6 @@ extern unsigned int PIECES[];
 extern char SYMBOLS[];
 extern unsigned int PROMOTIONS[];
 extern unsigned int CASTLING_RIGHTS[];
-extern int SUPERPIECE[16];
 
 extern int PAWN_OFFS[3];
 extern int KNIGHT_OFFS[8];
@@ -147,6 +146,13 @@ typedef struct {
     int index;
     move_t moves[MOVE_LIST_SIZE];
 } MOVE_LIST;
+
+typedef struct {
+    int pinned_piece;
+    int pinning_loc;
+    int pinned_loc;
+    int pin_vector;
+} PIN_INFO;
 
 typedef struct {
     uint64_t key;
@@ -201,6 +207,7 @@ typedef struct {
 } POSITION;
 
 typedef void (*GEN_FROM_POSITION)(POSITION*, int, MOVE_LIST*);
+typedef void (*GEN_PINNED)(POSITION*, PIN_INFO*, MOVE_LIST*);
 typedef void (*MOVE_GENERATOR)(POSITION*, int, int, MOVE_LIST*);
 
 /* functions to create/update/query position structs */
@@ -212,6 +219,7 @@ int update_position(POSITION *pstn, char *fen_str);
 
 void flip_position(POSITION *pstn);
 void switch_side(POSITION *pstn);
+void add_checker(POSITION *pstn, int check_type, int checker);
 
 void save_state(POSITION *pstn);
 void restore_state(POSITION *pstn);
@@ -286,17 +294,24 @@ move_t string_to_move(POSITION *pstn, char *mstr);
 
 int string_to_coord(char *sqr_str);
 char* coord_to_string(int pos);
+char piece_to_char(int piece);
 
 /* miscellaneous functions */
 
 int get_rank(int pos);
 int get_file(int pos);
+
+int get_piece_type(int piece);
+int get_piece_list_index(int piece);
+int change_piece_type(int piece, int p_type);
+int change_piece_colour(int piece, int colour);
+
 int coord_to_index(int pos);
 int index_to_coord(int index);
 int flip_square(int pos);
 
 int square_diff(int start, int dest);
-int is_attacking(int p_type, int start, int dest);
+int get_alignment(int start, int dest);
 int get_step(int start, int dest);
 
 uint64_t get_time(void);

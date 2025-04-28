@@ -9,6 +9,8 @@ int string_to_coord(char *sqr_str) {
 
 char* coord_to_string(int pos) { return COORDS[pos]; }
 
+char piece_to_char(int piece) { return SYMBOLS[piece & 0xFF]; }
+
 bool reg_match(char *input_str, char *reg_str) {
     regex_t preg;
     int res;
@@ -53,7 +55,7 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
             }
             fen_str[j++] = '0' + count;
         } else {
-            fen_str[j++] = SYMBOLS[sq & 0xFF];
+            fen_str[j++] = piece_to_char(sq);
             i++;
         }
     }
@@ -152,7 +154,7 @@ void print_board(POSITION *pstn) {
             b_str[j++] = '\n';
             i -= 0x18;
         } else {
-            b_str[j++] = SYMBOLS[sq & 0xFF];
+            b_str[j++] = piece_to_char(sq);
             i++;
         }
     }
@@ -177,7 +179,7 @@ void move_to_string(move_t mv, char* mstr) {
     strcpy(mstr, coord_to_string(start));
     strcpy(mstr + 2, coord_to_string(dest));
     if (mv.flags & PROMO_FLAG) {
-        mstr[4] = SYMBOLS[PROMOTIONS[mv.flags & 3] | BLACK];
+        mstr[4] = piece_to_char(PROMOTIONS[mv.flags & 3] | BLACK);
         mstr[5] = '\0';
     }
 }
@@ -217,7 +219,7 @@ move_t string_to_move(POSITION *pstn, char *mstr) {
                 flags = EP_FLAG;
             } else if (get_rank(dest) == 7) {
                 flags |= PROMO_FLAG;
-                switch(PIECES[(int) mstr[4]] & 0xFC) {
+                switch(get_piece_type(PIECES[(int) mstr[4]])) {
                     case BISHOP:
                         flags++;
                         break;

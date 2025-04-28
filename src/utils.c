@@ -7,6 +7,11 @@ int get_rank(int pos) { return (pos >> 4) - 4; }
 
 int get_file(int pos) { return (pos & 0x0F) - 4; }
 
+int get_piece_type(int piece) { return piece & 0xFC; }
+int get_piece_list_index(int piece) { return piece >> 8; }
+int change_piece_type(int piece, int p_type) { return (piece & 0xF03) | p_type; }
+int change_piece_colour(int piece, int colour) { return (piece & 0xFFC) | colour; }
+
 int coord_to_index(int pos) { return 8 * get_rank(pos) + get_file(pos); }
 
 int index_to_coord(int index) { return 0x44 + index + (index & ~7); }
@@ -15,19 +20,7 @@ int flip_square(int pos) { return (~pos & 0xF0) | (pos & 0x0F); }
 
 int square_diff(int start, int dest) { return 0x77 + dest - start; }
 
-int is_attacking(int piece, int start, int dest) {
-    if ((piece & PAWN) && ((piece & COLOUR_MASK) == BLACK)) {
-        start = flip_square(start);
-        dest = flip_square(dest);
-    }
-
-    int res = NO_CHECK;
-    int diff = square_diff(start, dest);
-    if (MOVE_TABLE[diff] & piece) {
-        res = (UNIT_VEC[diff] == dest - start) ? CONTACT_CHECK : DISTANT_CHECK;
-    }
-    return res;
-}
+int get_alignment(int start, int dest) { return MOVE_TABLE[square_diff(start, dest)]; }
 
 int get_step(int start, int dest) { return UNIT_VEC[square_diff(start, dest)]; }
 

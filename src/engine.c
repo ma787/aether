@@ -9,14 +9,14 @@ int evaluate(POSITION *pstn) {
 
     for (int i = 0; i < 16; i++) {
         if ((pos = pstn->w_pieces[i])) {
-            p_type = pstn->board[pos] & 0xFC;
+            p_type = get_piece_type(pstn->board[pos]);
             score += PIECE_VALS[p_type] + EVAL_TABLES[p_type][coord_to_index(i++)];
         }
     }
 
     for (int i = 0; i < 16; i++) {
         if ((pos = pstn->b_pieces[i])) {
-            p_type = pstn->board[pos] & 0xFC;
+            p_type = get_piece_type(pstn->board[pos]);
             score -= (PIECE_VALS[p_type] + EVAL_TABLES[p_type][coord_to_index(i++)]);
         }
     }
@@ -259,7 +259,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
             }
 
             if (!(mv.flags & CAPTURE_FLAG)) {
-                pstn->search_history[pstn->board[mv.start] & 0xFC][mv.dest] += depth;
+                pstn->search_history[get_piece_type(pstn->board[mv.start])][mv.dest] += depth;
             }
 
             alpha = score;

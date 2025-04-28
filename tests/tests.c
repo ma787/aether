@@ -464,6 +464,10 @@ int main(void) {
     assert(make_move(pstn, string_to_move(pstn, "d1d7")));
     assert(pstn->check == CONTACT_CHECK && pstn->fst_checker == D2);
 
+    assert(update_position(pstn, "rnbqkbnr/pppp1ppp/8/1Q6/4P3/5N2/PpP2PPP/R1BQKB1R w KQkq - 0 1"));
+    assert(make_move(pstn, string_to_move(pstn, "d1d7")));
+    assert(pstn->check == CONTACT_CHECK && pstn->fst_checker == D2);
+
     assert(update_position(pstn, "r6r/Pp1pkppp/1P3nbN/nPp5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w - c6 0 1"));
     assert(make_move(pstn, string_to_move(pstn, "b5c6")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == B5);
@@ -479,6 +483,10 @@ int main(void) {
     assert(update_position(pstn, "k7/B7/1B6/1B6/8/8/8/K6b w - - 0 1"));
     assert(make_move(pstn, string_to_move(pstn, "b5c6")));
     assert(pstn->check == DISTANT_CHECK && pstn->fst_checker == C3);
+
+    assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R4K1R b kq - 1 1"));
+    assert(make_move(pstn, string_to_move(pstn, "h3g2")));
+    assert(pstn->check == CONTACT_CHECK && pstn->fst_checker == G2);
 
     printf("passed update_check tests\n");
 

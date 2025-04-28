@@ -1,8 +1,6 @@
 #include <string.h>
 #include "aether.h"
 
-#include <stdio.h>
-
 move_t get_move(POSITION *pstn, int start, int dest, int flags) {
     int captured_piece = 0;
 
@@ -41,7 +39,7 @@ int move_to_int(move_t mv) {
         mv.start 
         | (mv.dest << 8) 
         | (mv.flags << 16) 
-        | ((mv.side | (mv.captured_piece & 0xFFC)) << 20)
+        | ((change_piece_colour(mv.captured_piece, mv.side)) << 20)
     );
 }
 
@@ -50,7 +48,7 @@ move_t move_of_int(int m_int) {
         .start = m_int & 0xFF,
         .dest = (m_int >> 8) & 0xFF,
         .flags = (m_int >> 16) & 0xF,
-        .captured_piece = ((m_int >> 20) & 0xFFC) | BLACK,
+        .captured_piece = change_piece_colour(m_int >> 20, BLACK),
         .side = (m_int >> 20) & 3,
         .score = 0
     };
@@ -61,100 +59,109 @@ void move_piece(POSITION *pstn, int start, int dest) {
     unsigned int piece = pstn->board[start];
     pstn->board[start] = 0;
     pstn->board[dest] = piece;
-    pstn->w_pieces[piece >> 8] = dest;
+    pstn->w_pieces[get_piece_list_index(piece)] = dest;
 }
 
 void capture_piece(POSITION *pstn, unsigned int pos) {
     unsigned int piece = pstn->board[pos];
     pstn->board[pos] = 0;
-    pstn->b_pieces[piece >> 8] = 0;
+    pstn->b_pieces[get_piece_list_index(piece)] = 0;
 }
 
 int is_square_attacked(POSITION *pstn, int pos) {
     for (int i = 0; i < 16; i++) {
-        int vec = SUPERPIECE[i];
-        int current = pos + vec;
-        int contact = 1;
-        int sq;
+        int b_pos = pstn->b_pieces[i];
+        int piece = pstn->board[b_pos];
+        int alignment = get_alignment(b_pos, pos);
 
-        for (;;) {
-            sq = pstn->board[current];
+        if (alignment & piece) { // contact check
+            return b_pos;
+        } else if ((alignment >> 8) & piece) { // distant check
+            int step = get_step(b_pos, pos);
+            int current = b_pos;
 
-            if ((sq & COLOUR_MASK) == BLACK) {
-                switch(is_attacking(sq, current, pos)) {
-                    case CONTACT_CHECK:
-                        if (contact) { return 1; }
-                        break;
-                    case DISTANT_CHECK:
-                        return 1;
+            for (;;) {
+                current += step;
+                if (current == pos) {
+                    return b_pos;
                 }
-                break;
-            } else if (sq) {
-                break;
+                if (pstn->board[current]) {
+                    break;
+                }
             }
-
-            current += vec;
-            contact = 0;
         }
+    }
+
+    int ne_piece = pstn->board[pos + N + E];
+    if ((ne_piece & BLACK) && (ne_piece & PAWN)) {
+        return pos + N + E;
+    }
+
+    int nw_piece = pstn->board[pos + N + W];
+    if ((nw_piece & BLACK) && (nw_piece & PAWN)) {
+        return pos + N + W;
     }
 
     return 0;
 }
 
-void find_direct_check(POSITION *pstn, move_t mv, int step_to_king) {
+void update_check(POSITION *pstn, move_t mv) {
+    pstn->check = 0;
+    pstn->fst_checker = 0;
+    pstn->snd_checker = 0;
+
     int k_pos = pstn->b_pieces[0];
+    int piece = pstn->board[mv.dest];
 
     // check if the moved piece checks the king
-    switch(is_attacking(pstn->board[mv.dest], mv.dest, k_pos)) {
-        case CONTACT_CHECK:
+    if (piece & PAWN) {
+        int diff = mv.dest - k_pos;
+        if (diff == (S + E) || diff == (S + W)) {
             pstn->check = CONTACT_CHECK;
             pstn->fst_checker = mv.dest;
-            break;
-        case DISTANT_CHECK:
-            int current = mv.dest + step_to_king;
+        }
+    } else {
+        int dest_alignment = get_alignment(mv.dest, k_pos);
+
+        if (dest_alignment & piece) {
+            pstn->check = CONTACT_CHECK;
+            pstn->fst_checker = mv.dest;
+        } else if ((dest_alignment >> 8) & piece) {
+            int step = get_step(mv.dest, k_pos);
+            int current = mv.dest + step;
+
             while (current != k_pos) {
                 if (pstn->board[current]) {
                     break;
                 }
-                current += step_to_king;
+                current += step;
             }
             if (current == k_pos) {
                 pstn->check = DISTANT_CHECK;
                 pstn->fst_checker = mv.dest;
             }
-            break;
-    }
-}
-
-void find_discovered_check(POSITION *pstn, move_t mv, int step_to_king) {
-    int k_pos = pstn->b_pieces[0];
-
-    if (is_attacking(QUEEN, mv.start, k_pos)) {
-        int discovered_vec = get_step(k_pos, mv.start);
-        if (discovered_vec == -step_to_king) {
-            return; // black piece moved along its pin ray
         }
+    }
 
+    // check if this move discovered a check
+    int start_alignment = get_alignment(mv.start, k_pos);
+
+    if ((start_alignment & QUEEN) || ((start_alignment >> 8) & QUEEN)) {
+        int step = get_step(k_pos, mv.start);
         int current = k_pos;
-        int sq;
 
         for (;;) {
-            current += discovered_vec;
-            sq = pstn->board[current];
-            
+            current += step;
+            int sq = pstn->board[current];
+
             if (
-                (sq & COLOUR_MASK) == WHITE 
-                && is_attacking(sq, current, k_pos) == DISTANT_CHECK
+                ((sq & COLOUR_MASK) == WHITE) && 
+                ((get_alignment(current, k_pos) >> 8) & sq)
             ) {
-                if (pstn->check) {
-                    pstn->check = DOUBLE_CHECK;
-                    pstn->snd_checker = current;
-                } else {
-                    pstn->check = DISTANT_CHECK;
-                    pstn->fst_checker = current;
-                }
-                break;
-            } else if (sq) {
+                add_checker(pstn, current, DISTANT_CHECK);
+            }
+
+            if (sq) {
                 break;
             }
         }
@@ -173,6 +180,8 @@ bool confirm_king_move(POSITION *pstn, move_t mv) {
     if (is_square_attacked(pstn, mv.dest)) {
         return false;
     }
+
+    update_check(pstn, mv);
 
     if (kp_square) {
         if (is_square_attacked(pstn, kp_square)) {
@@ -200,75 +209,55 @@ bool confirm_king_move(POSITION *pstn, move_t mv) {
 }
 
 bool confirm_ep_move(POSITION *pstn, move_t mv) {
-    int k_pos = pstn->w_pieces[0];
-    int b_pawn_pos = mv.dest + S;
-
-    if (is_square_attacked(pstn, k_pos)) {
+    // check if king is attacked
+    if (is_square_attacked(pstn, pstn->w_pieces[0])) {
         return false;
     }
 
+    update_check(pstn, mv);
+
+    // search for a check discovered by disappearance of captured pawn
     int b_king_pos = pstn->b_pieces[0];
-    int step_to_pawn = get_step(b_king_pos, b_pawn_pos);
+    int b_pawn_pos = mv.dest + S;
+    int step = get_step(b_king_pos, b_pawn_pos);
+
     int current = b_king_pos;
-    int passed_pawn = 0;
+    bool passed_pawn = false;
 
-    // search for a check discovered by this capture
-    if (step_to_pawn != get_step(b_king_pos, mv.dest)) {
-        for (;;) {
-            current += step_to_pawn;
-            if (current == b_pawn_pos) {
-                passed_pawn = 1;
-                continue;
-            }
+    for (;;) {
+        current += step;
+        if (current == b_pawn_pos) {
+            passed_pawn = true;
+            continue;
+        }
 
-            int sq = pstn->board[current];
+        int sq = pstn->board[current];
 
-            if (
-                (sq & COLOUR_MASK) == WHITE
-                && passed_pawn
-                && is_attacking(sq, current, b_king_pos)
-            ) {
-                if (pstn->check) {
-                    pstn->check = DOUBLE_CHECK;
-                    pstn->snd_checker = current;
-                } else {
-                    pstn->check = DISTANT_CHECK;
-                    pstn->fst_checker = current;
-                }
-                break;
-            }
+        if (
+            (sq & COLOUR_MASK) == WHITE
+            && passed_pawn
+            && ((get_alignment(current, b_king_pos) >> 8) & sq)
+        ) {
+            add_checker(pstn, current, DISTANT_CHECK);
+            break;
+        }
 
-            if (sq) {
-                break;
-            }
+        if (sq) {
+            break;
         }
     }
 
-    int step_to_king = get_step(mv.dest, k_pos);
-
-    if (pstn->check) {
-        find_discovered_check(pstn, mv, step_to_king);
-    }
-    find_direct_check(pstn, mv, step_to_king);
     return true;
 }
 
 bool confirm_legal(POSITION *pstn, move_t mv) {
-    int piece = pstn->board[mv.dest];
-
-    if (piece & KING) {
-        if (!confirm_king_move(pstn, mv)) {
-            return false;
-        }
-        find_discovered_check(pstn, mv, get_step(mv.dest, pstn->w_pieces[0]));
-        return true;
+    if ((pstn->board[mv.dest] & KING))  {
+        return confirm_king_move(pstn, mv);
     } else if (mv.flags == EP_FLAG) {
         return confirm_ep_move(pstn, mv);
     }
 
-    int step_to_king = get_step(mv.dest, pstn->b_pieces[0]);
-    find_direct_check(pstn, mv, step_to_king);
-    find_discovered_check(pstn, mv, step_to_king);
+    update_check(pstn, mv);
     return true;
 }
 
@@ -277,19 +266,10 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     pstn->rep_table[pstn->key & 0x00003FFF] += 1;
     pstn->ply++;
     pstn->move_history[pstn->ply] = mv;
-
     pstn->ep_sq = 0;
-    pstn->check = 0;
-    pstn->fst_checker = 0;
-    pstn->snd_checker = 0;
 
     int piece = pstn->board[mv.start];
-
-    if (piece & PAWN || (mv.flags & CAPTURE_FLAG)) {
-        pstn->h_clk = 0;
-    } else {
-        pstn->h_clk++;
-    }
+    piece & PAWN ? pstn->h_clk = 0 : pstn->h_clk++;
 
     if (piece & KING) {
         pstn->c_rights &= (((mv.dest != A8) << 2) | ((mv.dest != H8) << 3));
@@ -303,6 +283,8 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     }
 
     if (mv.flags & CAPTURE_FLAG) {
+        pstn->h_clk = 0;
+
         if (mv.flags == EP_FLAG) {
             capture_piece(pstn, mv.dest + S);
         } else {
@@ -319,9 +301,7 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     } else if (mv.flags == Q_CASTLE_FLAG) {
         move_piece(pstn, A1, D1);
     } else if (mv.flags & PROMO_FLAG) {
-        pstn->board[mv.dest] = (
-            (pstn->board[mv.dest] & 0xF00) | PROMOTIONS[mv.flags & 3] | WHITE
-        );
+        pstn->board[mv.dest] = change_piece_type(pstn->board[mv.dest], PROMOTIONS[mv.flags & 3]);
     }
 }
 
@@ -329,7 +309,7 @@ void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
     move_piece(pstn, mv.dest, mv.start);
 
     if (mv.flags & PROMO_FLAG) {
-        pstn->board[mv.start] = (pstn->board[mv.start] & 0xF00) | PAWN | WHITE;
+        pstn->board[mv.start] = change_piece_type(pstn->board[mv.start], PAWN);
     }
 
     if (mv.flags & CAPTURE_FLAG) {
@@ -337,18 +317,12 @@ void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
         if (mv.flags == EP_FLAG) {
             cap_pos += S;
         }
-
         pstn->board[cap_pos] = mv.captured_piece;
-        pstn->b_pieces[mv.captured_piece >> 8] = cap_pos;
-    }
-
-    switch(mv.flags) {
-        case K_CASTLE_FLAG:
-            move_piece(pstn, F1, H1);
-            break;
-        case Q_CASTLE_FLAG:
-            move_piece(pstn, D1, A1);
-            break;
+        pstn->b_pieces[get_piece_list_index(mv.captured_piece)] = cap_pos;
+    } else if (mv.flags == K_CASTLE_FLAG) {
+        move_piece(pstn, F1, H1);
+    } else if (mv.flags == Q_CASTLE_FLAG) {
+        move_piece(pstn, D1, A1);
     }
 
     pstn->ply--;

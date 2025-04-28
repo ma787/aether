@@ -48,10 +48,22 @@ void flip_position(POSITION *pstn) {
             int k = flip_square(i);
             int sq1 = pstn->board[i + j];
             int sq2 = pstn->board[k + j];
-            pstn->board[i + j] = sq2 ? (sq2 & 0xFFC) | (~sq2 & 3) : 0;
-            pstn->board[k + j] = sq1 ? (sq1 & 0xFFC) | (~sq1 & 3) : 0;
+            pstn->board[i + j] = sq2 ? change_piece_colour(sq2, (~sq2 & 3)) : 0;
+            pstn->board[k + j] = sq1 ? change_piece_colour(sq1, (~sq1 & 3)) : 0;
         }       
     };
+}
+
+void add_checker(POSITION *pstn, int checker, int check_type) {
+    if (pstn->check) {
+        if (checker != pstn->fst_checker) {
+            pstn->check = DOUBLE_CHECK;
+            pstn->snd_checker = checker;
+        }
+    } else {
+        pstn->check = check_type;
+        pstn->fst_checker = checker;
+    }
 }
 
 void set_check(POSITION *pstn) {
@@ -64,41 +76,39 @@ void set_check(POSITION *pstn) {
     pstn->snd_checker = 0;
 
     int k_pos = pstn->b_pieces[0];
+    int alignment, piece, w_pos, current, step;
 
-    for (int i = 0; i < 16; i++) {
-        int vec = SUPERPIECE[i];
-        int current = k_pos + vec;
-        int sq;
+    for (int i = 1; i < 16; i++) {
+        w_pos = pstn->w_pieces[i];
+        piece = pstn->board[w_pos];
+        alignment = get_alignment(w_pos, k_pos);
 
-        for (;;) {
-            sq = pstn->board[current];
-            int colour = sq & COLOUR_MASK;
+        if (alignment & piece) {
+            add_checker(pstn, w_pos, CONTACT_CHECK);
+        } else if ((alignment >> 8) & piece) {
+            current = w_pos;
+            step = get_step(w_pos, k_pos);
 
-            if (colour == G || colour == BLACK) {
-                break;
-            } else if (colour == WHITE) {
-                int attack = is_attacking(sq, current, k_pos);
-
-                if (attack) {
-                    pstn->check |= attack;
-                    if (pstn->fst_checker) {
-                        pstn->snd_checker = current;
-                        pstn->check = DOUBLE_CHECK;
-                    } else {
-                        pstn->fst_checker = current;
-                    }
+            for (;;) {
+                current += step;
+                if (current == k_pos) {
+                    add_checker(pstn, w_pos, DISTANT_CHECK);
+                    break;
+                } 
+                if (pstn->board[current]) {
+                    break;
                 }
-                break;
-            } else if (i > 8) {  // cannot move >1 step in knight direction
-                break;
-            } 
-              else {
-                current += vec;
             }
         }
+    }
 
-        if (pstn->check == DOUBLE_CHECK) {
-            break;
+    piece = pstn->board[k_pos + S + E];
+    if ((piece & WHITE) && (piece & PAWN)) {
+        add_checker(pstn, k_pos + S + E, CONTACT_CHECK);
+    } else {
+        piece = pstn->board[k_pos + S + W];
+        if ((piece & WHITE) && (piece & PAWN)) {
+            add_checker(pstn, k_pos + S + W, CONTACT_CHECK);
         }
     }
 
