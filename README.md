@@ -2,6 +2,18 @@
 
 ## Overview
 
-Aether is a UCI chess engine written in C. It uses a 16x16 mailbox array to represent the board to make off-the-board checks easier. In an 0x88 board (and variations such as 16x16), the difference between any two squares is unique with respect to distance and direction. This engine uses this fact to look up unit vectors and which pieces can move between two squares from pre-calculated arrays, simplifying move generation. These ideas and others are described in more detail by H.G. Muller in [this](https://talkchess.com/viewtopic.php?t=81265) forum post.
+Aether is a chess engine written in C which supports the UCI protocol. It also supports a non-standard display command "d", which prints the board and other information associated with the current position.
 
-Aether uses an alpha beta search and simple evaluation function to find the best move. It is a white-to-move engine.
+## Features
+- 16x16 mailbox board representation
+- Vector attack lookup tables
+- Legal move generation (except en passant and king moves)
+- Alpha-Beta search with iterative deepening
+- Quiescence search
+- MVV-LVA move ordering
+- Killer move and alpha improvement heuristics
+- Zobrist hashing and PV move hash table
+- Repetition detection (though not aware of threefold repetition)
+- Simple material and square-based evaluation
+
+For more information on the move generation features, see [this](https://talkchess.com/viewtopic.php?t=81265) forum post by H.G. Muller.

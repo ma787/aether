@@ -1,16 +1,17 @@
 SRC_DIR := ./src
 TEST_DIR := ./tests
 BUILD_DIR := ./build
+EXEC_DIR := ./bin
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 HEADERS := $(wildcard $(SRC_DIR)/*.h)
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
-EXE := $(BUILD_DIR)/aether
+EXE := $(EXEC_DIR)/aether
 
 DEBUG_FLAGS := -g -Wall
 
 all: $(EXE)
 
-$(EXE): $(OBJS)
+$(EXE): $(OBJS) | $(EXEC_DIR)
 	gcc $(DEBUG_FLAGS) $^ -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) $(HEADERS)
@@ -19,9 +20,13 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) $(HEADERS)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+$(EXEC_DIR):
+	mkdir -p $(EXEC_DIR)
+
 test: $(TEST_DIR)/tests.c | $(OBJS)
 	gcc $(DEBUG_FLAGS) -c $^ -I $(SRC_DIR) -o $(BUILD_DIR)/tests.o
-	gcc -o $(BUILD_DIR)/tests $(BUILD_DIR)/tests.o $(filter-out $(BUILD_DIR)/uci.o, $(OBJS))
+	gcc -o $(EXEC_DIR)/tests $(BUILD_DIR)/tests.o $(filter-out $(BUILD_DIR)/uci.o, $(OBJS))
 
 clean:
 	rm -r $(BUILD_DIR)
+	rm -r $(EXEC_DIR)
