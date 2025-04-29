@@ -8,12 +8,6 @@ void swap_piece_lists(int **w_pieces, int **b_pieces) {
     *b_pieces = tmp;
 }
 
-void swap_pawn_bitboards(uint64_t *w_pawns, uint64_t *b_pawns) {
-    uint64_t tmp = *w_pawns;
-    *w_pawns = *b_pawns;
-    *b_pawns = tmp;
-}
-
 void flip_position(POSITION *pstn) {
     pstn->c_rights = ( 
     ((pstn->c_rights & 12) >> 2) 
@@ -21,16 +15,12 @@ void flip_position(POSITION *pstn) {
     );
 
     swap_piece_lists(&(pstn->w_pieces), &(pstn->b_pieces));
-    swap_pawn_bitboards(&(pstn->w_pawns), &(pstn->b_pawns));
 
     for (int i = 0; i < 32; i++) {
         if (pstn->piece_list[i]) {
             pstn->piece_list[i] = flip_square(pstn->piece_list[i]);
         }
     }
-
-    flip_bits(&pstn->w_pawns);
-    flip_bits(&pstn->b_pawns);
 
     if (pstn->ep_sq) {
         pstn->ep_sq = flip_square(pstn->ep_sq);
@@ -176,10 +166,6 @@ void clear_tables(POSITION *pstn) {
     memset(pstn->piece_list, 0, 32 * sizeof(int));
     pstn->w_pieces = &(pstn->piece_list[0]);
     pstn->b_pieces = &(pstn->piece_list[16]);
-
-    // clear bitboards
-    pstn->w_pawns = 0ULL;
-    pstn->b_pawns = 0ULL;
 
     // initialise repetition table
     memset(pstn->rep_table, 0, REPETITION_TABLE_SIZE);

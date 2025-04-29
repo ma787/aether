@@ -180,8 +180,6 @@ typedef struct {
     int piece_list[32];
     int *w_pieces;
     int *b_pieces;
-    uint64_t w_pawns;
-    uint64_t b_pawns;
 
     int ply;
     int side;
@@ -265,16 +263,6 @@ void store_move(POSITION *pstn, move_t mv);
 move_t get_pv_move(POSITION *pstn);
 
 int get_pv_line(POSITION *pstn, int depth);
-
-/* bitboard functions */
-
-uint64_t get_bit(uint64_t bb, int i);
-void set_bit(uint64_t *bb, int i);
-void clear_bit(uint64_t *bb, int i);
-
-int pop_bit(uint64_t *bb);
-int count_bits(uint64_t bb);
-void flip_bits(uint64_t *bb);
 
 /* engine search functions */
 

@@ -23,10 +23,10 @@ $(BUILD_DIR):
 $(EXEC_DIR):
 	mkdir -p $(EXEC_DIR)
 
-test: $(TEST_DIR)/tests.c | $(OBJS)
+test: $(TEST_DIR)/tests.c | $(OBJS) $(EXEC_DIR)
 	gcc $(DEBUG_FLAGS) -c $^ -I $(SRC_DIR) -o $(BUILD_DIR)/tests.o
-	gcc -o $(EXEC_DIR)/tests $(BUILD_DIR)/tests.o $(filter-out $(BUILD_DIR)/uci.o, $(OBJS))
+	gcc $(BUILD_DIR)/tests.o $(filter-out $(BUILD_DIR)/uci.o, $(OBJS)) -o $(EXEC_DIR)/tests
 
 clean:
-	rm -r $(BUILD_DIR)
-	rm -r $(EXEC_DIR)
+	rm -rf $(BUILD_DIR)
+	rm -rf $(EXEC_DIR)

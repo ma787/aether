@@ -124,14 +124,6 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
             default:
                 int piece = PIECES[(int) val];
                 if (piece) {
-                    if (piece & PAWN) {
-                        if (piece & WHITE) {
-                            set_bit(&pstn->w_pawns, coord_to_index(i));
-                        } else {
-                            set_bit(&pstn->b_pawns, coord_to_index(i));
-                        }
-                    }
-
                     pstn->board[i++] = piece;
                     count++;
                 } else {
