@@ -184,11 +184,6 @@ void uci_loop(void) {
             printf("uciok\n");
         } else if (strncmp(buf, "d", 1) == 0) {
             display_info(pstn);
-        } else if (strncmp(buf, "speed", 5) == 0) {
-            uint64_t start = get_time();
-            divide(pstn, 6);
-            double t = (get_time() - start) / 1000;
-            printf("Time taken: %.2f\n", t);
         }
 
         if (s_info->quit == true) {

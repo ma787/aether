@@ -180,6 +180,10 @@ void clear_tables(POSITION *pstn) {
 POSITION* new_position(void) {
     // allocate struct and set up initial position
     POSITION *pstn = malloc(sizeof(POSITION));
+
+    // zero-initialise board array
+    memset(pstn->board, 0, 256 * sizeof(int));
+
     clear_tables(pstn);
 
     // adding guard squares to board
