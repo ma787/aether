@@ -154,6 +154,8 @@ void restore_state(POSITION *pstn) {
     pstn->check = h_entry.check;
     pstn->fst_checker = h_entry.fst_checker;
     pstn->snd_checker = h_entry.snd_checker;
+    pstn->material = h_entry.material;
+    pstn->pcsq_sum = h_entry.pcsq_sum;
 }
 
 void clear_tables(POSITION *pstn) {
@@ -210,6 +212,9 @@ POSITION* new_position(void) {
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
+
+    pstn->material = 0;
+    pstn->pcsq_sum = 0;
 
     fen_to_board_array(pstn, START_POS);
     set_piece_list(pstn);

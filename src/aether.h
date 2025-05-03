@@ -115,8 +115,6 @@ extern int *EVAL_TABLES[];
 
 extern int *MVV_LVA_SCORES[];
 
-extern int POP_COUNT_256[256];
-
 extern uint64_t HASH_VALUES[781];
 
 /* structs and typedefs */
@@ -129,6 +127,8 @@ typedef struct {
     int check;
     int fst_checker;
     int snd_checker;
+    int material;
+    int pcsq_sum;
 } HISTORY_ENTRY;
 
 typedef struct {
@@ -189,6 +189,9 @@ typedef struct {
     int check;
     int fst_checker;
     int snd_checker;
+
+    int material;
+    int pcsq_sum;
 
     uint64_t key;
 

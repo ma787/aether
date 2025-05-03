@@ -268,7 +268,9 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     pstn->move_history[pstn->ply] = mv;
     pstn->ep_sq = 0;
 
+    int mtrl_delta = 0, pcsq_delta = 0;
     int piece = pstn->board[mv.start];
+
     piece & PAWN ? pstn->h_clk = 0 : pstn->h_clk++;
 
     if (piece & KING) {
@@ -284,24 +286,47 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
 
     if (mv.flags & CAPTURE_FLAG) {
         pstn->h_clk = 0;
+        int cap_pos = mv.dest;
 
         if (mv.flags == EP_FLAG) {
-            capture_piece(pstn, mv.dest + S);
-        } else {
-            capture_piece(pstn, mv.dest);
+            cap_pos += S;
         }
+        capture_piece(pstn, cap_pos);
+
+        int cap_type = get_piece_type(mv.captured_piece);
+        mtrl_delta += PIECE_VALS[cap_type];
+        pcsq_delta += EVAL_TABLES[cap_type][cap_pos];
     }
 
     move_piece(pstn, mv.start, mv.dest);
+
+    int p_type = get_piece_type(piece);
+    pcsq_delta += (EVAL_TABLES[p_type][mv.dest] - EVAL_TABLES[p_type][mv.start]);
 
     if (mv.flags == DPP_FLAG) {
         pstn->ep_sq = mv.dest + S;
     } else if (mv.flags == K_CASTLE_FLAG) {
         move_piece(pstn, H1, F1);
+        pcsq_delta -= EVAL_TABLES[ROOK][pstn->side == WHITE ? F1 : F8];
+        pcsq_delta += EVAL_TABLES[ROOK][pstn->side == WHITE ? H1 : H8];
     } else if (mv.flags == Q_CASTLE_FLAG) {
         move_piece(pstn, A1, D1);
+        pcsq_delta -= EVAL_TABLES[ROOK][pstn->side == WHITE ? A1 : A8];
+        pcsq_delta += EVAL_TABLES[ROOK][pstn->side == WHITE ? A1 : A8];
     } else if (mv.flags & PROMO_FLAG) {
-        pstn->board[mv.dest] = change_piece_type(pstn->board[mv.dest], PROMOTIONS[mv.flags & 3]);
+        int pr_type = PROMOTIONS[mv.flags & 3];
+        pstn->board[mv.dest] = change_piece_type(piece, pr_type);
+
+        mtrl_delta += (PIECE_VALS[pr_type] - PIECE_VALS[PAWN]);
+        pcsq_delta += (EVAL_TABLES[pr_type][mv.dest] - EVAL_TABLES[PAWN][mv.dest]);
+    }
+
+    if (pstn->side == WHITE) {
+        pstn->material += mtrl_delta;
+        pstn->pcsq_sum += pcsq_delta;
+    } else {
+        pstn->material -= mtrl_delta;
+        pstn->pcsq_sum -= mtrl_delta;
     }
 }
 
