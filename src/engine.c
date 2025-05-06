@@ -197,6 +197,10 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         return 0;
     }
 
+    if (pstn->check) {
+        depth++;
+    }
+
     MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
     moves->index = 0;
     all_moves(pstn, moves);

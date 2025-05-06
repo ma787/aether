@@ -295,7 +295,7 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
 
         int cap_type = get_piece_type(mv.captured_piece);
         mtrl_delta += PIECE_VALS[cap_type];
-        pcsq_delta += EVAL_TABLES[cap_type][cap_pos];
+        pcsq_delta += EVAL_TABLES[cap_type][flip_square(cap_pos)];
     }
 
     move_piece(pstn, mv.start, mv.dest);
@@ -307,12 +307,10 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
         pstn->ep_sq = mv.dest + S;
     } else if (mv.flags == K_CASTLE_FLAG) {
         move_piece(pstn, H1, F1);
-        pcsq_delta -= EVAL_TABLES[ROOK][pstn->side == WHITE ? F1 : F8];
-        pcsq_delta += EVAL_TABLES[ROOK][pstn->side == WHITE ? H1 : H8];
+        pcsq_delta += (EVAL_TABLES[ROOK][F1] - EVAL_TABLES[ROOK][H1]);
     } else if (mv.flags == Q_CASTLE_FLAG) {
         move_piece(pstn, A1, D1);
-        pcsq_delta -= EVAL_TABLES[ROOK][pstn->side == WHITE ? A1 : A8];
-        pcsq_delta += EVAL_TABLES[ROOK][pstn->side == WHITE ? A1 : A8];
+        pcsq_delta += (EVAL_TABLES[ROOK][D1] - EVAL_TABLES[ROOK][A1]);
     } else if (mv.flags & PROMO_FLAG) {
         int pr_type = PROMOTIONS[mv.flags & 3];
         pstn->board[mv.dest] = change_piece_type(piece, pr_type);

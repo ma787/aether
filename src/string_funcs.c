@@ -127,15 +127,13 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
                     pstn->board[i] = piece;
 
                     int p_type = get_piece_type(piece);
-                    int pc_val = PIECE_VALS[p_type];
-                    int pcsq_val = EVAL_TABLES[p_type][i++];
 
                     if (piece & WHITE) {
-                        pstn->material += pc_val;
-                        pstn->pcsq_sum += pcsq_val;
+                        pstn->material += PIECE_VALS[p_type];
+                        pstn->pcsq_sum += EVAL_TABLES[p_type][i++];
                     } else {
-                        pstn->material -= pc_val;
-                        pstn->pcsq_sum -= pcsq_val;
+                        pstn->material -= PIECE_VALS[p_type];
+                        pstn->pcsq_sum -= EVAL_TABLES[p_type][flip_square(i++)];
                     }
 
                     count++;
