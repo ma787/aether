@@ -107,7 +107,7 @@ extern int N_VECS[];
 extern int *MOVE_SETS[];
 
 extern unsigned int MOVE_TABLE[239];
-extern unsigned int UNIT_VEC[239];
+extern int UNIT_VEC[239];
 
 extern int PIECE_VALS[];
 
@@ -127,8 +127,6 @@ typedef struct {
     int check;
     int fst_checker;
     int snd_checker;
-    int material;
-    int pcsq_sum;
 } HISTORY_ENTRY;
 
 typedef struct {
@@ -190,8 +188,8 @@ typedef struct {
     int fst_checker;
     int snd_checker;
 
-    int material;
-    int pcsq_sum;
+    int material[3];
+    int pcsq_sum[3];
 
     uint64_t key;
 
@@ -240,6 +238,7 @@ move_t move_of_int(int m_int);
 /* move-making functions */
 
 int is_square_attacked(POSITION *pstn, int pos);
+
 bool make_move(POSITION *pstn, move_t mv);
 void unmake_move(POSITION *pstn, move_t mv);
 

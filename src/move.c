@@ -56,16 +56,58 @@ move_t move_of_int(int m_int) {
 }
 
 void move_piece(POSITION *pstn, int start, int dest) {
-    unsigned int piece = pstn->board[start];
+    int piece = pstn->board[start];
     pstn->board[start] = 0;
     pstn->board[dest] = piece;
     pstn->w_pieces[get_piece_list_index(piece)] = dest;
+    int p_type = get_piece_type(piece);
+    pstn->pcsq_sum[WHITE] -= EVAL_TABLES[p_type][start];
+    pstn->pcsq_sum[WHITE] += EVAL_TABLES[p_type][dest];
 }
 
-void capture_piece(POSITION *pstn, unsigned int pos) {
-    unsigned int piece = pstn->board[pos];
-    pstn->board[pos] = 0;
-    pstn->b_pieces[get_piece_list_index(piece)] = 0;
+void capture_piece(POSITION *pstn, move_t mv) {
+    pstn->h_clk = 0;
+    int cap_pos = mv.dest;
+    if (mv.flags == EP_FLAG) {
+        cap_pos += S;
+    }
+
+    pstn->board[cap_pos] = 0;
+    pstn->b_pieces[get_piece_list_index(mv.captured_piece)] = 0;
+    int p_type = get_piece_type(mv.captured_piece);
+    pstn->material[BLACK] -= PIECE_VALS[p_type];
+    pstn->pcsq_sum[BLACK] -= EVAL_TABLES[p_type][flip_square(cap_pos)];
+}
+
+void restore_piece(POSITION *pstn, move_t mv) {
+    int cap_pos = mv.dest;
+    if (mv.flags == EP_FLAG) {
+        cap_pos += S;
+    }
+
+    pstn->board[cap_pos] = mv.captured_piece;
+    pstn->b_pieces[get_piece_list_index(mv.captured_piece)] = cap_pos;
+    int p_type = get_piece_type(mv.captured_piece);
+    pstn->material[BLACK] += PIECE_VALS[p_type];
+    pstn->pcsq_sum[BLACK] += EVAL_TABLES[p_type][flip_square(cap_pos)];
+}
+
+void promote_piece(POSITION *pstn, move_t mv, int piece) {
+    int pr_type = PROMOTIONS[mv.flags & 3];
+    pstn->board[mv.dest] = change_piece_type(piece, pr_type);
+    pstn->material[WHITE] -= PIECE_VALS[PAWN];
+    pstn->pcsq_sum[WHITE] -= EVAL_TABLES[PAWN][mv.dest];
+    pstn->material[WHITE] += PIECE_VALS[pr_type];
+    pstn->pcsq_sum[WHITE] += EVAL_TABLES[pr_type][mv.dest];
+}
+
+void demote_piece(POSITION *pstn, move_t mv, int piece) {
+    int pr_type = PROMOTIONS[mv.flags & 3];
+    pstn->board[mv.dest] = change_piece_type(piece, PAWN);
+    pstn->material[WHITE] -= PIECE_VALS[pr_type];
+    pstn->pcsq_sum[WHITE] -= EVAL_TABLES[pr_type][mv.dest];
+    pstn->material[WHITE] += PIECE_VALS[PAWN];
+    pstn->pcsq_sum[WHITE] += EVAL_TABLES[PAWN][mv.dest];
 }
 
 int is_square_attacked(POSITION *pstn, int pos) {
@@ -268,9 +310,7 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     pstn->move_history[pstn->ply] = mv;
     pstn->ep_sq = 0;
 
-    int mtrl_delta = 0, pcsq_delta = 0;
     int piece = pstn->board[mv.start];
-
     piece & PAWN ? pstn->h_clk = 0 : pstn->h_clk++;
 
     if (piece & KING) {
@@ -285,63 +325,31 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     }
 
     if (mv.flags & CAPTURE_FLAG) {
-        pstn->h_clk = 0;
-        int cap_pos = mv.dest;
-
-        if (mv.flags == EP_FLAG) {
-            cap_pos += S;
-        }
-        capture_piece(pstn, cap_pos);
-
-        int cap_type = get_piece_type(mv.captured_piece);
-        mtrl_delta += PIECE_VALS[cap_type];
-        pcsq_delta += EVAL_TABLES[cap_type][flip_square(cap_pos)];
+        capture_piece(pstn, mv);
     }
 
     move_piece(pstn, mv.start, mv.dest);
-
-    int p_type = get_piece_type(piece);
-    pcsq_delta += (EVAL_TABLES[p_type][mv.dest] - EVAL_TABLES[p_type][mv.start]);
 
     if (mv.flags == DPP_FLAG) {
         pstn->ep_sq = mv.dest + S;
     } else if (mv.flags == K_CASTLE_FLAG) {
         move_piece(pstn, H1, F1);
-        pcsq_delta += (EVAL_TABLES[ROOK][F1] - EVAL_TABLES[ROOK][H1]);
     } else if (mv.flags == Q_CASTLE_FLAG) {
         move_piece(pstn, A1, D1);
-        pcsq_delta += (EVAL_TABLES[ROOK][D1] - EVAL_TABLES[ROOK][A1]);
     } else if (mv.flags & PROMO_FLAG) {
-        int pr_type = PROMOTIONS[mv.flags & 3];
-        pstn->board[mv.dest] = change_piece_type(piece, pr_type);
-
-        mtrl_delta += (PIECE_VALS[pr_type] - PIECE_VALS[PAWN]);
-        pcsq_delta += (EVAL_TABLES[pr_type][mv.dest] - EVAL_TABLES[PAWN][mv.dest]);
-    }
-
-    if (pstn->side == WHITE) {
-        pstn->material += mtrl_delta;
-        pstn->pcsq_sum += pcsq_delta;
-    } else {
-        pstn->material -= mtrl_delta;
-        pstn->pcsq_sum -= mtrl_delta;
+        promote_piece(pstn, mv, piece);
     }
 }
 
 void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
-    move_piece(pstn, mv.dest, mv.start);
-
     if (mv.flags & PROMO_FLAG) {
-        pstn->board[mv.start] = change_piece_type(pstn->board[mv.start], PAWN);
+        demote_piece(pstn, mv, pstn->board[mv.dest]);
     }
 
+    move_piece(pstn, mv.dest, mv.start);
+
     if (mv.flags & CAPTURE_FLAG) {
-        int cap_pos = mv.dest;
-        if (mv.flags == EP_FLAG) {
-            cap_pos += S;
-        }
-        pstn->board[cap_pos] = mv.captured_piece;
-        pstn->b_pieces[get_piece_list_index(mv.captured_piece)] = cap_pos;
+        restore_piece(pstn, mv);
     } else if (mv.flags == K_CASTLE_FLAG) {
         move_piece(pstn, F1, H1);
     } else if (mv.flags == Q_CASTLE_FLAG) {
@@ -350,6 +358,7 @@ void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
 
     pstn->ply--;
     restore_state(pstn);
+    pstn->rep_table[pstn->key & 0x00003FFF] -= 1;
 }
 
 bool make_move(POSITION *pstn, move_t mv) {

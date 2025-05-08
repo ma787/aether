@@ -16,6 +16,14 @@ void flip_position(POSITION *pstn) {
 
     swap_piece_lists(&(pstn->w_pieces), &(pstn->b_pieces));
 
+    int mtrl = pstn->material[WHITE];
+    pstn->material[WHITE] = pstn->material[BLACK];
+    pstn->material[BLACK] = mtrl;
+
+    int pst = pstn->pcsq_sum[WHITE];
+    pstn->pcsq_sum[WHITE] = pstn->pcsq_sum[BLACK];
+    pstn->pcsq_sum[BLACK] = pst;
+
     for (int i = 0; i < 32; i++) {
         if (pstn->piece_list[i]) {
             pstn->piece_list[i] = flip_square(pstn->piece_list[i]);
@@ -154,8 +162,6 @@ void restore_state(POSITION *pstn) {
     pstn->check = h_entry.check;
     pstn->fst_checker = h_entry.fst_checker;
     pstn->snd_checker = h_entry.snd_checker;
-    pstn->material = h_entry.material;
-    pstn->pcsq_sum = h_entry.pcsq_sum;
 }
 
 void clear_tables(POSITION *pstn) {
@@ -163,6 +169,10 @@ void clear_tables(POSITION *pstn) {
     for (int i = A1; i <= A8; i += 0x10) {
         memset(pstn->board + i, 0, 8 * sizeof(int));
     }
+
+    // clear material/pst lists
+    memset(pstn->material, 0, 3 * sizeof(int));
+    memset(pstn->pcsq_sum, 0, 3 * sizeof(int));
 
     // reset piece lists
     memset(pstn->piece_list, 0, 32 * sizeof(int));
@@ -212,9 +222,6 @@ POSITION* new_position(void) {
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
-
-    pstn->material = 0;
-    pstn->pcsq_sum = 0;
 
     fen_to_board_array(pstn, START_POS);
     set_piece_list(pstn);

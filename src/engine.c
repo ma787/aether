@@ -5,7 +5,9 @@
 #include "aether.h"
 
 int evaluate(POSITION *pstn) {
-    int score = pstn->material + pstn->pcsq_sum;
+    int w_score = pstn->material[WHITE] + pstn->pcsq_sum[WHITE];
+    int b_score = pstn->material[BLACK] + pstn->pcsq_sum[BLACK];
+    int score = w_score - b_score;
 
     if (pstn->side == BLACK) {
         score *= -1;

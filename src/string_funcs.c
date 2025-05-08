@@ -125,16 +125,16 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
                 int piece = PIECES[(int) val];
                 if (piece) {
                     pstn->board[i] = piece;
-
                     int p_type = get_piece_type(piece);
+                    int colour = piece & COLOUR_MASK;
+                    int pos = i++;
 
-                    if (piece & WHITE) {
-                        pstn->material += PIECE_VALS[p_type];
-                        pstn->pcsq_sum += EVAL_TABLES[p_type][i++];
-                    } else {
-                        pstn->material -= PIECE_VALS[p_type];
-                        pstn->pcsq_sum -= EVAL_TABLES[p_type][flip_square(i++)];
+                    if (colour == BLACK) {
+                        pos = flip_square(pos);
                     }
+
+                    pstn->material[colour] += PIECE_VALS[p_type];
+                    pstn->pcsq_sum[colour] += EVAL_TABLES[p_type][pos];
 
                     count++;
                 } else {
