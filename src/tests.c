@@ -56,26 +56,32 @@ int main(void) {
 
     assert(update_position(pstn, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
     assert(pstn->side == WHITE && pstn->c_rights == 15 && !pstn->ep_sq && !pstn->h_clk && !pstn->check);
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R w KQkq - 0 1"));
     assert(pstn->side == WHITE && pstn->c_rights == 15 && !pstn->ep_sq && !pstn->h_clk && !pstn->check);
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R w KQkq - 0 1");
     
     assert(update_position(pstn, "rnbqkbnr/1p1ppppp/8/p1pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 1"));
     assert(pstn->side == WHITE && pstn->c_rights == 15 && pstn->ep_sq == C6 && !pstn->h_clk && !pstn->check);
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "rnbqkbnr/1p1ppppp/8/p1pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 1");
     
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
     assert(pstn->side == WHITE && pstn->c_rights == 15 && !pstn->ep_sq && !pstn->h_clk && !pstn->check);
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
     assert(update_position(pstn, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"));
     assert(pstn->side == WHITE && !pstn->c_rights && !pstn->ep_sq && !pstn->h_clk && !pstn->check);
+    assert(pstn->big_pieces[WHITE] == 2 && pstn->big_pieces[BLACK] == 2);
     test_fen(pstn, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
 
     assert(update_position(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/R3KR2 w Qkq - 0 1"));
     assert(pstn->side == WHITE && pstn->c_rights == 13 && !pstn->ep_sq && !pstn->h_clk && !pstn->check);
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/R3KR2 w Qkq - 0 1");
 
     assert(update_position(pstn, "r6r/1b2k1bq/8/8/7B/8/8/R3K2R b KQ - 3 1"));
@@ -90,6 +96,7 @@ int main(void) {
         pstn->side == BLACK && pstn->c_rights == 14 && !pstn->ep_sq
         && !pstn->h_clk && pstn->check == DISTANT_CHECK && pstn->fst_checker == G3
     );
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "1nbqkbnr/r2pp2p/ppp2pB1/4P2Q/3P4/2N5/PPP2PPP/R1B1K1NR b KQk - 0 1");
 
     assert(update_position(pstn, "r2k3r/p1ppqNb1/bn2pQp1/3P4/1p2P3/2N4p/PPPBBPPP/R3K2R b KQ - 0 1"));
@@ -97,6 +104,7 @@ int main(void) {
         pstn->side == BLACK && pstn->c_rights == 12 && !pstn->ep_sq 
         && !pstn->h_clk && pstn->check == CONTACT_CHECK && pstn->fst_checker == F2
     );
+    assert(pstn->big_pieces[WHITE] == 7 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "r2k3r/p1ppqNb1/bn2pQp1/3P4/1p2P3/2N4p/PPPBBPPP/R3K2R b KQ - 0 1");
 
     assert(update_position(pstn, "4k2r/8/8/8/8/8/8/R1r1K2R w KQk - 1 1"));
@@ -104,6 +112,7 @@ int main(void) {
         pstn->side == WHITE && pstn->c_rights == 11 && !pstn->ep_sq
         && pstn->h_clk == 1 && pstn->check == DISTANT_CHECK && pstn->fst_checker == C1
     );
+    assert(pstn->big_pieces[WHITE] == 3 && pstn->big_pieces[BLACK] == 3);
     test_fen(pstn, "4k2r/8/8/8/8/8/8/R1r1K2R w KQk - 1 1");
 
     assert(update_position(pstn, "r3k2r/p1pq1Pb1/bn1p1np1/1B2N3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1"));
@@ -111,13 +120,15 @@ int main(void) {
         pstn->side == BLACK && pstn->c_rights == 15 && !pstn->ep_sq 
         && !pstn->h_clk && pstn->check == CONTACT_CHECK && pstn->fst_checker == F2
     );
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 8);
     test_fen(pstn, "r3k2r/p1pq1Pb1/bn1p1np1/1B2N3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
 
     assert(update_position(pstn, "8/8/3p4/1Pp4r/1K3R2/6k1/4P1P1/8 w - c6 0 1"));
     assert(
         pstn->side == WHITE && !pstn->c_rights && pstn->ep_sq == C6 
         && !pstn->h_clk && pstn->check == CONTACT_CHECK && pstn->fst_checker == C5
-    ); 
+    );
+    assert(pstn->big_pieces[WHITE] == 2 && pstn->big_pieces[BLACK] == 2);
     test_fen(pstn, "8/8/3p4/1Pp4r/1K3R2/6k1/4P1P1/8 w - c6 0 1");
 
     assert(update_position(pstn, "rnbqkbn1/pp6/8/8/4Kr2/8/PP4b1/R3Q1BR w q - 0 1"));
@@ -127,6 +138,7 @@ int main(void) {
         (pstn->fst_checker == G2 && pstn->snd_checker == F4)
         || (pstn->fst_checker == F4 && pstn->snd_checker == G2)
     );
+    assert(pstn->big_pieces[WHITE] == 5 && pstn->big_pieces[BLACK] == 9);
     test_fen(pstn, "rnbqkbn1/pp6/8/8/4Kr2/8/PP4b1/R3Q1BR w q - 0 1");
 
     assert(update_position(pstn, "r5k1/ppp3p1/3pb3/7p/8/5r1K/PB3bPP/RN1Q3R w - - 0 1"));
@@ -136,6 +148,7 @@ int main(void) {
         (pstn->fst_checker == F3 && pstn->snd_checker == E6)
         || (pstn->fst_checker == E6 && pstn->snd_checker == F3)
     );
+    assert(pstn->big_pieces[WHITE] == 6 && pstn->big_pieces[BLACK] == 5);
     test_fen(pstn, "r5k1/ppp3p1/3pb3/7p/8/5r1K/PB3bPP/RN1Q3R w - - 0 1");
 
     assert(update_position(pstn, "r1bq1r2/pp2n3/4N1Pk/3pPp2/1b1n2Q1/2N5/PP3PP1/R1B1K2R b KQ - 0 1"));
@@ -145,6 +158,7 @@ int main(void) {
         (pstn->fst_checker == C8 && pstn->snd_checker == H8)
         || (pstn->fst_checker == H8 && pstn->snd_checker == C8)
     );
+    assert(pstn->big_pieces[WHITE] == 8 && pstn->big_pieces[BLACK] == 7);
     test_fen(pstn, "r1bq1r2/pp2n3/4N1Pk/3pPp2/1b1n2Q1/2N5/PP3PP1/R1B1K2R b KQ - 0 1");
 
     printf("passed update_position tests\n");

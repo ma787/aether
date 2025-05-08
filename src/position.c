@@ -8,6 +8,12 @@ void swap_piece_lists(int **w_pieces, int **b_pieces) {
     *b_pieces = tmp;
 }
 
+void swap_lists(int *l) {
+    int tmp = l[WHITE];
+    l[WHITE] = l[BLACK];
+    l[BLACK] = tmp;
+}
+
 void flip_position(POSITION *pstn) {
     pstn->c_rights = ( 
     ((pstn->c_rights & 12) >> 2) 
@@ -15,14 +21,9 @@ void flip_position(POSITION *pstn) {
     );
 
     swap_piece_lists(&(pstn->w_pieces), &(pstn->b_pieces));
-
-    int mtrl = pstn->material[WHITE];
-    pstn->material[WHITE] = pstn->material[BLACK];
-    pstn->material[BLACK] = mtrl;
-
-    int pst = pstn->pcsq_sum[WHITE];
-    pstn->pcsq_sum[WHITE] = pstn->pcsq_sum[BLACK];
-    pstn->pcsq_sum[BLACK] = pst;
+    swap_lists(pstn->material);
+    swap_lists(pstn->pcsq_sum);
+    swap_lists(pstn->big_pieces);
 
     for (int i = 0; i < 32; i++) {
         if (pstn->piece_list[i]) {
@@ -116,23 +117,28 @@ void set_check(POSITION *pstn) {
 }
 
 void set_piece_list(POSITION *pstn) {
-    int i = A1, sq, colour;
-    int king_offs[2] = {0, 16};
-    int list_offs[2] = {1, 17};
+    int i = A1;
+    int king_offs[3] = {0, 0, 16};
+    int list_offs[3] = {0, 1, 17};
 
     while (i <= H8) {
-        sq = pstn->board[i];
-        colour = sq & COLOUR_MASK;
+        int sq = pstn->board[i];
+        int colour = sq & COLOUR_MASK;
 
         if (!sq) {
             i++;
         } else if (colour == G) {
             i += 8;
-        } else if (sq & KING) {
-            pstn->piece_list[king_offs[colour - 1]] = i++;
         } else {
-            pstn->piece_list[list_offs[colour - 1]] = i;
-            pstn->board[i++] |= (list_offs[colour - 1]++ << 8);
+            int pos = i++;
+            int off = (sq & KING) ? king_offs[colour] : list_offs[colour]++;
+
+            if (!(sq & PAWN)) {
+                pstn->big_pieces[colour]++;
+            }
+
+            pstn->piece_list[off] = pos;
+            pstn->board[pos] |= (off << 8);
         }
     }
 }
@@ -170,9 +176,10 @@ void clear_tables(POSITION *pstn) {
         memset(pstn->board + i, 0, 8 * sizeof(int));
     }
 
-    // clear material/pst lists
+    // clear material/pst/big piece lists
     memset(pstn->material, 0, 3 * sizeof(int));
     memset(pstn->pcsq_sum, 0, 3 * sizeof(int));
+    memset(pstn->big_pieces, 0, 3 * sizeof(int));
 
     // reset piece lists
     memset(pstn->piece_list, 0, 32 * sizeof(int));

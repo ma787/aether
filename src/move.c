@@ -72,6 +72,10 @@ void capture_piece(POSITION *pstn, move_t mv) {
         cap_pos += S;
     }
 
+    if (!(mv.captured_piece & PAWN)) {
+        pstn->big_pieces[BLACK]--;
+    }
+
     pstn->board[cap_pos] = 0;
     pstn->b_pieces[get_piece_list_index(mv.captured_piece)] = 0;
     int p_type = get_piece_type(mv.captured_piece);
@@ -83,6 +87,10 @@ void restore_piece(POSITION *pstn, move_t mv) {
     int cap_pos = mv.dest;
     if (mv.flags == EP_FLAG) {
         cap_pos += S;
+    }
+
+    if (!(mv.captured_piece & PAWN)) {
+        pstn->big_pieces[BLACK]++;
     }
 
     pstn->board[cap_pos] = mv.captured_piece;
@@ -99,6 +107,7 @@ void promote_piece(POSITION *pstn, move_t mv, int piece) {
     pstn->pcsq_sum[WHITE] -= EVAL_TABLES[PAWN][mv.dest];
     pstn->material[WHITE] += PIECE_VALS[pr_type];
     pstn->pcsq_sum[WHITE] += EVAL_TABLES[pr_type][mv.dest];
+    pstn->big_pieces[WHITE]++;
 }
 
 void demote_piece(POSITION *pstn, move_t mv, int piece) {
@@ -108,6 +117,7 @@ void demote_piece(POSITION *pstn, move_t mv, int piece) {
     pstn->pcsq_sum[WHITE] -= EVAL_TABLES[pr_type][mv.dest];
     pstn->material[WHITE] += PIECE_VALS[PAWN];
     pstn->pcsq_sum[WHITE] += EVAL_TABLES[PAWN][mv.dest];
+    pstn->big_pieces[WHITE]--;
 }
 
 int is_square_attacked(POSITION *pstn, int pos) {

@@ -192,6 +192,7 @@ typedef struct {
 
     int material[3];
     int pcsq_sum[3];
+    int big_pieces[3];
 
     uint64_t key;
 
