@@ -6,7 +6,20 @@
 
 int evaluate(POSITION *pstn) {
     int w_score = pstn->material[WHITE] + pstn->pcsq_sum[WHITE];
+
+    if (pstn->material[WHITE] < ENDGAME_MATERIAL) {
+        w_score -= EVAL_TABLES[KING][pstn->w_pieces[0]];
+        w_score += ENDGAME_KING_TABLE[pstn->w_pieces[0]];
+    }
+
     int b_score = pstn->material[BLACK] + pstn->pcsq_sum[BLACK];
+
+    if (pstn->material[BLACK] < ENDGAME_MATERIAL) {
+        int k_pos = flip_square(pstn->b_pieces[0]);
+        b_score -= EVAL_TABLES[KING][k_pos];
+        b_score += ENDGAME_KING_TABLE[k_pos];
+    }
+
     int score = w_score - b_score;
 
     if (pstn->side == BLACK) {

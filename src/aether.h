@@ -25,6 +25,8 @@
 #define FIRST_KILLER_VALUE 900000
 #define SECOND_KILLER_VALUE 800000
 
+#define ENDGAME_MATERIAL 1500
+
 #define START_POS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define FEN_REGEX ( \
@@ -110,8 +112,8 @@ extern unsigned int MOVE_TABLE[239];
 extern int UNIT_VEC[239];
 
 extern int PIECE_VALS[];
-
 extern int *EVAL_TABLES[];
+extern int ENDGAME_KING_TABLE[256];
 
 extern int *MVV_LVA_SCORES[];
 
