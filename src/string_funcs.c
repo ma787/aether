@@ -147,6 +147,10 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
 }
 
 void print_board(POSITION *pstn) {
+    if (pstn->side == BLACK) {
+        flip_position(pstn);
+    } 
+
     char b_str[72];
     int i = 0xB4, j = 0, sq;
 
@@ -164,6 +168,10 @@ void print_board(POSITION *pstn) {
     
     b_str[j] = '\0';
     printf("%s\n", b_str);
+
+    if (pstn->side == BLACK) {
+        flip_position(pstn);
+    }
 }
 
 void move_to_string(move_t mv, char* mstr) {

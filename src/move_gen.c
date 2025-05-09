@@ -2,9 +2,9 @@
 #include "aether.h"
 
 void add_quiet_move(POSITION *pstn, move_t mv, MOVE_LIST *moves) {
-    if (moves_equal(pstn->search_killers[0][pstn->ply], mv)) {
+    if (moves_equal(pstn->search_killers[0][pstn->s_ply], mv)) {
         mv.score = FIRST_KILLER_VALUE;
-    } else if (moves_equal(pstn->search_killers[1][pstn->ply], mv)) {
+    } else if (moves_equal(pstn->search_killers[1][pstn->s_ply], mv)) {
         mv.score = SECOND_KILLER_VALUE;
     } else {
         mv.score = pstn->search_history[get_piece_type(pstn->board[mv.start])][mv.dest];

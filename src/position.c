@@ -222,6 +222,7 @@ POSITION* new_position(void) {
     }
 
     pstn->ply = 0;
+    pstn->s_ply = 0;
     pstn->side = WHITE;
     pstn->c_rights = 0b1111;
     pstn->ep_sq = 0;
@@ -266,6 +267,7 @@ int update_position(POSITION *pstn, char *fen_str) {
     clear_tables(pstn);
 
     pstn->ply = 0;
+    pstn->s_ply = 0;
     pstn->c_rights = 0;
     pstn->ep_sq = 0;
 

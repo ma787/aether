@@ -317,6 +317,7 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     save_state(pstn);
     pstn->rep_table[pstn->key & 0x00003FFF] += 1;
     pstn->ply++;
+    pstn->s_ply++;
     pstn->move_history[pstn->ply] = mv;
     pstn->ep_sq = 0;
 
@@ -367,6 +368,7 @@ void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
     }
 
     pstn->ply--;
+    pstn->s_ply--;
     restore_state(pstn);
     pstn->rep_table[pstn->key & 0x00003FFF] -= 1;
 }
@@ -389,4 +391,31 @@ void unmake_move(POSITION *pstn, move_t mv) {
     flip_position(pstn);
     switch_side(pstn);
     unmake_pseudo_legal_move(pstn, mv);
+}
+
+void make_null_move(POSITION *pstn) {
+    save_state(pstn);
+    pstn->rep_table[pstn->key & 0x00003FFF] += 1;
+    pstn->ply++;
+    pstn->s_ply++;
+    pstn->h_clk++;
+    pstn->move_history[pstn->ply] = NULL_MOVE;
+
+    if (pstn->ep_sq) {
+        pstn->key ^= HASH_VALUES[EP_OFF + get_file(pstn->ep_sq)];
+        pstn->ep_sq = 0;
+    }
+    
+    pstn->key ^= HASH_VALUES[SIDE_OFF];
+    switch_side(pstn);
+    flip_position(pstn);
+}
+
+void unmake_null_move(POSITION *pstn) {
+    flip_position(pstn);
+    switch_side(pstn);
+    pstn->ply--;
+    pstn->s_ply--;
+    restore_state(pstn);
+    pstn->rep_table[pstn->key & 0x00003FFF] -= 1;
 }

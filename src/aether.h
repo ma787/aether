@@ -182,6 +182,7 @@ typedef struct {
     int *b_pieces;
 
     int ply;
+    int s_ply;
     int side;
     int c_rights;
     int ep_sq;
@@ -244,6 +245,9 @@ int is_square_attacked(POSITION *pstn, int pos);
 
 bool make_move(POSITION *pstn, move_t mv);
 void unmake_move(POSITION *pstn, move_t mv);
+
+void make_null_move(POSITION *pstn);
+void unmake_null_move(POSITION *pstn);
 
 /* move generation functions */
 
