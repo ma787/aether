@@ -8,9 +8,7 @@ uint64_t perft(POSITION *pstn, int depth) {
     }
     uint64_t total = 0UL;
 
-    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
-    moves->index = 0;
-    all_moves(pstn, moves);
+    MOVE_LIST *moves = all_moves(pstn);
 
     move_t mv;
 
@@ -31,9 +29,7 @@ void divide(POSITION *pstn, int depth) {
     }
 
     uint64_t total = 0;
-    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
-    moves->index = 0;
-    all_moves(pstn, moves);
+    MOVE_LIST* moves = all_moves(pstn);
 
     move_t mv;
 
@@ -59,15 +55,11 @@ uint64_t count_captures(POSITION *pstn, int depth) {
     }
     uint64_t total = 0UL;
 
-    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
-    moves->index = 0;
-    all_moves(pstn, moves);
+    MOVE_LIST *moves = all_moves(pstn);
     move_t mv;
 
     if (depth == 1) {
-        MOVE_LIST *captures = malloc(sizeof(MOVE_LIST));
-        captures->index = 0;
-        all_captures(pstn, captures);
+        MOVE_LIST *captures = all_captures(pstn);
 
         for (int i = 0; i < captures->index; i++) {
             if (make_move(pstn, (mv = captures->moves[i]))) {
@@ -76,7 +68,7 @@ uint64_t count_captures(POSITION *pstn, int depth) {
             }
         }
 
-        
+        free(captures);
     } else {
         for (int i = 0; i < moves->index; i++) {
             if (make_move(pstn, (mv = moves->moves[i]))) {

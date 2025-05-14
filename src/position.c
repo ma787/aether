@@ -2,57 +2,6 @@
 #include <string.h>
 #include "aether.h"
 
-void swap_piece_lists(int **w_pieces, int **b_pieces) {
-    int *tmp = *w_pieces;
-    *w_pieces = *b_pieces;
-    *b_pieces = tmp;
-}
-
-void swap_lists(int *l) {
-    int tmp = l[WHITE];
-    l[WHITE] = l[BLACK];
-    l[BLACK] = tmp;
-}
-
-void flip_position(POSITION *pstn) {
-    pstn->c_rights = ( 
-    ((pstn->c_rights & 12) >> 2) 
-    | ((pstn->c_rights & 3) << 2)
-    );
-
-    swap_piece_lists(&(pstn->w_pieces), &(pstn->b_pieces));
-    swap_lists(pstn->material);
-    swap_lists(pstn->pcsq_sum);
-    swap_lists(pstn->big_pieces);
-
-    for (int i = 0; i < 32; i++) {
-        if (pstn->piece_list[i]) {
-            pstn->piece_list[i] = flip_square(pstn->piece_list[i]);
-        }
-    }
-
-    if (pstn->ep_sq) {
-        pstn->ep_sq = flip_square(pstn->ep_sq);
-    }
-
-    if (pstn->check) {
-        pstn->fst_checker = flip_square(pstn->fst_checker);
-        if (pstn->check == DOUBLE_CHECK) {
-            pstn->snd_checker = flip_square(pstn->snd_checker);
-        }
-    }
-    
-    for (int i = A1; i < A5; i += 0x10) {
-        for (int j = 0; j < 8; j++) {
-            int k = flip_square(i);
-            int sq1 = pstn->board[i + j];
-            int sq2 = pstn->board[k + j];
-            pstn->board[i + j] = sq2 ? change_piece_colour(sq2, (~sq2 & 3)) : 0;
-            pstn->board[k + j] = sq1 ? change_piece_colour(sq1, (~sq1 & 3)) : 0;
-        }       
-    };
-}
-
 void add_checker(POSITION *pstn, int checker, int check_type) {
     if (pstn->check) {
         if (checker != pstn->fst_checker) {
@@ -66,53 +15,54 @@ void add_checker(POSITION *pstn, int checker, int check_type) {
 }
 
 void set_check(POSITION *pstn) {
-    if (pstn->side == WHITE) {
-        flip_position(pstn);
-    }
-
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
 
-    int k_pos = pstn->b_pieces[0];
-    int alignment, piece, w_pos, current, step;
+    int k_pos = PLIST(pstn)[0];
+    int enemy_side = opp_side(pstn->side);
+    int pawn_off = PAWN_STEP[pstn->side];
 
-    for (int i = 1; i < 16; i++) {
-        w_pos = pstn->w_pieces[i];
-        piece = pstn->board[w_pos];
-        alignment = get_alignment(w_pos, k_pos);
+    int pawn = pstn->board[k_pos + pawn_off + E];
+    if ((pawn & enemy_side) && (pawn & PAWN)) {
+        add_checker(pstn, k_pos + pawn_off + E, CONTACT_CHECK);
+    } else {
+        pawn = pstn->board[k_pos + pawn_off + W];
+        if ((pawn & enemy_side) && (pawn & PAWN)) {
+            add_checker(pstn, k_pos + pawn_off + W, CONTACT_CHECK);
+        }
+    }
 
-        if (alignment & piece) {
-            add_checker(pstn, w_pos, CONTACT_CHECK);
-        } else if ((alignment >> 8) & piece) {
-            current = w_pos;
-            step = get_step(w_pos, k_pos);
+    for (int i = 0; i < 8; i++) {
+        int vec = KNIGHT_OFFS[i];
+        int piece = pstn->board[k_pos + vec];
+        if ((piece & enemy_side) && (piece & KNIGHT)) {
+            add_checker(pstn, k_pos + vec, CONTACT_CHECK);
+        }
+    }
 
-            for (;;) {
-                current += step;
-                if (current == k_pos) {
-                    add_checker(pstn, w_pos, DISTANT_CHECK);
-                    break;
-                } 
-                if (pstn->board[current]) {
+    for (int i = 0; i < 8; i++) {
+        int vec = KING_OFFS[i];
+        int current = k_pos;
+        
+        for (;;) {
+            current += vec;
+            int piece = pstn->board[current];
+            if (piece) {
+                if (!(same_colour(piece, enemy_side))) {
                     break;
                 }
+
+                int alignment = get_alignment(current, k_pos);
+                if (alignment & piece) {
+                    add_checker(pstn, current, CONTACT_CHECK);
+                } else if ((alignment >> 8) & piece) {
+                    add_checker(pstn, current, DISTANT_CHECK);
+                }
+
+                break;
             }
         }
-    }
-
-    piece = pstn->board[k_pos + S + E];
-    if ((piece & WHITE) && (piece & PAWN)) {
-        add_checker(pstn, k_pos + S + E, CONTACT_CHECK);
-    } else {
-        piece = pstn->board[k_pos + S + W];
-        if ((piece & WHITE) && (piece & PAWN)) {
-            add_checker(pstn, k_pos + S + W, CONTACT_CHECK);
-        }
-    }
-
-    if (pstn->side == WHITE) {
-        flip_position(pstn);
     }
 }
 
@@ -138,7 +88,7 @@ void set_piece_list(POSITION *pstn) {
             }
 
             pstn->piece_list[off] = pos;
-            pstn->board[pos] |= (off << 8);
+            pstn->board[pos] |= ((off & 0xF) << 8);
         }
     }
 }
@@ -183,8 +133,8 @@ void clear_tables(POSITION *pstn) {
 
     // reset piece lists
     memset(pstn->piece_list, 0, 32 * sizeof(int));
-    pstn->w_pieces = &(pstn->piece_list[0]);
-    pstn->b_pieces = &(pstn->piece_list[16]);
+    pstn->p_lists[WHITE] = &(pstn->piece_list[0]);
+    pstn->p_lists[BLACK] = &(pstn->piece_list[16]);
 
     // initialise repetition table
     memset(pstn->rep_table, 0, REPETITION_TABLE_SIZE);
@@ -299,10 +249,6 @@ int update_position(POSITION *pstn, char *fen_str) {
     set_piece_list(pstn);
     set_check(pstn);
     set_hash(pstn);
-
-    if (pstn->side == BLACK) {
-        flip_position(pstn);
-    }
 
     return idx + 2;
 }

@@ -23,6 +23,34 @@ char *COORDS[256] = {
     "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"
 };
 
+char *SIDES[3] = {[WHITE] = "WHITE", [BLACK] = "BLACK"};
+
+int FIRST_RANK[3] = {0, RANK_1, RANK_8};
+int SECOND_RANK[3] = {0, RANK_2, RANK_7};
+int FINAL_RANK[3] = {0, RANK_8, RANK_1};
+int DPP_RANK[3] = {0, RANK_4, RANK_5};
+
+int PAWN_STEP[3] = {0, N, S};
+
+int WK_ROOK_MOVE[2] = {H1, F1};
+int WQ_ROOK_MOVE[2] = {A1, D1};
+int BK_ROOK_MOVE[2] = {H8, F8};
+int BQ_ROOK_MOVE[2] = {A8, D8};
+
+int WK_KING_MOVE[2] = {E1, G1};
+int WQ_KING_MOVE[2] = {E1, C1};
+int BK_KING_MOVE[2] = {E8, G8};
+int BQ_KING_MOVE[2] = {E8, C8};
+
+int *K_ROOK_MOVES[3] = {[WHITE] = WK_ROOK_MOVE, [BLACK] = BK_ROOK_MOVE};
+int *Q_ROOK_MOVES[3] = {[WHITE] = WQ_ROOK_MOVE, [BLACK] = BQ_ROOK_MOVE};
+
+int *K_KING_MOVES[3] = {[WHITE] = WK_KING_MOVE, [BLACK] = BK_KING_MOVE};
+int *Q_KING_MOVES[3] = {[WHITE] = WQ_KING_MOVE, [BLACK] = BQ_KING_MOVE};
+
+int KINGSIDE_RIGHTS[3] = {[WHITE] = WHITE_KINGSIDE, [BLACK] = BLACK_KINGSIDE};
+int QUEENSIDE_RIGHTS[3] = {[WHITE] = WHITE_QUEENSIDE, [BLACK] = BLACK_QUEENSIDE};
+
 unsigned int PIECES[] = {
     [1] = 0, [2] = 0, [3] = 0, [4] = 0,
     [5] = 0, [6] = 0, [7] = 0, [8] = 0,
@@ -84,6 +112,24 @@ int *MOVE_SETS[] = {
     [ROOK] = ROOK_OFFS, [QUEEN] = QUEEN_OFFS, [KING] = KING_OFFS
 };
 
+unsigned int CASTLE_UPDATES[256] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 11, 15, 15, 15, 3, 15, 15, 7, 0, 0, 0, 0,
+    0, 0, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0,
+    0, 0, 0, 0, 14, 15, 15, 15, 12, 15, 15, 13, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
 
 unsigned int MOVE_TABLE[239] = {
     20480, 0, 0, 0, 0, 0, 0, 24576, 0, 0, 0, 0, 0, 0, 20480, 0,

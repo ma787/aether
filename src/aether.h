@@ -36,14 +36,14 @@
 
 #define MOVE_REGEX "[a-h][1-8][a-h][1-8]([pnbrqk]?)"
 
-#define WHITE 1U
-#define BLACK (WHITE << 1)
-#define PAWN (WHITE << 2)
-#define KNIGHT (WHITE << 3)
-#define BISHOP (WHITE << 4)
-#define ROOK (WHITE << 5)
-#define QUEEN (WHITE << 6)
-#define KING (WHITE << 7)
+#define WHITE 1
+#define BLACK 2
+#define PAWN 4
+#define KNIGHT 8
+#define BISHOP 16
+#define ROOK 32
+#define QUEEN 64
+#define KING 128
 
 #define G (WHITE | BLACK)
 #define COLOUR_MASK 3
@@ -53,10 +53,11 @@
 #define DISTANT_CHECK 2U
 #define DOUBLE_CHECK 3U
 
-#define WHITE_QUEENSIDE 1U
-#define WHITE_KINGSIDE (WHITE_QUEENSIDE << 1)
-#define BLACK_QUEENSIDE (WHITE_QUEENSIDE << 2)
-#define BLACK_KINGSIDE (WHITE_QUEENSIDE << 3)
+
+#define WHITE_KINGSIDE 8
+#define WHITE_QUEENSIDE 4
+#define BLACK_KINGSIDE 2
+#define BLACK_QUEENSIDE 1
 
 #define N 16
 #define E 1
@@ -91,8 +92,31 @@ enum SQUARES {
     A8 = 0xB4, B8, C8, D8, E8, F8, G8, H8,
 };
 
+enum RANKS {
+    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
+};
+
+enum FILES {
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
+};
+
+extern int FIRST_RANK[3];
+extern int SECOND_RANK[3];
+extern int FINAL_RANK[3];
+extern int DPP_RANK[3];
+
+extern int PAWN_STEP[3];
+
+extern int *K_ROOK_MOVES[3];
+extern int *Q_ROOK_MOVES[3];
+extern int *K_KING_MOVES[3];
+extern int *Q_KING_MOVES[3];
+extern int KINGSIDE_RIGHTS[3];
+extern int QUEENSIDE_RIGHTS[3];
+
 extern char *FILES;
 extern char *COORDS[256];
+extern char *SIDES[3];
 extern unsigned int PIECES[];
 extern char SYMBOLS[];
 extern unsigned int PROMOTIONS[];
@@ -107,6 +131,8 @@ extern int KING_OFFS[8];
 
 extern int N_VECS[];
 extern int *MOVE_SETS[];
+
+extern unsigned int CASTLE_UPDATES[256];
 
 extern unsigned int MOVE_TABLE[239];
 extern int UNIT_VEC[239];
@@ -136,7 +162,6 @@ typedef struct {
     unsigned int dest: 8;
     unsigned int flags: 4;
     unsigned int captured_piece: 12;
-    unsigned int side: 2;
     unsigned int score: 21;
 } move_t;
 
@@ -178,8 +203,7 @@ typedef struct {
 typedef struct {
     int board[256];
     int piece_list[32];
-    int *w_pieces;
-    int *b_pieces;
+    int* p_lists[3];
 
     int ply;
     int s_ply;
@@ -241,7 +265,7 @@ move_t move_of_int(int m_int);
 
 /* move-making functions */
 
-int is_square_attacked(POSITION *pstn, int pos);
+int is_square_attacked(POSITION *pstn, int pos, int side);
 
 bool make_move(POSITION *pstn, move_t mv);
 void unmake_move(POSITION *pstn, move_t mv);
@@ -251,8 +275,8 @@ void unmake_null_move(POSITION *pstn);
 
 /* move generation functions */
 
-void all_moves(POSITION *pstn, MOVE_LIST *moves);
-void all_captures(POSITION *pstn, MOVE_LIST *moves);
+MOVE_LIST* all_moves(POSITION *pstn);
+MOVE_LIST* all_captures(POSITION *pstn);
 bool move_exists(POSITION *pstn, move_t mv);
 
 /* perft and divide functions */
@@ -303,6 +327,10 @@ int get_piece_list_index(int piece);
 int change_piece_type(int piece, int p_type);
 int change_piece_colour(int piece, int colour);
 
+bool same_colour(int p1, int p2);
+bool diff_colour(int p1, int p2);
+int opp_side(int side);
+
 int coord_to_index(int pos);
 int index_to_coord(int index);
 int flip_square(int pos);
@@ -313,5 +341,11 @@ int get_step(int start, int dest);
 
 uint64_t get_time(void);
 int input_waiting(void);
+
+/* macros */
+
+#define PLIST(pstn) pstn->p_lists[pstn->side]
+#define ENEMY_PLIST(pstn) pstn->p_lists[opp_side(pstn->side)]
+#define SIDE_PLIST(pstn, side) pstn->p_lists[side]
 
 #endif

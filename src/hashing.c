@@ -57,47 +57,36 @@ void set_hash(POSITION *pstn) {
 }
 
 void update_hash(POSITION *pstn, move_t mv) {
-    int start = mv.start, dest = mv.dest;
-    int piece = pstn->board[dest];
+    int piece = pstn->board[mv.dest];
+    int ep_sq = pstn->history[pstn->ply - 1].ep_sq;
+    int c_rights = pstn->history[pstn->ply - 1].c_rights;
 
-    HISTORY_ENTRY old_info = pstn->history[pstn->ply - 1];
+    pstn->key ^= get_hash(mv.start, piece);
+    pstn->key ^= get_hash(mv.dest, piece);
 
-    int new_c_rights = old_info.c_rights & (
-        (start != A1)
-        | ((start != H1) << 1)
-        | ((dest != A8) << 2)
-        | ((dest != H8) << 3)
-    );
-
-    if (pstn->side == BLACK) {
-        start = flip_square(start);
-        dest = flip_square(dest);
-        piece = change_piece_colour(piece, BLACK);
-        new_c_rights = ((new_c_rights & 12) >> 2) | ((new_c_rights & 3) << 2);
-    }
-
-    pstn->key ^= get_hash(start, piece);
-    pstn->key ^= get_hash(dest, piece);
-
-    if (old_info.ep_sq) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(old_info.ep_sq)];
+    if (ep_sq) {
+        pstn->key ^= HASH_VALUES[EP_OFF + get_file(ep_sq)];
     }
 
     pstn->key ^= HASH_VALUES[SIDE_OFF];
 
     if (mv.flags == K_CASTLE_FLAG || mv.flags == Q_CASTLE_FLAG) {
-        int r_start = (mv.flags == K_CASTLE_FLAG) ? H1 : A1;
-        int r_dest = (mv.flags == K_CASTLE_FLAG) ? F1 : D1;
+        int r_start, r_dest;
 
-        if (pstn->key == BLACK) {
-            r_start = flip_square(r_start);
-            r_dest = flip_square(r_dest);
-
-            pstn->key ^= HASH_VALUES[C_OFF + 2];
-            pstn->key ^= HASH_VALUES[C_OFF + 3];
+        if (mv.flags == K_CASTLE_FLAG) {
+            r_start = K_ROOK_MOVES[pstn->side][0];
+            r_dest = K_ROOK_MOVES[pstn->side][1];
         } else {
+            r_start = Q_ROOK_MOVES[pstn->side][0];
+            r_dest = Q_ROOK_MOVES[pstn->side][1];
+        }
+
+        if (pstn->side == BLACK) {
             pstn->key ^= HASH_VALUES[C_OFF];
             pstn->key ^= HASH_VALUES[C_OFF + 1];
+        } else {
+            pstn->key ^= HASH_VALUES[C_OFF + 2];
+            pstn->key ^= HASH_VALUES[C_OFF + 3];
         }
         
         pstn->key ^= get_hash(r_start, pstn->side | ROOK);
@@ -107,35 +96,29 @@ void update_hash(POSITION *pstn, move_t mv) {
     }
 
     if (mv.flags == DPP_FLAG) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(dest)];
+        pstn->key ^= HASH_VALUES[EP_OFF + get_file(mv.dest)];
         return;
     }
 
     if (mv.flags & PROMO_FLAG) {
-        pstn->key ^= get_hash(start, PAWN | pstn->side);
-        pstn->key ^= get_hash(start, piece);
+        pstn->key ^= get_hash(mv.start, PAWN | pstn->side);
+        pstn->key ^= get_hash(mv.start, piece);
     }
 
     if (mv.flags & CAPTURE_FLAG) {
-        int cap_pos = dest, cap_piece = mv.captured_piece, off = S;
-
-        if (pstn->side == BLACK) {
-            cap_piece = change_piece_colour(cap_piece, WHITE);
-            off = N;
-        }
-        
+        int cap_pos = mv.dest;
         if (mv.flags == EP_FLAG) {
-            cap_pos += off;
+            cap_pos += PAWN_STEP[opp_side(pstn->side)];
         }
 
-        pstn->key ^= get_hash(cap_pos, cap_piece);
+        pstn->key ^= get_hash(cap_pos, mv.captured_piece);
     }
 
     for (int i = 0; i < 4; i++) {
-        if (old_info.c_rights & i) {
+        if (c_rights & i) {
             pstn->key ^= HASH_VALUES[C_OFF + i];
         }
-        if (new_c_rights & i) {
+        if (pstn->c_rights & i) {
             pstn->key ^= HASH_VALUES[C_OFF + i];
         }
     }

@@ -18,6 +18,10 @@ int get_piece_list_index(int piece) { return piece >> 8; }
 int change_piece_type(int piece, int p_type) { return (piece & 0xF03) | p_type; }
 int change_piece_colour(int piece, int colour) { return (piece & 0xFFC) | colour; }
 
+bool same_colour(int p1, int p2) { return !((p1 ^ p2) & COLOUR_MASK); }
+bool diff_colour(int p1, int p2) { return ((p1 ^ p2) & COLOUR_MASK) == G; }
+int opp_side(int side) { return 3 - side; }
+
 int coord_to_index(int pos) { return 8 * get_rank(pos) + get_file(pos); }
 
 int index_to_coord(int index) { return 0x44 + index + (index & ~7); }

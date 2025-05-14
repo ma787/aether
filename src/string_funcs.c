@@ -35,10 +35,6 @@ bool move_match(char *mstr) {
 }
 
 void board_to_fen(POSITION *pstn, char *fen_str) {
-    if (pstn->side != WHITE) {
-        flip_position(pstn);
-    }
-
     int i = A8, j = 0, sq;
 
     while (i != 0x4C) {
@@ -93,10 +89,6 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
     fen_str[j++] = ' ';
     fen_str[j++] = '1'; // fullmove number not implemented
     fen_str[j] = '\0';
-
-    if (pstn->side != WHITE) {
-        flip_position(pstn);
-    }
 }
 
 int fen_to_board_array(POSITION *pstn, char *fen_str) {
@@ -147,10 +139,6 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
 }
 
 void print_board(POSITION *pstn) {
-    if (pstn->side == BLACK) {
-        flip_position(pstn);
-    } 
-
     char b_str[72];
     int i = 0xB4, j = 0, sq;
 
@@ -168,10 +156,6 @@ void print_board(POSITION *pstn) {
     
     b_str[j] = '\0';
     printf("%s\n", b_str);
-
-    if (pstn->side == BLACK) {
-        flip_position(pstn);
-    }
 }
 
 void move_to_string(move_t mv, char* mstr) {
@@ -180,15 +164,8 @@ void move_to_string(move_t mv, char* mstr) {
         return;
     }
 
-    int start = mv.start, dest = mv.dest;
-
-    if (mv.side == BLACK) {
-        start = flip_square(start);
-        dest = flip_square(dest);
-    }
-
-    strcpy(mstr, coord_to_string(start));
-    strcpy(mstr + 2, coord_to_string(dest));
+    strcpy(mstr, coord_to_string(mv.start));
+    strcpy(mstr + 2, coord_to_string(mv.dest));
     if (mv.flags & PROMO_FLAG) {
         mstr[4] = piece_to_char(PROMOTIONS[mv.flags & 3] | BLACK);
         mstr[5] = '\0';
@@ -204,31 +181,31 @@ move_t string_to_move(POSITION *pstn, char *mstr) {
     int dest = string_to_coord(mstr + 2);
     int flags = Q_FLAG;
 
-    if (pstn->side == BLACK) {
-        start = flip_square(start);
-        dest = flip_square(dest);
-    }
-
     if (pstn->board[dest]) {
         flags |= CAPTURE_FLAG;
     };
 
-    switch(pstn->board[start] & 0x0FC) {
+    int c_start = (pstn->side == WHITE) ? E1 : E8;
+
+    switch(get_piece_type(pstn->board[start])) {
         case KING:
-            if (start == E1) {
-                if (dest == C1) {
+            if (start == c_start) {
+                if (get_file(dest) == FILE_C) {
                     flags |= Q_CASTLE_FLAG;
-                } else if (dest == G1) {
+                } else if (get_file(dest) == FILE_G) {
                     flags |= K_CASTLE_FLAG;
                 }
             }
             break;
         case PAWN:
-            if (get_rank(start) == 1 && get_rank(dest) == 3) {
+            if (
+                get_rank(start) == SECOND_RANK[pstn->side] 
+                && get_rank(dest) == DPP_RANK[pstn->side]
+            ) {
                 flags = DPP_FLAG;
             } else if (dest == pstn->ep_sq) {
                 flags = EP_FLAG;
-            } else if (get_rank(dest) == 7) {
+            } else if (get_rank(dest) == FINAL_RANK[pstn->side]) {
                 flags |= PROMO_FLAG;
                 switch(get_piece_type(PIECES[(int) mstr[4]])) {
                     case BISHOP:

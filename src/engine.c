@@ -8,14 +8,14 @@ int evaluate(POSITION *pstn) {
     int w_score = pstn->material[WHITE] + pstn->pcsq_sum[WHITE];
 
     if (pstn->material[WHITE] < ENDGAME_MATERIAL) {
-        w_score -= EVAL_TABLES[KING][pstn->w_pieces[0]];
-        w_score += ENDGAME_KING_TABLE[pstn->w_pieces[0]];
+        w_score -= EVAL_TABLES[KING][SIDE_PLIST(pstn, WHITE)[0]];
+        w_score += ENDGAME_KING_TABLE[SIDE_PLIST(pstn, WHITE)[0]];
     }
 
     int b_score = pstn->material[BLACK] + pstn->pcsq_sum[BLACK];
 
     if (pstn->material[BLACK] < ENDGAME_MATERIAL) {
-        int k_pos = flip_square(pstn->b_pieces[0]);
+        int k_pos = flip_square(SIDE_PLIST(pstn, BLACK)[0]);
         b_score -= EVAL_TABLES[KING][k_pos];
         b_score += ENDGAME_KING_TABLE[k_pos];
     }
@@ -139,13 +139,9 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
             alpha = stand_pat;
         }
 
-        moves = malloc(sizeof(MOVE_LIST));
-        moves->index = 0;
-        all_captures(pstn, moves);
+        moves = all_captures(pstn);
     } else {
-        moves = malloc(sizeof(MOVE_LIST));
-        moves->index = 0;
-        all_moves(pstn, moves);
+        moves = all_moves(pstn);
     }
 
     move_t best_move = NULL_MOVE;
@@ -233,9 +229,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         }
     }
 
-    MOVE_LIST *moves = malloc(sizeof(MOVE_LIST));
-    moves->index = 0;
-    all_moves(pstn, moves);
+    MOVE_LIST *moves = all_moves(pstn);
 
     move_t best_move = NULL_MOVE;
     int old_alpha = alpha;
@@ -293,7 +287,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
 
     // end of game - check for mate
     if (n == 0) {
-        if (is_square_attacked(pstn, pstn->w_pieces[0])) {
+        if (is_square_attacked(pstn, PLIST(pstn)[0], opp_side(pstn->side))) {
             return -MATE + pstn->s_ply;
         } else {
             return 0;
