@@ -127,26 +127,28 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
     }
 
     MOVE_LIST *moves;
+    int best_score;
 
-    if (!pstn->check) {
-        int stand_pat = evaluate(pstn);
-
-        if (stand_pat >= beta) {
+    if (pstn->check) {
+        moves = all_moves(pstn);
+        best_score = alpha;
+    } else {
+        best_score = evaluate(pstn); // score from 'standing pat'
+        
+        if (best_score >= beta) {
             return beta;
         }
-
-        if (stand_pat > alpha) {
-            alpha = stand_pat;
+        if (best_score > alpha) {
+            alpha = best_score;
         }
 
         moves = all_captures(pstn);
-    } else {
-        moves = all_moves(pstn);
     }
 
     move_t best_move = NULL_MOVE;
     int old_alpha = alpha;
     int score = -INFINITY;
+    int n = 0;
     move_t pv_move = get_pv_move(pstn);
 
     if (!is_null_move(pv_move)) {
@@ -167,10 +169,12 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
             continue;
         }
 
+        n++;
         score = -quiescence(pstn, -beta, -alpha, s_info);
         unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
+            free(moves);
             return 0;
         }
 
@@ -183,15 +187,26 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
             alpha = score;
             best_move = mv;
         }
+        if (score > best_score) {
+            best_score = score;
+        }
     }
 
     free(moves);
+
+    if (!n) {
+        if (pstn->check) {
+            return -MATE + pstn->s_ply; // checkmate
+        } else {
+            return best_score; // no captures available at this position
+        }
+    }
 
     if (alpha != old_alpha) {
         store_move(pstn, best_move);
     }
 
-    return alpha;
+    return best_score;
 }
 
 int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_info, bool make_null) {
@@ -260,6 +275,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
+            free(moves);
             return 0;
         }
 
@@ -286,8 +302,8 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
     free(moves);
 
     // end of game - check for mate
-    if (n == 0) {
-        if (is_square_attacked(pstn, PLIST(pstn)[0], opp_side(pstn->side))) {
+    if (!n) {
+        if (pstn->check) {
             return -MATE + pstn->s_ply;
         } else {
             return 0;
