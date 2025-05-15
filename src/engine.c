@@ -36,6 +36,11 @@ void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
         pstn->pv_line[i] = NULL_MOVE;
     }
 
+    (pstn->hash_table)->hit = 0;
+    (pstn->hash_table)->cut = 0;
+    (pstn->hash_table)->new_writes = 0;
+    (pstn->hash_table)->over_writes = 0;
+
     memset(pstn->search_history[PAWN], 0, H8 * sizeof(int));
     memset(pstn->search_history[KNIGHT], 0, H8 * sizeof(int));
     memset(pstn->search_history[BISHOP], 0, H8 * sizeof(int));
@@ -146,19 +151,9 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
     }
 
     move_t best_move = NULL_MOVE;
-    int old_alpha = alpha;
     int score = -INFINITY;
+    int old_alpha = alpha;
     int n = 0;
-    move_t pv_move = get_pv_move(pstn);
-
-    if (!is_null_move(pv_move)) {
-        for (int i = 0; i < moves->index; i++) {
-            if (moves_equal(moves->moves[i], pv_move)) {
-                moves->moves[i].score = CAP_VALUE * 2;
-                break;
-            }
-        }
-    }
 
     while (1) {
         move_t mv;
@@ -202,10 +197,6 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
         }
     }
 
-    if (alpha != old_alpha) {
-        store_move(pstn, best_move);
-    }
-
     return best_score;
 }
 
@@ -225,8 +216,6 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         return 0;
     }
 
-    int score = -INFINITY;
-
     if (pstn->check) {
         depth++;
     } else if (
@@ -236,7 +225,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         && pstn->big_pieces[WHITE] > 1  // probably not zugzwang
     ) {
         make_null_move(pstn);
-        score = -alpha_beta(pstn, -beta, -beta + 1, depth - 4, s_info, false);
+        int score = -alpha_beta(pstn, -beta, -beta + 1, depth - 4, s_info, false);
         unmake_null_move(pstn);
 
         if (score >= beta) {
@@ -247,10 +236,13 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
     MOVE_LIST *moves = all_moves(pstn);
 
     move_t best_move = NULL_MOVE;
-    int old_alpha = alpha;
-    score = -INFINITY;
-    int n = 0;
-    move_t pv_move = get_pv_move(pstn);
+    int best_score = -INFINITY;
+    move_t pv_move = NULL_MOVE;
+
+    if (get_entry_info(pstn, &pv_move, &best_score, alpha, beta, depth)) {
+        (pstn->hash_table)->cut++;
+        return best_score;
+    }
 
     if (!(is_null_move(pv_move))) {
         for (int i = 0; i < moves->index; i++) {
@@ -260,6 +252,10 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
             }
         }
     }
+
+    int old_alpha = alpha;
+    int n = 0;
+    best_score = -INFINITY;
 
     while (1) {
         move_t mv;
@@ -271,7 +267,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         }
 
         n++;
-        score = -alpha_beta(pstn, -beta, -alpha, depth - 1, s_info, true);
+        int score = -alpha_beta(pstn, -beta, -alpha, depth - 1, s_info, true);
         unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
@@ -279,23 +275,29 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
             return 0;
         }
 
-        if (score > alpha) {
-            if (score >= beta) {
-                if (!(mv.flags & CAPTURE_FLAG)) {
-                    pstn->search_killers[1][pstn->s_ply] = pstn->search_killers[0][pstn->s_ply];
-                    pstn->search_killers[0][pstn->s_ply] = mv;
-                }
-                
-                free(moves);
-                return beta;
-            }
-
-            if (!(mv.flags & CAPTURE_FLAG)) {
-                pstn->search_history[get_piece_type(pstn->board[mv.start])][mv.dest] += depth;
-            }
-
-            alpha = score;
+        if (score > best_score) {
+            best_score = score;
             best_move = mv;
+
+            if (score > alpha) {
+                if (score >= beta) {
+                    if (!(mv.flags & CAPTURE_FLAG)) {
+                        pstn->search_killers[1][pstn->s_ply] = pstn->search_killers[0][pstn->s_ply];
+                        pstn->search_killers[0][pstn->s_ply] = mv;
+                    }
+
+                    store_entry(pstn, best_move, score, depth, CUT);
+
+                    free(moves);
+                    return beta;
+                }
+
+                if (!(mv.flags & CAPTURE_FLAG)) {
+                    pstn->search_history[get_piece_type(pstn->board[mv.start])][mv.dest] += depth;
+                }
+
+                alpha = score;
+            }
         }
     }
 
@@ -311,7 +313,9 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
     }
 
     if (alpha != old_alpha) {
-        store_move(pstn, best_move);
+        store_entry(pstn, best_move, best_score, depth, PV);
+    } else {
+        store_entry(pstn, best_move, old_alpha, depth, ALL);
     }
 
     return alpha;
@@ -336,8 +340,8 @@ void search(POSITION *pstn, SEARCH_INFO *s_info) {
         best_move = pstn->pv_line[0];
 
         printf(
-            "info depth %d score cp %d nodes %lu time %lu pv", 
-            current_depth, score, s_info->nodes, (get_time() - s_info->start_time)
+            "info depth %d score cp %d nodes %lu tbhits %d time %lu pv", 
+            current_depth, score, s_info->nodes, (pstn->hash_table)->hit, (get_time() - s_info->start_time)
         );
 
         for (int i = 0; i < pv_count; i++) {

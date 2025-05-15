@@ -124,30 +124,83 @@ void update_hash(POSITION *pstn, move_t mv) {
     }
 }
 
-void clear_pv_table(POSITION *pstn) {
-    TABLE_ENTRY *t_entry = (pstn->pv_table)->table;
+void clear_hash_table(POSITION *pstn) {
+    TABLE_ENTRY *t_entry = (pstn->hash_table)->table;
 
-    while (t_entry < (pstn->pv_table)->table + (pstn->pv_table)->n_entries) {
+    while (t_entry < (pstn->hash_table)->table + (pstn->hash_table)->n_entries) {
         t_entry->key = 0UL;
         t_entry->best_move = NULL_MOVE;
+        t_entry->score = 0;
+        t_entry->depth = 0;
+        t_entry->n_type = 0;
         t_entry++;
     }
+    
+    (pstn->hash_table)->new_writes = 0;
+    (pstn->hash_table)->over_writes = 0;
+    (pstn->hash_table)->hit = 0;
+    (pstn->hash_table)->cut = 0;
 }
 
-void store_move(POSITION *pstn, move_t mv) {
-    int index = pstn->key % (pstn->pv_table)->n_entries;
+void store_entry(POSITION *pstn, move_t mv, int score, int depth, int n_type) {
+    int index = pstn->key % (pstn->hash_table)->n_entries;
 
-    (pstn->pv_table)->table[index].key = pstn->key;
-    (pstn->pv_table)->table[index].best_move = mv;
+    if ((pstn->hash_table)->table[index].key) { (pstn->hash_table)->over_writes++; }
+    else { (pstn->hash_table)->new_writes++; }
+
+    if ((pstn->hash_table)->table[index].score > MATE - MAX_DEPTH) { score = MATE; } 
+    else if ((pstn->hash_table)->table[index].score < -MATE + MAX_DEPTH) { score = -MATE; }
+
+    (pstn->hash_table)->table[index].key = pstn->key;
+    (pstn->hash_table)->table[index].best_move = mv;
+    (pstn->hash_table)->table[index].score = score;
+    (pstn->hash_table)->table[index].depth = depth;
+    (pstn->hash_table)->table[index].n_type = n_type;
+}
+
+bool get_entry_info(POSITION *pstn, move_t *mv, int *score, int alpha, int beta, int depth) {
+    int index = pstn->key % (pstn->hash_table)->n_entries;
+    TABLE_ENTRY entry = (pstn->hash_table)->table[index];
+
+    if (entry.key == pstn->key) {
+        *mv = entry.best_move;
+
+        if (entry.depth >= depth) {
+            (pstn->hash_table)->hit++;
+
+            *score = entry.score;
+            if ((pstn->hash_table)->table[index].score == MATE) { *score = MATE - pstn->s_ply; } 
+            else if ((pstn->hash_table)->table[index].score == -MATE) { *score = -MATE + pstn->s_ply; }
+
+            switch(entry.n_type) {
+                case PV:
+                    return true;
+                case ALL:
+                    if (entry.score <= alpha) {
+                        *score = alpha;
+                        return true;
+                    }
+                    break;
+                case CUT:
+                    if (entry.score >= beta) {
+                        *score = beta;
+                        return true;
+                    }
+            }
+        }
+    }
+
+    return false;
 }
 
 move_t get_pv_move(POSITION *pstn) {
-    int index = pstn->key % (pstn->pv_table)->n_entries;
+    int index = pstn->key % (pstn->hash_table)->n_entries;
+    TABLE_ENTRY entry = (pstn->hash_table)->table[index];
 
-    if ((pstn->pv_table)->table[index].key == pstn->key) {
-        return (pstn->pv_table)->table[index].best_move;
+    if (entry.key == pstn->key) {
+        return entry.best_move;
     }
-
+    
     return NULL_MOVE;
 }
 

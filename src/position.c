@@ -186,10 +186,10 @@ POSITION* new_position(void) {
     set_hash(pstn);
 
     // allocate memory for pv table
-    (pstn->pv_table)->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
-    (pstn->pv_table)->n_entries -= 2; // ensures that memory is not overrun
-    (pstn->pv_table)->table = (TABLE_ENTRY *) malloc((pstn->pv_table)->n_entries * sizeof(TABLE_ENTRY));
-    clear_pv_table(pstn);
+    (pstn->hash_table)->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
+    (pstn->hash_table)->n_entries -= 2; // ensures that memory is not overrun
+    (pstn->hash_table)->table = (TABLE_ENTRY *) malloc((pstn->hash_table)->n_entries * sizeof(TABLE_ENTRY));
+    clear_hash_table(pstn);
 
     // allocate and zero initialise memory for history table
     pstn->search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
@@ -203,7 +203,7 @@ POSITION* new_position(void) {
 }
 
 void free_position(POSITION *pstn) {
-    free((pstn->pv_table)->table);
+    free((pstn->hash_table)->table);
     free(pstn->search_history[PAWN]);
     free(pstn->search_history[KNIGHT]);
     free(pstn->search_history[BISHOP]);

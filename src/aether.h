@@ -46,13 +46,7 @@
 #define KING 128
 
 #define G (WHITE | BLACK)
-#define COLOUR_MASK 3
-
-#define NO_CHECK 0U
-#define CONTACT_CHECK 1U
-#define DISTANT_CHECK 2U
-#define DOUBLE_CHECK 3U
-
+#define COLOUR_MASK (WHITE | BLACK)
 
 #define WHITE_KINGSIDE 8
 #define WHITE_QUEENSIDE 4
@@ -98,6 +92,14 @@ enum RANKS {
 
 enum FILES {
     FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
+};
+
+enum CHECK_TYPES {
+    NO_CHECK, CONTACT_CHECK, DISTANT_CHECK, DOUBLE_CHECK
+};
+
+enum N_TYPES {
+    NONE, ALL, CUT, PV
 };
 
 extern int FIRST_RANK[3];
@@ -182,11 +184,18 @@ typedef struct {
 typedef struct {
     uint64_t key;
     move_t best_move;
+    int score;
+    int depth;
+    int n_type;
 } TABLE_ENTRY;
 
 typedef struct {
     TABLE_ENTRY *table;
     int n_entries;
+    int new_writes;
+    int over_writes;
+    int hit;
+    int cut;
 } HASH_TABLE;
 
 typedef struct {
@@ -225,7 +234,7 @@ typedef struct {
     move_t move_history[HISTORY_TABLE_SIZE];
     uint8_t rep_table[REPETITION_TABLE_SIZE];
 
-    HASH_TABLE pv_table[1];
+    HASH_TABLE hash_table[1];
     move_t pv_line[MAX_DEPTH];
 
     int *search_history[KING + 1];
@@ -290,10 +299,10 @@ void divide(POSITION *pstn, int depth);
 void set_hash(POSITION *pstn);
 void update_hash(POSITION *pstn, move_t mv);
 
-void clear_pv_table(POSITION *pstn);
+void clear_hash_table(POSITION *pstn);
 
-void store_move(POSITION *pstn, move_t mv);
-move_t get_pv_move(POSITION *pstn);
+void store_entry(POSITION *pstn, move_t mv, int score, int depth, int n_type);
+bool get_entry_info(POSITION *pstn, move_t *mv, int *score, int alpha, int beta, int depth);
 
 int get_pv_line(POSITION *pstn, int depth);
 
