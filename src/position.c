@@ -186,7 +186,7 @@ POSITION* new_position(void) {
     set_hash(pstn);
 
     // allocate memory for pv table
-    (pstn->hash_table)->n_entries = PV_TABLE_SIZE / sizeof(TABLE_ENTRY);
+    (pstn->hash_table)->n_entries = HASH_TABLE_SIZE / sizeof(TABLE_ENTRY);
     (pstn->hash_table)->n_entries -= 2; // ensures that memory is not overrun
     (pstn->hash_table)->table = (TABLE_ENTRY *) malloc((pstn->hash_table)->n_entries * sizeof(TABLE_ENTRY));
     clear_hash_table(pstn);
