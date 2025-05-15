@@ -13,7 +13,7 @@
 #define MOVE_LIST_SIZE 256
 #define HISTORY_TABLE_SIZE 1024
 #define REPETITION_TABLE_SIZE 32768
-#define PV_TABLE_SIZE 0x100000 * 2
+#define HASH_TABLE_SIZE 0x100000 * 16
 #define S_HIS_TABLE_SIZE (H8 + 1) * sizeof(int)
 
 #define MAX_DEPTH 64
