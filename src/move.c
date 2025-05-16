@@ -57,9 +57,10 @@ void move_piece(POSITION *pstn, int start, int dest) {
     pstn->board[start] = 0;
     pstn->board[dest] = piece;
     PLIST(pstn)[get_piece_list_index(piece)] = dest;
-    int p_type = get_piece_type(piece);
-    pstn->pcsq_sum[pstn->side] -= EVAL_TABLES[p_type][start];
-    pstn->pcsq_sum[pstn->side] += EVAL_TABLES[p_type][dest];
+    int p_type = get_piece_type(piece), s, d;
+    if (pstn->side == WHITE) { s = start, d = dest; } 
+    else { s = flip_square(start), d = flip_square(dest); }
+    pstn->pcsq_sum[pstn->side] += (EVAL_TABLES[p_type][d] - EVAL_TABLES[p_type][s]);
 }
 
 void capture_piece(POSITION *pstn, move_t mv) {
@@ -75,7 +76,11 @@ void capture_piece(POSITION *pstn, move_t mv) {
     ENEMY_PLIST(pstn)[get_piece_list_index(mv.captured_piece)] = 0;
     int p_type = get_piece_type(mv.captured_piece);
     pstn->material[enemy_side] -= PIECE_VALS[p_type];
-    pstn->pcsq_sum[enemy_side] -= EVAL_TABLES[p_type][flip_square(cap_pos)];
+
+    if (enemy_side == BLACK) {
+        cap_pos = flip_square(cap_pos);
+    }
+    pstn->pcsq_sum[enemy_side] -= EVAL_TABLES[p_type][cap_pos];
 }
 
 void restore_piece(POSITION *pstn, move_t mv) {
@@ -93,22 +98,28 @@ void restore_piece(POSITION *pstn, move_t mv) {
     ENEMY_PLIST(pstn)[get_piece_list_index(mv.captured_piece)] = cap_pos;
     int p_type = get_piece_type(mv.captured_piece);
     pstn->material[enemy_side] += PIECE_VALS[p_type];
-    pstn->pcsq_sum[enemy_side] += EVAL_TABLES[p_type][flip_square(cap_pos)];
+
+    if (enemy_side == BLACK) {
+        cap_pos = flip_square(cap_pos);
+    }
+    pstn->pcsq_sum[enemy_side] += EVAL_TABLES[p_type][cap_pos];
 }
 
 void promote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
     pstn->board[mv.dest] = change_piece_type(piece, pr_type);
     pstn->material[pstn->side] += (PIECE_VALS[pr_type] - PIECE_VALS[PAWN]);
-    pstn->pcsq_sum[pstn->side] += (EVAL_TABLES[pr_type][mv.dest] - EVAL_TABLES[PAWN][mv.dest]);
+    int dest = pstn->side == BLACK ? flip_square(mv.dest) : mv.dest;
+    pstn->pcsq_sum[pstn->side] += (EVAL_TABLES[pr_type][dest] - EVAL_TABLES[PAWN][dest]);
     pstn->big_pieces[pstn->side]++;
 }
 
 void demote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
     pstn->board[mv.dest] = change_piece_type(piece, PAWN);
-    pstn->material[WHITE] += (PIECE_VALS[PAWN] - PIECE_VALS[pr_type]);
-    pstn->pcsq_sum[WHITE] += (EVAL_TABLES[PAWN][mv.dest] - EVAL_TABLES[pr_type][mv.dest]);
+    pstn->material[pstn->side] += (PIECE_VALS[PAWN] - PIECE_VALS[pr_type]);
+    int dest = pstn->side == BLACK ? flip_square(mv.dest) : mv.dest;
+    pstn->pcsq_sum[pstn->side] += (EVAL_TABLES[PAWN][dest] - EVAL_TABLES[pr_type][dest]);
     pstn->big_pieces[pstn->side]--;
 }
 

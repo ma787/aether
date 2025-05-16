@@ -26,7 +26,7 @@ int coord_to_index(int pos) { return 8 * get_rank(pos) + get_file(pos); }
 
 int index_to_coord(int index) { return 0x44 + index + (index & ~7); }
 
-int flip_square(int pos) { return (~pos & 0xF0) | (pos & 0x0F); }
+int flip_square(int pos) { return ~pos & 0xFF; }
 
 int square_diff(int start, int dest) { return 0x77 + dest - start; }
 
