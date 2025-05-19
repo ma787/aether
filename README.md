@@ -12,8 +12,8 @@ Aether is a chess engine written in C which supports the UCI protocol. It also s
 - Quiescence search
 - MVV-LVA move ordering
 - Killer move and alpha improvement heuristics
-- Zobrist hashing and PV move hash table
+- Zobrist hashing and transposition table
 - Repetition detection (though not aware of threefold repetition)
-- Simple material and square-based evaluation
+- Tapered evaluation (PeSTO)
 
 For more information on the move generation features, see [this](https://talkchess.com/viewtopic.php?t=81265) forum post by H.G. Muller.
