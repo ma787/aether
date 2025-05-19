@@ -25,8 +25,6 @@
 #define FIRST_KILLER_VALUE 900000
 #define SECOND_KILLER_VALUE 800000
 
-#define ENDGAME_MATERIAL 1500
-
 #define START_POS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define FEN_REGEX ( \
@@ -74,6 +72,8 @@
 #define EP_OFF 768
 #define C_OFF 776
 #define SIDE_OFF 780
+
+#define START_PHASE 24
 
 enum SQUARES {
     A1 = 0x44, B1, C1, D1, E1, F1, G1, H1,
@@ -140,8 +140,9 @@ extern unsigned int MOVE_TABLE[239];
 extern int UNIT_VEC[239];
 
 extern int PIECE_VALS[];
-extern int *EVAL_TABLES[];
-extern int ENDGAME_KING_TABLE[256];
+extern int *PST_START[];
+extern int *PST_END[];
+extern int PHASES[];
 
 extern int *MVV_LVA_SCORES[];
 
@@ -157,6 +158,7 @@ typedef struct {
     int check;
     int fst_checker;
     int snd_checker;
+    int phase;
 } HISTORY_ENTRY;
 
 typedef struct {
@@ -223,6 +225,7 @@ typedef struct {
     int check;
     int fst_checker;
     int snd_checker;
+    int phase;
 
     int material[3];
     int pcsq_sum[3];
@@ -253,7 +256,6 @@ void free_position(POSITION *pstn);
 
 int update_position(POSITION *pstn, char *fen_str);
 
-void flip_position(POSITION *pstn);
 void switch_side(POSITION *pstn);
 void add_checker(POSITION *pstn, int check_type, int checker);
 
@@ -261,6 +263,7 @@ void save_state(POSITION *pstn);
 void restore_state(POSITION *pstn);
 
 bool is_repetition(POSITION *pstn);
+int get_pst_value(POSITION *pstn, int p_type, int pos, int side);
 
 /* move encoding/decoding, getting and comparison functions */
 

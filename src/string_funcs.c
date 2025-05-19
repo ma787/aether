@@ -126,7 +126,8 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
                     }
 
                     pstn->material[colour] += PIECE_VALS[p_type];
-                    pstn->pcsq_sum[colour] += EVAL_TABLES[p_type][pos];
+                    pstn->pcsq_sum[colour] += PST_START[p_type][pos];
+                    pstn->phase += PHASES[p_type];
 
                     count++;
                 } else {

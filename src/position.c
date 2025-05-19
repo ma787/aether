@@ -103,7 +103,8 @@ void save_state(POSITION *pstn) {
         pstn->h_clk,
         pstn->check,
         pstn->fst_checker,
-        pstn->snd_checker
+        pstn->snd_checker,
+        pstn->phase
     };
     pstn->history[pstn->ply] = h_entry;
 }
@@ -118,6 +119,7 @@ void restore_state(POSITION *pstn) {
     pstn->check = h_entry.check;
     pstn->fst_checker = h_entry.fst_checker;
     pstn->snd_checker = h_entry.snd_checker;
+    pstn->phase = h_entry.phase;
 }
 
 void clear_tables(POSITION *pstn) {
@@ -180,6 +182,7 @@ POSITION* new_position(void) {
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
+    pstn->phase = 0;
 
     fen_to_board_array(pstn, START_POS);
     set_piece_list(pstn);
@@ -220,12 +223,15 @@ int update_position(POSITION *pstn, char *fen_str) {
     pstn->s_ply = 0;
     pstn->c_rights = 0;
     pstn->ep_sq = 0;
+    pstn->phase = 0;
 
     int idx;
 
     if ((idx = fen_to_board_array(pstn, fen_str)) == -1) {
         return 0;
     }
+
+    if (pstn->phase > 24) { pstn->phase = 24; }
 
     pstn->side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
 
@@ -265,4 +271,12 @@ bool is_repetition(POSITION *pstn) {
     }
 
     return false;
+}
+
+int get_pst_value(POSITION *pstn, int p_type, int pos, int side) {
+    int eval_pos = (side == WHITE) ? pos : flip_square(pos);
+    return (
+        (pstn->phase * PST_START[p_type][eval_pos])
+        + ((START_PHASE - pstn->phase) * PST_END[p_type][eval_pos])
+    ) / START_PHASE;
 }

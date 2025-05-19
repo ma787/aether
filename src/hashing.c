@@ -137,9 +137,6 @@ void clear_hash_table(POSITION *pstn) {
     }
     
     (pstn->hash_table)->new_writes = 0;
-    (pstn->hash_table)->over_writes = 0;
-    (pstn->hash_table)->hit = 0;
-    (pstn->hash_table)->cut = 0;
 }
 
 void store_entry(POSITION *pstn, move_t mv, int score, int depth, int n_type) {
@@ -147,9 +144,6 @@ void store_entry(POSITION *pstn, move_t mv, int score, int depth, int n_type) {
 
     if ((pstn->hash_table)->table[index].key) { (pstn->hash_table)->over_writes++; }
     else { (pstn->hash_table)->new_writes++; }
-
-    if ((pstn->hash_table)->table[index].score > MATE - MAX_DEPTH) { score = MATE; } 
-    else if ((pstn->hash_table)->table[index].score < -MATE + MAX_DEPTH) { score = -MATE; }
 
     (pstn->hash_table)->table[index].key = pstn->key;
     (pstn->hash_table)->table[index].best_move = mv;
@@ -169,8 +163,8 @@ bool get_entry_info(POSITION *pstn, move_t *mv, int *score, int alpha, int beta,
             (pstn->hash_table)->hit++;
 
             *score = entry.score;
-            if ((pstn->hash_table)->table[index].score == MATE) { *score = MATE - pstn->s_ply; } 
-            else if ((pstn->hash_table)->table[index].score == -MATE) { *score = -MATE + pstn->s_ply; }
+            if ((pstn->hash_table)->table[index].score > MATE) { *score -= pstn->s_ply; } 
+            else if ((pstn->hash_table)->table[index].score < -MATE) { *score += pstn->s_ply; }
 
             switch(entry.n_type) {
                 case PV:
@@ -197,7 +191,7 @@ move_t get_pv_move(POSITION *pstn) {
     int index = pstn->key % (pstn->hash_table)->n_entries;
     TABLE_ENTRY entry = (pstn->hash_table)->table[index];
 
-    if (entry.key == pstn->key) {
+    if (entry.key == pstn->key && entry.n_type == PV) {
         return entry.best_move;
     }
     
