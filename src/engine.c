@@ -214,6 +214,10 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         int score = -alpha_beta(pstn, -beta, -beta + 1, depth - 4, s_info, false);
         unmake_null_move(pstn);
 
+        if (s_info->stopped == true) {
+            return 0;
+        }
+
         if (score >= beta) {
             return beta;
         }
