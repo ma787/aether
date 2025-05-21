@@ -1,7 +1,9 @@
 #include <string.h>
 #include "aether.h"
 
-void add_quiet_move(POSITION *pstn, move_t mv, MOVE_LIST *moves) {
+void add_quiet_move(POSITION *pstn, MOVE_LIST *moves, int s, int d, int f) {
+    move_t mv = get_move(pstn, s, d, f);
+
     if (moves_equal(pstn->search_killers[0][pstn->s_ply], mv)) {
         mv.score = FIRST_KILLER_VALUE;
     } else if (moves_equal(pstn->search_killers[1][pstn->s_ply], mv)) {
@@ -13,35 +15,37 @@ void add_quiet_move(POSITION *pstn, move_t mv, MOVE_LIST *moves) {
     moves->moves[moves->index++] = mv;
 }
 
-void add_capture_move(POSITION *pstn, move_t mv, MOVE_LIST *moves) {
+void add_capture_move(POSITION *pstn, MOVE_LIST *moves, int s, int d, int f) {
+    move_t mv = get_move(pstn, s, d, f | CAPTURE_FLAG);
     mv.score = MVV_LVA(pstn, mv.start, mv.dest) + CAP_VALUE;
     moves->moves[moves->index++] = mv;
 }
 
-void add_ep_capture_move(move_t mv, MOVE_LIST *moves) {
+void add_ep_capture_move(POSITION *pstn, MOVE_LIST *moves, int start) {
+    move_t mv = get_move(pstn, start, pstn->ep_sq, EP_FLAG);
     mv.score = 105 + CAP_VALUE;
     moves->moves[moves->index++] = mv;
 }
 
-void add_pawn_quiet_move(POSITION *pstn, int start, int dest, MOVE_LIST *moves) {
-    if (RANK(dest) == FINAL_RANK[pstn->side]) {
-        add_quiet_move(pstn, get_move(pstn, start, dest, KNIGHT_PROMO), moves);
-        add_quiet_move(pstn, get_move(pstn, start, dest, BISHOP_PROMO), moves);
-        add_quiet_move(pstn, get_move(pstn, start, dest, ROOK_PROMO), moves);
-        add_quiet_move(pstn, get_move(pstn, start, dest, QUEEN_PROMO), moves);
+void add_pawn_quiet_move(POSITION *pstn, int s, int d, MOVE_LIST *moves) {
+    if (RANK(d) == FINAL_RANK[pstn->side]) {
+        add_quiet_move(pstn, moves, s, d, KNIGHT_PROMO);
+        add_quiet_move(pstn, moves, s, d, BISHOP_PROMO);
+        add_quiet_move(pstn, moves, s, d, ROOK_PROMO);
+        add_quiet_move(pstn, moves, s, d, QUEEN_PROMO);
     } else {
-        add_quiet_move(pstn, get_move(pstn, start, dest, Q_FLAG), moves);
+        add_quiet_move(pstn, moves, s, d, Q_FLAG);
     }
 }
 
-void add_pawn_capture_move(POSITION *pstn, int start, int dest, MOVE_LIST *moves) {
-    if (RANK(dest) == FINAL_RANK[pstn->side]) {
-        add_capture_move(pstn, get_move(pstn, start, dest, KNIGHT_PROMO | CAPTURE_FLAG), moves);
-        add_capture_move(pstn, get_move(pstn, start, dest, BISHOP_PROMO | CAPTURE_FLAG), moves);
-        add_capture_move(pstn, get_move(pstn, start, dest, ROOK_PROMO | CAPTURE_FLAG), moves);
-        add_capture_move(pstn, get_move(pstn, start, dest, QUEEN_PROMO | CAPTURE_FLAG), moves);
+void add_pawn_capture_move(POSITION *pstn, int s, int d, MOVE_LIST *moves) {
+    if (RANK(d) == FINAL_RANK[pstn->side]) {
+        add_capture_move(pstn, moves, s, d, KNIGHT_PROMO);
+        add_capture_move(pstn, moves, s, d, BISHOP_PROMO);
+        add_capture_move(pstn, moves, s, d, ROOK_PROMO);
+        add_capture_move(pstn, moves, s, d, QUEEN_PROMO);
     } else {
-        add_capture_move(pstn, get_move(pstn, start, dest, CAPTURE_FLAG), moves);
+        add_capture_move(pstn, moves, s, d, 0);
     }
 }
 
@@ -51,8 +55,11 @@ void gen_pawn_step(POSITION *pstn, int pos, MOVE_LIST *moves) {
     if (!pstn->board[current]) {
         add_pawn_quiet_move(pstn, pos, current, moves);
 
-        if (RANK(pos) == SECOND_RANK[pstn->side] && !(pstn->board[(current += PAWN_STEP[pstn->side])])) {
-            add_quiet_move(pstn, get_move(pstn, pos, current, DPP_FLAG), moves);
+        if (
+            RANK(pos) == SECOND_RANK[pstn->side] 
+            && !(pstn->board[(current += PAWN_STEP[pstn->side])])
+        ) {
+            add_quiet_move(pstn, moves, pos, current, DPP_FLAG);
         }
     }
 }
@@ -65,29 +72,28 @@ void gen_pawn_capture(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
 }
 
 void gen_ep_capture(POSITION *pstn, MOVE_LIST *moves) {
-    int pawn_off = PAWN_STEP[OTHER(pstn->side)];
-    int e_pawn_pos = pstn->ep_sq + pawn_off + E;
+    int e_pawn_pos = pstn->ep_sq + PAWN_STEP[OTHER(pstn->side)] + E;
     int e_pawn = pstn->board[e_pawn_pos];
 
     if ((e_pawn & pstn->side) && (e_pawn & PAWN)) {
-        add_ep_capture_move(get_move(pstn, e_pawn_pos, pstn->ep_sq, EP_FLAG), moves);
+        add_ep_capture_move(pstn, moves, e_pawn_pos);
     }
     
-    int w_pawn_pos = pstn->ep_sq + pawn_off + W;
+    int w_pawn_pos = pstn->ep_sq + PAWN_STEP[OTHER(pstn->side)] + W;
     int w_pawn = pstn->board[w_pawn_pos];
 
     if ((w_pawn & pstn->side) && (w_pawn & PAWN)) {
-        add_ep_capture_move(get_move(pstn, w_pawn_pos, pstn->ep_sq, EP_FLAG), moves);
+        add_ep_capture_move(pstn, moves, w_pawn_pos);
     }
 }
 
 void gen_step(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
     int current = pos + vec, sq = pstn->board[current];
 
-    if (diff_colour(sq & COLOUR_MASK, pstn->side)) {
-        add_capture_move(pstn, get_move(pstn, pos, current, CAPTURE_FLAG), moves);
+    if (DIFF_COLOUR(sq & COLOUR_MASK, pstn->side)) {
+        add_capture_move(pstn, moves, pos, current, 0);
     } else if (!sq) {
-        add_quiet_move(pstn, get_move(pstn, pos, current, Q_FLAG), moves);
+        add_quiet_move(pstn, moves, pos, current, Q_FLAG);
     }
 }
 
@@ -100,11 +106,11 @@ void gen_slider(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
 
         if (colour & pstn->side) {
             break;
-        } else if (diff_colour(colour, pstn->side)) {
-            add_capture_move(pstn, get_move(pstn, pos, current, CAPTURE_FLAG), moves);
+        } else if (DIFF_COLOUR(colour, pstn->side)) {
+            add_capture_move(pstn, moves, pos, current, 0);
             break;
         } else {
-            add_quiet_move(pstn, get_move(pstn, pos, current, Q_FLAG), moves);
+            add_quiet_move(pstn, moves, pos, current, Q_FLAG);
         }
     }
 }
@@ -134,16 +140,14 @@ void gen_moves_from_position(POSITION *pstn, int pos, MOVE_LIST *moves) {
 
 void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
     int piece = pstn->board[pos];
-
     if (!piece || !pstn->board[enemy_pos]) {
         return;
     }
 
     if (piece & PAWN) {
-        int pawn_off = PAWN_STEP[pstn->side];
         if (
-            enemy_pos == (pos + pawn_off + E) 
-            || enemy_pos == (pos + pawn_off + W)
+            enemy_pos == (pos + PAWN_STEP[pstn->side] + E) 
+            || enemy_pos == (pos + PAWN_STEP[pstn->side] + W)
         ) {
             add_pawn_capture_move(pstn, pos, enemy_pos, moves);
         }
@@ -151,9 +155,8 @@ void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
     }
 
     int alignment = ALIGNMENT(pos, enemy_pos);
-
     if (alignment & piece) {
-        add_capture_move(pstn, get_move(pstn, pos, enemy_pos, CAPTURE_FLAG), moves);
+        add_capture_move(pstn, moves, pos, enemy_pos, 0);
     } else if ((alignment >> 8) & piece) {
         int step = STEP(pos, enemy_pos);
         int current = pos + step;
@@ -165,7 +168,7 @@ void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
             current += step;
         }
         if (current == enemy_pos) {
-            add_capture_move(pstn, get_move(pstn, pos, enemy_pos, CAPTURE_FLAG), moves);
+            add_capture_move(pstn, moves, pos, enemy_pos, 0);
         }
     }
 }
@@ -206,7 +209,7 @@ bool find_pinned_piece(POSITION *pstn, PIN_INFO *p_info) {
     int current = k_pos;
 
     for (;;) {
-        current += p_info->pin_vector;
+        current += p_info->vec;
         int sq = pstn->board[current];
         int colour = sq & COLOUR_MASK;
 
@@ -217,10 +220,10 @@ bool find_pinned_piece(POSITION *pstn, PIN_INFO *p_info) {
                 return false;
             }
             possible_pin = true;
-            p_info->pinned_loc = current;
+            p_info->pinned = current;
         } else if (colour & OTHER(pstn->side)) {
             if (possible_pin && ((ALIGNMENT(current, k_pos) >> 8) & sq)) {
-                p_info->pinning_loc = current;
+                p_info->pinning = current;
                 return true;
             }
             return false;
@@ -229,67 +232,71 @@ bool find_pinned_piece(POSITION *pstn, PIN_INFO *p_info) {
 }
 
 void gen_pinned_moves(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
-    if (p_info->pinned_piece & PAWN) {
-        if (p_info->pin_vector == N || p_info->pin_vector == S) {
-            gen_pawn_step(pstn, p_info->pinned_loc, moves);
+    if (p_info->piece & PAWN) {
+        if (p_info->vec == N || p_info->vec == S) {
+            gen_pawn_step(pstn, p_info->pinned, moves);
         } else if (
-            p_info->pin_vector == (PAWN_STEP[pstn->side] + E) 
-            || p_info->pin_vector == (PAWN_STEP[pstn->side] + W)
+            p_info->vec == (PAWN_STEP[pstn->side] + E) 
+            || p_info->vec == (PAWN_STEP[pstn->side] + W)
         ) {
-            gen_pawn_capture(pstn, p_info->pinned_loc, p_info->pin_vector, moves);
+            gen_pawn_capture(
+                pstn, p_info->pinned, p_info->vec, moves
+            );
         } else if (
-            p_info->pin_vector == (PAWN_STEP[OTHER(pstn->side)] + E) 
-            || p_info->pin_vector == (PAWN_STEP[OTHER(pstn->side)] + W)
+            p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + E) 
+            || p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + W)
         ) {
-            gen_pawn_capture(pstn, p_info->pinned_loc, -p_info->pin_vector, moves);
+            gen_pawn_capture(pstn, p_info->pinned, -p_info->vec, moves);
         }
     } else if (
-        p_info->pinned_piece & (BISHOP | ROOK | QUEEN)
-        && (ALIGNMENT(p_info->pinned_loc, p_info->pinned_loc + p_info->pin_vector) & p_info->pinned_piece)
+        p_info->piece & (BISHOP | ROOK | QUEEN)
+        && (
+            ALIGNMENT(p_info->pinned, p_info->pinned + p_info->vec) 
+            & p_info->piece
+        )
     ) {
-        gen_slider(pstn, p_info->pinned_loc, p_info->pin_vector, moves);
-        gen_slider(pstn, p_info->pinned_loc, -p_info->pin_vector, moves);
+        gen_slider(pstn, p_info->pinned, p_info->vec, moves);
+        gen_slider(pstn, p_info->pinned, -p_info->vec, moves);
     }
 }
 
 void gen_pinned_captures(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
-    if (p_info->pinned_piece & PAWN) {
+    if (p_info->pinned & PAWN) {
         if (
-            p_info->pin_vector == (PAWN_STEP[pstn->side] + E) 
-            || p_info->pin_vector == (PAWN_STEP[pstn->side] + W)
+            p_info->vec == (PAWN_STEP[pstn->side] + E) 
+            || p_info->vec == (PAWN_STEP[pstn->side] + W)
         ) {
-            gen_pawn_capture(pstn, p_info->pinned_loc, p_info->pin_vector, moves);
+            gen_pawn_capture(pstn, p_info->pinned, p_info->vec, moves);
         } else if (
-            p_info->pin_vector == (PAWN_STEP[OTHER(pstn->side)] + E) 
-            || p_info->pin_vector == (PAWN_STEP[OTHER(pstn->side)] + W)
+            p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + E) 
+            || p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + W)
         ) {
-            gen_pawn_capture(pstn, p_info->pinned_loc, -p_info->pin_vector, moves);
+            gen_pawn_capture(pstn, p_info->pinned, -p_info->vec, moves);
         }
         return;
     }
     
-    int alignment = ALIGNMENT(p_info->pinned_loc, p_info->pinning_loc);
-    if (
-        alignment & p_info->pinned_piece
-        || ((alignment >> 8) & p_info->pinned_piece)
-    ) {
-        add_capture_move(pstn, get_move(pstn, p_info->pinned_loc, p_info->pinning_loc, CAPTURE_FLAG), moves);
+    int alignment = ALIGNMENT(p_info->pinned, p_info->pinning);
+    if (alignment & p_info->pinned || ((alignment >> 8) & p_info->pinned)) {
+        add_capture_move(pstn, moves, p_info->pinned, p_info->pinning, 0);
     }
 }
 
-void gen_pinned(POSITION *pstn, MOVE_LIST *moves, GEN_PINNED gen, int *temp_removed) {
+void gen_pinned(
+    POSITION *pstn, MOVE_LIST *moves, GEN_PINNED gen, int *tmp_removed
+) {
     PIN_INFO p_info;
 
     for (int i = 0; i < 8; i++) {
-        p_info.pin_vector = VECS(KING)[i]; 
+        p_info.vec = VECS(KING)[i]; 
 
         if (find_pinned_piece(pstn, &p_info)) {
-            p_info.pinned_piece = pstn->board[p_info.pinned_loc];
+            p_info.piece = pstn->board[p_info.pinned];
 
             // temporarily remove pinned piece from piece list
-            int p_list_index = PLIST_INDEX(p_info.pinned_piece);
+            int p_list_index = PLIST_INDEX(p_info.piece);
             PLIST(pstn)[p_list_index] = 0;
-            temp_removed[p_list_index] = p_info.pinned_loc;
+            tmp_removed[p_list_index] = p_info.pinned;
 
             if (pstn->check) {
                 continue;
@@ -320,15 +327,21 @@ void all_moves(POSITION *pstn, MOVE_LIST *moves) {
 
             if (pstn->c_rights & KINGSIDE_RIGHTS[pstn->side]) {
                 int start = K_KING_MOVES[pstn->side][0];
+                int dest = K_KING_MOVES[pstn->side][1];
                 if (!(pstn->board[start + E] | pstn->board[start + E + E])) {
-                    add_quiet_move(pstn, get_move(pstn, start, K_KING_MOVES[pstn->side][1], K_CASTLE_FLAG), moves);
+                    add_quiet_move(pstn, moves, start, dest, K_CASTLE_FLAG);
                 }
             } 
             
             if (pstn->c_rights & QUEENSIDE_RIGHTS[pstn->side]) {
                 int start = Q_KING_MOVES[pstn->side][0];
-                if (!(pstn->board[start + W] | pstn->board[start + W + W] | pstn->board[start + W + W + W])) {
-                    add_quiet_move(pstn, get_move(pstn, start, Q_KING_MOVES[pstn->side][1], Q_CASTLE_FLAG), moves);
+                int dest = Q_KING_MOVES[pstn->side][1];
+                if (
+                    !(pstn->board[start + W]
+                    | pstn->board[start + W + W]
+                    | pstn->board[start + W + W + W])
+                ) {
+                    add_quiet_move(pstn, moves, start, dest, Q_CASTLE_FLAG);
                 }
             }
         }
@@ -369,7 +382,9 @@ void all_captures(POSITION *pstn, MOVE_LIST *moves) {
         } else {
             for (int i = 1; i < 16; i++) {
                 for (int j = 1; j < 16; j++) {
-                    gen_capture(pstn, PLIST(pstn)[i], OTHER_PLIST(pstn)[j], moves);
+                    gen_capture(
+                        pstn, PLIST(pstn)[i], OTHER_PLIST(pstn)[j], moves
+                    );
                 }
             }
         }

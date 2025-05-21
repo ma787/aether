@@ -5,7 +5,8 @@ move_t get_move(POSITION *pstn, int start, int dest, int flags) {
     int captured_piece = 0;
 
     if (flags & CAPTURE_FLAG) {
-        int cap_pos = (flags == EP_FLAG) ? dest + PAWN_STEP[OTHER(pstn->side)] : dest;
+        int cap_pos = dest;
+        if (flags == EP_FLAG) cap_pos += PAWN_STEP[OTHER(pstn->side)];
         captured_piece = pstn->board[cap_pos];
     }
 
@@ -67,25 +68,24 @@ void restore_piece(POSITION *pstn, move_t mv) {
 
 void promote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
-    pstn->board[mv.dest] = change_piece_type(piece, pr_type);
+    pstn->board[mv.dest] = CHANGE_TYPE(piece, pr_type);
     pstn->big_pieces[pstn->side]++;
 }
 
 void demote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
-    pstn->board[mv.dest] = change_piece_type(piece, PAWN);
+    pstn->board[mv.dest] = CHANGE_TYPE(piece, PAWN);
     pstn->big_pieces[pstn->side]--;
 }
 
-int is_square_attacked(POSITION *pstn, int pos, int side) {
+bool is_square_attacked(POSITION *pstn, int pos, int side) {
     for (int i = 0; i < 16; i++) {
         int enemy_pos = SIDE_PLIST(pstn, side)[i];
-
         int piece = pstn->board[enemy_pos];
         int alignment = ALIGNMENT(enemy_pos, pos);
 
         if (alignment & piece) { // contact check
-            return enemy_pos;
+            return true;
         } else if ((alignment >> 8) & piece) { // distant check
             int step = STEP(enemy_pos, pos);
             int current = enemy_pos;
@@ -93,7 +93,7 @@ int is_square_attacked(POSITION *pstn, int pos, int side) {
             for (;;) {
                 current += step;
                 if (current == pos) {
-                    return enemy_pos;
+                    return true;
                 }
                 if (pstn->board[current]) {
                     break;
@@ -102,19 +102,19 @@ int is_square_attacked(POSITION *pstn, int pos, int side) {
         }
     }
 
-    int pawn_off = PAWN_STEP[OTHER(side)];
-
-    int e_pawn = pstn->board[pos + pawn_off + E];
+    int e_pawn_pos = pos + PAWN_STEP[OTHER(side)] + E;
+    int e_pawn = pstn->board[e_pawn_pos];
     if ((e_pawn & side) && (e_pawn & PAWN)) {
-        return pos + pawn_off + E;
+        return true;
     }
 
-    int w_pawn = pstn->board[pos + pawn_off + W];
+    int w_pawn_pos = pos + PAWN_STEP[OTHER(side)] + W;
+    int w_pawn = pstn->board[w_pawn_pos];
     if ((w_pawn & side) && (w_pawn & PAWN)) {
-        return pos + pawn_off + W;
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
 void update_check(POSITION *pstn, move_t mv) {
@@ -276,7 +276,7 @@ bool confirm_legal(POSITION *pstn, move_t mv) {
 
 void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     save_state(pstn);
-    pstn->rep_table[pstn->key & 0x00003FFF] += 1;
+    pstn->rep_table[pstn->key & REP_TABLE_MASK] += 1;
     pstn->ply++;
     pstn->s_ply++;
     pstn->move_history[pstn->ply] = mv;
@@ -295,9 +295,13 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     if (mv.flags == DPP_FLAG) {
         pstn->ep_sq = mv.dest - PAWN_STEP[pstn->side];
     } else if (mv.flags == K_CASTLE_FLAG) {
-        move_piece(pstn, K_ROOK_MOVES[pstn->side][0], K_ROOK_MOVES[pstn->side][1]);
+        move_piece(
+            pstn, K_ROOK_MOVES[pstn->side][0], K_ROOK_MOVES[pstn->side][1]
+        );
     } else if (mv.flags == Q_CASTLE_FLAG) {
-        move_piece(pstn, Q_ROOK_MOVES[pstn->side][0], Q_ROOK_MOVES[pstn->side][1]);
+        move_piece(
+            pstn, Q_ROOK_MOVES[pstn->side][0], Q_ROOK_MOVES[pstn->side][1]
+        );
     } else if (mv.flags & PROMO_FLAG) {
         promote_piece(pstn, mv, piece);
     }
@@ -313,15 +317,19 @@ void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
     if (mv.flags & CAPTURE_FLAG) {
         restore_piece(pstn, mv);
     } else if (mv.flags == K_CASTLE_FLAG) {
-        move_piece(pstn, K_ROOK_MOVES[pstn->side][1], K_ROOK_MOVES[pstn->side][0]);
+        move_piece(
+            pstn, K_ROOK_MOVES[pstn->side][1], K_ROOK_MOVES[pstn->side][0]
+        );
     } else if (mv.flags == Q_CASTLE_FLAG) {
-        move_piece(pstn, Q_ROOK_MOVES[pstn->side][1], Q_ROOK_MOVES[pstn->side][0]);
+        move_piece(
+            pstn, Q_ROOK_MOVES[pstn->side][1], Q_ROOK_MOVES[pstn->side][0]
+        );
     }
 
     pstn->ply--;
     pstn->s_ply--;
     restore_state(pstn);
-    pstn->rep_table[pstn->key & 0x00003FFF] -= 1;
+    pstn->rep_table[pstn->key & REP_TABLE_MASK] -= 1;
 }
 
 bool make_move(POSITION *pstn, move_t mv) {
@@ -344,7 +352,7 @@ void unmake_move(POSITION *pstn, move_t mv) {
 
 void make_null_move(POSITION *pstn) {
     save_state(pstn);
-    pstn->rep_table[pstn->key & 0x00003FFF] += 1;
+    pstn->rep_table[pstn->key & REP_TABLE_MASK] += 1;
     pstn->ply++;
     pstn->s_ply++;
     pstn->h_clk++;
@@ -364,5 +372,5 @@ void unmake_null_move(POSITION *pstn) {
     pstn->ply--;
     pstn->s_ply--;
     restore_state(pstn);
-    pstn->rep_table[pstn->key & 0x00003FFF] -= 1;
+    pstn->rep_table[pstn->key & REP_TABLE_MASK] -= 1;
 }

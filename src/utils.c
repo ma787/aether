@@ -9,12 +9,6 @@
 
 #include "aether.h"
 
-
-int change_piece_type(int piece, int p_type) { return (piece & 0xF03) | p_type; }
-
-bool same_colour(int p1, int p2) { return !((p1 ^ p2) & COLOUR_MASK); }
-bool diff_colour(int p1, int p2) { return ((p1 ^ p2) & COLOUR_MASK) == G; }
-
 #ifdef _WIN64
 
 uint64_t get_time(void) {

@@ -21,15 +21,17 @@ void set_check(POSITION *pstn) {
 
     int k_pos = PLIST(pstn)[0];
     int enemy_side = OTHER(pstn->side);
-    int pawn_off = PAWN_STEP[pstn->side];
 
-    int pawn = pstn->board[k_pos + pawn_off + E];
-    if ((pawn & enemy_side) && (pawn & PAWN)) {
-        add_checker(pstn, k_pos + pawn_off + E, CONTACT_CHECK);
+    int e_pawn_pos = k_pos + PAWN_STEP[pstn->side] + E;
+    int w_pawn_pos = k_pos + PAWN_STEP[pstn->side] + W;
+
+    int e_pawn = pstn->board[e_pawn_pos];
+    if ((e_pawn & enemy_side) && (e_pawn & PAWN)) {
+        add_checker(pstn, e_pawn_pos, CONTACT_CHECK);
     } else {
-        pawn = pstn->board[k_pos + pawn_off + W];
-        if ((pawn & enemy_side) && (pawn & PAWN)) {
-            add_checker(pstn, k_pos + pawn_off + W, CONTACT_CHECK);
+        int w_pawn = pstn->board[w_pawn_pos];
+        if ((w_pawn & enemy_side) && (w_pawn & PAWN)) {
+            add_checker(pstn, w_pawn_pos, CONTACT_CHECK);
         }
     }
 
@@ -49,7 +51,7 @@ void set_check(POSITION *pstn) {
             current += vec;
             int piece = pstn->board[current];
             if (piece) {
-                if (!(same_colour(piece, enemy_side))) {
+                if (!(SAME_COLOUR(piece, enemy_side))) {
                     break;
                 }
 
@@ -186,7 +188,8 @@ POSITION* new_position(void) {
     // allocate memory for pv table
     (pstn->hash_table)->n_entries = HASH_TABLE_SIZE / sizeof(TABLE_ENTRY);
     (pstn->hash_table)->n_entries -= 2; // ensures that memory is not overrun
-    (pstn->hash_table)->table = (TABLE_ENTRY *) malloc((pstn->hash_table)->n_entries * sizeof(TABLE_ENTRY));
+    int table_size = (pstn->hash_table)->n_entries * sizeof(TABLE_ENTRY);
+    (pstn->hash_table)->table = (TABLE_ENTRY *) malloc(table_size);
     clear_hash_table(pstn);
 
     // allocate and zero initialise memory for history table
@@ -248,7 +251,7 @@ int update_position(POSITION *pstn, char *fen_str) {
 }
 
 bool is_repetition(POSITION *pstn) {
-    if (!(pstn->rep_table[pstn->key & 0x00003FFF])) {
+    if (!(pstn->rep_table[pstn->key & REP_TABLE_MASK])) {
         return false;
     }
 

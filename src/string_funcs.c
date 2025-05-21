@@ -52,22 +52,8 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
     fen_str[j++] = pstn->side == WHITE ? 'w' : 'b';
     fen_str[j++] = ' ';
 
-    if (pstn->c_rights) {
-        if (pstn->c_rights & WHITE_KINGSIDE) {
-            fen_str[j++] = 'K';
-        }
-        if (pstn->c_rights & WHITE_QUEENSIDE) {
-            fen_str[j++] = 'Q';
-        }
-        if (pstn->c_rights & BLACK_KINGSIDE) {
-            fen_str[j++] = 'k';
-        }
-        if (pstn->c_rights & BLACK_QUEENSIDE) {
-            fen_str[j++] = 'q';
-        }
-    } else {
-        fen_str[j++] = '-';
-    }
+    strcpy(fen_str + j, CASTLE_STRINGS[pstn->c_rights]);
+    j += strlen(CASTLE_STRINGS[pstn->c_rights]);
     fen_str[j++] = ' ';
 
     if (pstn->ep_sq) {

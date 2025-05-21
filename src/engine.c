@@ -4,29 +4,31 @@
 #include "aether.h"
 
 int evaluate(POSITION *pstn) {
-    int phase;
+    int phase = 0;
     int start_scores[3] = {0, 0, 0};
     int end_scores[3] = {0, 0, 0};
 
     // evaluate white pieces
     for (int i = 0; i < 16; i++) {
         int pos = pstn->piece_list[i];
+
         if (pos) {
-            int p_index = PLIST_INDEX(pstn->board[pos]);
-            start_scores[WHITE] += START_TABLES[p_index][SQ64(FLIP256(pos))];
-            end_scores[WHITE] += END_TABLES[p_index][SQ64(FLIP256(pos))];
-            phase += PHASES[PINDEX(pstn->board[pos])];
+            int p_index = PINDEX(pstn->board[pos]);
+            start_scores[WHITE] += PST_START[p_index][FLIP64(SQ64(pos))];
+            end_scores[WHITE] += PST_END[p_index][FLIP64(SQ64(pos))];
+            phase += PHASES[p_index];
         }
     }
 
     // evaluate black pieces
     for (int i = 16; i < 32; i++) {
         int pos = pstn->piece_list[i];
+
         if (pos) {
-            int p_index = PLIST_INDEX(pstn->board[pos]);
-            start_scores[BLACK] += START_TABLES[p_index][SQ64(pos)];
-            end_scores[BLACK] += END_TABLES[p_index][SQ64(pos)];
-            phase += PHASES[PINDEX(pstn->board[pos])];
+            int p_index = PINDEX(pstn->board[pos]);
+            start_scores[BLACK] += PST_START[p_index][SQ64(pos)];
+            end_scores[BLACK] += PST_END[p_index][SQ64(pos)];
+            phase += PHASES[p_index];
         }
     }
 

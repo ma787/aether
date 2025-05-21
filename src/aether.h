@@ -75,6 +75,8 @@
 
 #define START_PHASE 24
 
+#define REP_TABLE_MASK 0x00003FFF
+
 enum SQUARES {
     A1 = 0x44, B1, C1, D1, E1, F1, G1, H1,
     A2 = 0x54, B2, C2, D2, E2, F2, G2, H2,
@@ -125,25 +127,22 @@ extern int P_CODE[];
 extern int P_COLOUR_CODE[];
 extern char SYMBOLS[];
 
-extern unsigned int PROMOTIONS[];
-extern unsigned int CASTLING_RIGHTS[];
+extern int PROMOTIONS[];
+extern int CASTLING_RIGHTS[];
+extern char *CASTLE_STRINGS[16];
 
 extern int N_VECS[6];
 extern int *MOVE_SETS[6];
 
-extern unsigned int CASTLE_UPDATES[256];
+extern int CASTLE_UPDATES[256];
 
-extern unsigned int MOVE_TABLE[239];
+extern int MOVE_TABLE[239];
 extern int UNIT_VEC[239];
 
-extern int PIECE_VALS[6];
 extern int *PST_START[6];
 extern int *PST_END[6];
 extern int PHASES[12];
 extern int MVV_LVA_SCORES[6][6];
-
-extern int START_TABLES[12][64];
-extern int END_TABLES[12][64];
 
 extern uint64_t HASH_VALUES[781];
 
@@ -176,10 +175,10 @@ typedef struct {
 } MOVE_LIST;
 
 typedef struct {
-    int pinned_piece;
-    int pinning_loc;
-    int pinned_loc;
-    int pin_vector;
+    int piece;
+    int pinning;
+    int pinned;
+    int vec;
 } PIN_INFO;
 
 typedef struct {
@@ -269,7 +268,7 @@ bool is_null_move(move_t mv);
 
 /* move-making functions */
 
-int is_square_attacked(POSITION *pstn, int pos, int side);
+bool is_square_attacked(POSITION *pstn, int pos, int side);
 
 bool make_move(POSITION *pstn, move_t mv);
 void unmake_move(POSITION *pstn, move_t mv);
@@ -319,21 +318,20 @@ move_t string_to_move(POSITION *pstn, char *mstr);
 
 /* miscellaneous functions */
 
-int change_piece_type(int piece, int p_type);
-
-bool same_colour(int p1, int p2);
-bool diff_colour(int p1, int p2);
-
 uint64_t get_time(void);
 int input_waiting(void);
 
 /* macros */
 
-#define OTHER(side) 3 - side
+#define OTHER(side) (3 - side)
+#define SAME_COLOUR(p1, p2) !((p1 ^ p2) & COLOUR_MASK)
+#define DIFF_COLOUR(p1, p2) (((p1 ^ p2) & COLOUR_MASK) == G)
 
-#define PTYPE(piece) piece & 0xFC
-#define PIECE(piece) piece & 0xFF
-#define PLIST_INDEX(piece) piece >> 8
+#define CHANGE_TYPE(piece, p_type) ((piece & 0xF03) | p_type)
+
+#define PTYPE(piece) (piece & 0xFC)
+#define PIECE(piece) (piece & 0xFF)
+#define PLIST_INDEX(piece) (piece >> 8)
 
 #define PINDEX(piece) P_CODE[PTYPE(piece)]
 #define PCINDEX(piece) P_COLOUR_CODE[PIECE(piece)]
@@ -342,19 +340,19 @@ int input_waiting(void);
 #define OTHER_PLIST(pstn) pstn->p_lists[OTHER(pstn->side)]
 #define SIDE_PLIST(pstn, side) pstn->p_lists[side]
 
-#define RANK(pos) (pos >> 4) - 4
-#define FILE(pos) (pos & 0x0F) - 4
+#define RANK(pos) ((pos >> 4) - 4)
+#define FILE(pos) ((pos & 0x0F) - 4)
 
-#define SQ64(pos) 8 * RANK(pos) + FILE(pos)
-#define SQ256(pos) 0x44 + index + (index & ~7)
-#define FLIP64(pos) pos ^ 56
-#define FLIP256(pos) ~pos & 0xFF
+#define SQ64(pos) (8 * RANK(pos) + FILE(pos))
+#define SQ256(pos) (0x44 + index + (index & ~7))
+#define FLIP64(pos) (pos ^ 56)
+#define FLIP256(pos) (~pos & 0xFF)
 
-#define INDEX(sqr_str) ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1
+#define INDEX(sqr_str) (((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1)
 #define COORD(pos) COORDS[pos]
 #define LETTER(piece) SYMBOLS[piece & 0xFF]
 
-#define SQDIFF(start, dest) 0x77 + dest - start
+#define SQDIFF(start, dest) (0x77 + dest - start)
 #define ALIGNMENT(start, dest) MOVE_TABLE[SQDIFF(start, dest)]
 #define STEP(start, dest) UNIT_VEC[SQDIFF(start, dest)]
 
