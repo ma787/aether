@@ -3,6 +3,17 @@
 #include <stdlib.h>
 #include "aether.h"
 
+void init_tables() {
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 64; j++) {
+            START_TABLES[i][j] = PST_START[i][FLIP64(j)] + PIECE_VALS[i];
+            START_TABLES[i + 6][j] = PST_START[i][j] + PIECE_VALS[i];
+            END_TABLES[i][j] = PST_END[i][FLIP64(j)] + PIECE_VALS[i];
+            END_TABLES[i + 6][j] = PST_END[i][j] + PIECE_VALS[i];
+        }
+    }
+}
+
 void parse_position(POSITION *pstn, char *line) {
     char *current_ptr = line + 8;
     int idx;
@@ -121,13 +132,13 @@ void display_info(POSITION *pstn) {
     print_board(pstn);
     printf("\nFEN: %s\nKey: %lu\nCheckers: ", fen_str, pstn->key);
     if (pstn->check) {
-        printf("%s", coord_to_string(pstn->fst_checker));
+        printf("%s", COORD(pstn->fst_checker));
         if (pstn->check == DOUBLE_CHECK) {
-            printf(", %s", coord_to_string(pstn->snd_checker));
+            printf(", %s", COORD(pstn->snd_checker));
         }
     }
     printf("\n");
-    printf("En passant: %s\nCastling Rights: ", coord_to_string(pstn->ep_sq));
+    printf("En passant: %s\nCastling Rights: ", COORD(pstn->ep_sq));
     if (pstn->c_rights & WHITE_KINGSIDE) {
         printf("K");
     }
@@ -196,6 +207,7 @@ void uci_loop(void) {
 }
 
 int main(void) {
+    init_tables();
     uci_loop();
     return 0;
 }

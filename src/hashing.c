@@ -1,28 +1,7 @@
 #include "aether.h"
 
 uint64_t get_hash(uint64_t pos, uint64_t piece) {
-    int sq_off = (96 * get_rank(pos)) + (12 * get_file(pos));
-
-    if (piece & BLACK) {
-        sq_off += 6;
-    }
-
-    switch(get_piece_type(piece)) {
-        case PAWN:
-            return HASH_VALUES[sq_off];
-        case KNIGHT:
-            return HASH_VALUES[sq_off + 1];
-        case BISHOP:
-            return HASH_VALUES[sq_off + 2];
-        case ROOK:
-            return HASH_VALUES[sq_off + 3];
-        case QUEEN:
-            return HASH_VALUES[sq_off + 4];
-        case KING:
-            return HASH_VALUES[sq_off + 5];
-    }
-
-    return 0;
+    return HASH_VALUES[(96 * RANK(pos)) + (12 * FILE(pos)) + PCINDEX(piece)];
 }
 
 void set_hash(POSITION *pstn) {
@@ -46,7 +25,7 @@ void set_hash(POSITION *pstn) {
     }
 
     if (pstn->ep_sq) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(pstn->ep_sq)];
+        pstn->key ^= HASH_VALUES[EP_OFF + FILE(pstn->ep_sq)];
     }
 
     for (int j = 0; j < 4; j++) {
@@ -65,7 +44,7 @@ void update_hash(POSITION *pstn, move_t mv) {
     pstn->key ^= get_hash(mv.dest, piece);
 
     if (ep_sq) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(ep_sq)];
+        pstn->key ^= HASH_VALUES[EP_OFF + FILE(ep_sq)];
     }
 
     pstn->key ^= HASH_VALUES[SIDE_OFF];
@@ -96,7 +75,7 @@ void update_hash(POSITION *pstn, move_t mv) {
     }
 
     if (mv.flags == DPP_FLAG) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(mv.dest)];
+        pstn->key ^= HASH_VALUES[EP_OFF + FILE(mv.dest)];
         return;
     }
 
@@ -108,7 +87,7 @@ void update_hash(POSITION *pstn, move_t mv) {
     if (mv.flags & CAPTURE_FLAG) {
         int cap_pos = mv.dest;
         if (mv.flags == EP_FLAG) {
-            cap_pos += PAWN_STEP[opp_side(pstn->side)];
+            cap_pos += PAWN_STEP[OTHER(pstn->side)];
         }
 
         pstn->key ^= get_hash(cap_pos, mv.captured_piece);

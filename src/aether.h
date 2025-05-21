@@ -14,7 +14,7 @@
 #define HISTORY_TABLE_SIZE 1024
 #define REPETITION_TABLE_SIZE 32768
 #define HASH_TABLE_SIZE 0x100000 * 16
-#define S_HIS_TABLE_SIZE (H8 + 1) * sizeof(int)
+#define S_HIS_TABLE_SIZE 256 * sizeof(int)
 
 #define MAX_DEPTH 64
 #define INFINITY 10000000
@@ -109,42 +109,41 @@ extern int DPP_RANK[3];
 
 extern int PAWN_STEP[3];
 
-extern int *K_ROOK_MOVES[3];
-extern int *Q_ROOK_MOVES[3];
-extern int *K_KING_MOVES[3];
-extern int *Q_KING_MOVES[3];
+extern int K_ROOK_MOVES[3][2];
+extern int Q_ROOK_MOVES[3][2];
+extern int K_KING_MOVES[3][2];
+extern int Q_KING_MOVES[3][2];
 extern int KINGSIDE_RIGHTS[3];
 extern int QUEENSIDE_RIGHTS[3];
 
 extern char *FILES;
 extern char *COORDS[256];
 extern char *SIDES[3];
-extern unsigned int PIECES[];
+
+extern int PIECES[];
+extern int P_CODE[];
+extern int P_COLOUR_CODE[];
 extern char SYMBOLS[];
+
 extern unsigned int PROMOTIONS[];
 extern unsigned int CASTLING_RIGHTS[];
 
-extern int PAWN_OFFS[3];
-extern int KNIGHT_OFFS[8];
-extern int BISHOP_OFFS[4];
-extern int ROOK_OFFS[4];
-extern int QUEEN_OFFS[8];
-extern int KING_OFFS[8];
-
-extern int N_VECS[];
-extern int *MOVE_SETS[];
+extern int N_VECS[6];
+extern int *MOVE_SETS[6];
 
 extern unsigned int CASTLE_UPDATES[256];
 
 extern unsigned int MOVE_TABLE[239];
 extern int UNIT_VEC[239];
 
-extern int PIECE_VALS[];
-extern int *PST_START[];
-extern int *PST_END[];
-extern int PHASES[];
+extern int PIECE_VALS[6];
+extern int *PST_START[6];
+extern int *PST_END[6];
+extern int PHASES[12];
+extern int MVV_LVA_SCORES[6][6];
 
-extern int *MVV_LVA_SCORES[];
+extern int START_TABLES[12][64];
+extern int END_TABLES[12][64];
 
 extern uint64_t HASH_VALUES[781];
 
@@ -225,10 +224,7 @@ typedef struct {
     int check;
     int fst_checker;
     int snd_checker;
-    int phase;
 
-    int material[3];
-    int pcsq_sum[3];
     int big_pieces[3];
 
     uint64_t key;
@@ -240,7 +236,7 @@ typedef struct {
     HASH_TABLE hash_table[1];
     move_t pv_line[MAX_DEPTH];
 
-    int *search_history[KING + 1];
+    int *search_history[12];
     move_t search_killers[2][HISTORY_TABLE_SIZE];
 
 } POSITION;
@@ -263,7 +259,6 @@ void save_state(POSITION *pstn);
 void restore_state(POSITION *pstn);
 
 bool is_repetition(POSITION *pstn);
-int get_pst_value(POSITION *pstn, int p_type, int pos, int side);
 
 /* move encoding/decoding, getting and comparison functions */
 
@@ -271,9 +266,6 @@ move_t get_move(POSITION *pstn, int start, int dest, int flags);
 
 bool moves_equal(move_t mv1, move_t mv2);
 bool is_null_move(move_t mv);
-
-int move_to_int(move_t mv);
-move_t move_of_int(int m_int);
 
 /* move-making functions */
 
@@ -287,8 +279,8 @@ void unmake_null_move(POSITION *pstn);
 
 /* move generation functions */
 
-MOVE_LIST* all_moves(POSITION *pstn);
-MOVE_LIST* all_captures(POSITION *pstn);
+void all_moves(POSITION *pstn, MOVE_LIST *moves);
+void all_captures(POSITION *pstn, MOVE_LIST *moves);
 bool move_exists(POSITION *pstn, move_t mv);
 
 /* perft and divide functions */
@@ -325,39 +317,50 @@ bool move_match(char *mstr);
 void move_to_string(move_t mv, char* mstr);
 move_t string_to_move(POSITION *pstn, char *mstr);
 
-int string_to_coord(char *sqr_str);
-char* coord_to_string(int pos);
-char piece_to_char(int piece);
-
 /* miscellaneous functions */
 
-int get_rank(int pos);
-int get_file(int pos);
-
-int get_piece_type(int piece);
-int get_piece_list_index(int piece);
 int change_piece_type(int piece, int p_type);
-int change_piece_colour(int piece, int colour);
 
 bool same_colour(int p1, int p2);
 bool diff_colour(int p1, int p2);
-int opp_side(int side);
-
-int coord_to_index(int pos);
-int index_to_coord(int index);
-int flip_square(int pos);
-
-int square_diff(int start, int dest);
-int get_alignment(int start, int dest);
-int get_step(int start, int dest);
 
 uint64_t get_time(void);
 int input_waiting(void);
 
 /* macros */
 
+#define OTHER(side) 3 - side
+
+#define PTYPE(piece) piece & 0xFC
+#define PIECE(piece) piece & 0xFF
+#define PLIST_INDEX(piece) piece >> 8
+
+#define PINDEX(piece) P_CODE[PTYPE(piece)]
+#define PCINDEX(piece) P_COLOUR_CODE[PIECE(piece)]
+
 #define PLIST(pstn) pstn->p_lists[pstn->side]
-#define ENEMY_PLIST(pstn) pstn->p_lists[opp_side(pstn->side)]
+#define OTHER_PLIST(pstn) pstn->p_lists[OTHER(pstn->side)]
 #define SIDE_PLIST(pstn, side) pstn->p_lists[side]
+
+#define RANK(pos) (pos >> 4) - 4
+#define FILE(pos) (pos & 0x0F) - 4
+
+#define SQ64(pos) 8 * RANK(pos) + FILE(pos)
+#define SQ256(pos) 0x44 + index + (index & ~7)
+#define FLIP64(pos) pos ^ 56
+#define FLIP256(pos) ~pos & 0xFF
+
+#define INDEX(sqr_str) ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1
+#define COORD(pos) COORDS[pos]
+#define LETTER(piece) SYMBOLS[piece & 0xFF]
+
+#define SQDIFF(start, dest) 0x77 + dest - start
+#define ALIGNMENT(start, dest) MOVE_TABLE[SQDIFF(start, dest)]
+#define STEP(start, dest) UNIT_VEC[SQDIFF(start, dest)]
+
+#define VECS(piece) MOVE_SETS[PINDEX(piece)]
+
+#define HISTORY(pstn, start, dest) pstn->search_history[PCINDEX(pstn->board[start])][PCINDEX(pstn->board[dest])]
+#define MVV_LVA(pstn, start, dest) MVV_LVA_SCORES[PINDEX(pstn->board[dest])][PINDEX(pstn->board[start])]
 
 #endif

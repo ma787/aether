@@ -20,7 +20,7 @@ void set_check(POSITION *pstn) {
     pstn->snd_checker = 0;
 
     int k_pos = PLIST(pstn)[0];
-    int enemy_side = opp_side(pstn->side);
+    int enemy_side = OTHER(pstn->side);
     int pawn_off = PAWN_STEP[pstn->side];
 
     int pawn = pstn->board[k_pos + pawn_off + E];
@@ -34,7 +34,7 @@ void set_check(POSITION *pstn) {
     }
 
     for (int i = 0; i < 8; i++) {
-        int vec = KNIGHT_OFFS[i];
+        int vec = VECS(KNIGHT)[i];
         int piece = pstn->board[k_pos + vec];
         if ((piece & enemy_side) && (piece & KNIGHT)) {
             add_checker(pstn, k_pos + vec, CONTACT_CHECK);
@@ -42,7 +42,7 @@ void set_check(POSITION *pstn) {
     }
 
     for (int i = 0; i < 8; i++) {
-        int vec = KING_OFFS[i];
+        int vec = VECS(KING)[i];
         int current = k_pos;
         
         for (;;) {
@@ -53,7 +53,7 @@ void set_check(POSITION *pstn) {
                     break;
                 }
 
-                int alignment = get_alignment(current, k_pos);
+                int alignment = ALIGNMENT(current, k_pos);
                 if (alignment & piece) {
                     add_checker(pstn, current, CONTACT_CHECK);
                 } else if ((alignment >> 8) & piece) {
@@ -103,8 +103,7 @@ void save_state(POSITION *pstn) {
         pstn->h_clk,
         pstn->check,
         pstn->fst_checker,
-        pstn->snd_checker,
-        pstn->phase
+        pstn->snd_checker
     };
     pstn->history[pstn->ply] = h_entry;
 }
@@ -119,7 +118,6 @@ void restore_state(POSITION *pstn) {
     pstn->check = h_entry.check;
     pstn->fst_checker = h_entry.fst_checker;
     pstn->snd_checker = h_entry.snd_checker;
-    pstn->phase = h_entry.phase;
 }
 
 void clear_tables(POSITION *pstn) {
@@ -128,9 +126,7 @@ void clear_tables(POSITION *pstn) {
         memset(pstn->board + i, 0, 8 * sizeof(int));
     }
 
-    // clear material/pst/big piece lists
-    memset(pstn->material, 0, 3 * sizeof(int));
-    memset(pstn->pcsq_sum, 0, 3 * sizeof(int));
+    // clear big piece list
     memset(pstn->big_pieces, 0, 3 * sizeof(int));
 
     // reset piece lists
@@ -182,7 +178,6 @@ POSITION* new_position(void) {
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
-    pstn->phase = 0;
 
     fen_to_board_array(pstn, START_POS);
     set_piece_list(pstn);
@@ -195,24 +190,19 @@ POSITION* new_position(void) {
     clear_hash_table(pstn);
 
     // allocate and zero initialise memory for history table
-    pstn->search_history[PAWN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    pstn->search_history[KNIGHT] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    pstn->search_history[BISHOP] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    pstn->search_history[ROOK] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    pstn->search_history[QUEEN] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
-    pstn->search_history[KING] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    for (int i = 0; i < 12; i++) {
+        pstn->search_history[i] = calloc(S_HIS_TABLE_SIZE, sizeof(int));
+    }
 
     return pstn;
 }
 
 void free_position(POSITION *pstn) {
     free((pstn->hash_table)->table);
-    free(pstn->search_history[PAWN]);
-    free(pstn->search_history[KNIGHT]);
-    free(pstn->search_history[BISHOP]);
-    free(pstn->search_history[ROOK]);
-    free(pstn->search_history[QUEEN]);
-    free(pstn->search_history[KING]);
+
+    for (int i = 0; i < 12; i++) {
+        free(pstn->search_history[i]);
+    }
     free(pstn);
 }
 
@@ -223,15 +213,12 @@ int update_position(POSITION *pstn, char *fen_str) {
     pstn->s_ply = 0;
     pstn->c_rights = 0;
     pstn->ep_sq = 0;
-    pstn->phase = 0;
 
     int idx;
 
     if ((idx = fen_to_board_array(pstn, fen_str)) == -1) {
         return 0;
     }
-
-    if (pstn->phase > 24) { pstn->phase = 24; }
 
     pstn->side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
 
@@ -246,7 +233,8 @@ int update_position(POSITION *pstn, char *fen_str) {
     }
 
     if (fen_str[idx] != '-') {
-        pstn->ep_sq = string_to_coord(fen_str + idx++);
+        pstn->ep_sq = INDEX((fen_str + idx));
+        idx++;
     }
     idx += 2;
 
@@ -271,12 +259,4 @@ bool is_repetition(POSITION *pstn) {
     }
 
     return false;
-}
-
-int get_pst_value(POSITION *pstn, int p_type, int pos, int side) {
-    int eval_pos = (side == WHITE) ? pos : flip_square(pos);
-    return (
-        (pstn->phase * PST_START[p_type][eval_pos])
-        + ((START_PHASE - pstn->phase) * PST_END[p_type][eval_pos])
-    ) / START_PHASE;
 }

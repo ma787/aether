@@ -3,14 +3,6 @@
 #include <string.h>
 #include "aether.h"
 
-int string_to_coord(char *sqr_str) {
-    return ((sqr_str[1] - '1') << 4) + (sqr_str[0] - 'a') + A1;
-}
-
-char* coord_to_string(int pos) { return COORDS[pos]; }
-
-char piece_to_char(int piece) { return SYMBOLS[piece & 0xFF]; }
-
 bool reg_match(char *input_str, char *reg_str) {
     regex_t preg;
     int res;
@@ -51,7 +43,7 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
             }
             fen_str[j++] = '0' + count;
         } else {
-            fen_str[j++] = piece_to_char(sq);
+            fen_str[j++] = LETTER(sq);
             i++;
         }
     }
@@ -79,7 +71,7 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
     fen_str[j++] = ' ';
 
     if (pstn->ep_sq) {
-        strcpy(fen_str + j, coord_to_string(pstn->ep_sq));
+        strcpy(fen_str + j, COORD(pstn->ep_sq));
         j += 2;
     } else {
         fen_str[j++] = '-';
@@ -116,19 +108,9 @@ int fen_to_board_array(POSITION *pstn, char *fen_str) {
             default:
                 int piece = PIECES[(int) val];
                 if (piece) {
-                    pstn->board[i] = piece;
-                    int p_type = get_piece_type(piece);
+                    pstn->board[i++] = piece;
+                    int p_type = PTYPE(piece);
                     int colour = piece & COLOUR_MASK;
-                    int pos = i++;
-
-                    if (colour == BLACK) {
-                        pos = flip_square(pos);
-                    }
-
-                    pstn->material[colour] += PIECE_VALS[p_type];
-                    pstn->pcsq_sum[colour] += PST_START[p_type][pos];
-                    pstn->phase += PHASES[p_type];
-
                     count++;
                 } else {
                     int inc = val - '0';
@@ -150,7 +132,7 @@ void print_board(POSITION *pstn) {
             b_str[j++] = '\n';
             i -= 0x18;
         } else {
-            b_str[j++] = piece_to_char(sq);
+            b_str[j++] = LETTER(sq);
             i++;
         }
     }
@@ -165,10 +147,10 @@ void move_to_string(move_t mv, char* mstr) {
         return;
     }
 
-    strcpy(mstr, coord_to_string(mv.start));
-    strcpy(mstr + 2, coord_to_string(mv.dest));
+    strcpy(mstr, COORD(mv.start));
+    strcpy(mstr + 2, COORD(mv.dest));
     if (mv.flags & PROMO_FLAG) {
-        mstr[4] = piece_to_char(PROMOTIONS[mv.flags & 3] | BLACK);
+        mstr[4] = LETTER(PROMOTIONS[mv.flags & 3] | BLACK);
         mstr[5] = '\0';
     }
 }
@@ -178,8 +160,8 @@ move_t string_to_move(POSITION *pstn, char *mstr) {
         return NULL_MOVE;
     }
 
-    int start = string_to_coord(mstr);
-    int dest = string_to_coord(mstr + 2);
+    int start = INDEX(mstr);
+    int dest = INDEX((mstr + 2));
     int flags = Q_FLAG;
 
     if (pstn->board[dest]) {
@@ -188,27 +170,27 @@ move_t string_to_move(POSITION *pstn, char *mstr) {
 
     int c_start = (pstn->side == WHITE) ? E1 : E8;
 
-    switch(get_piece_type(pstn->board[start])) {
+    switch(PTYPE(pstn->board[start])) {
         case KING:
             if (start == c_start) {
-                if (get_file(dest) == FILE_C) {
+                if (FILE(dest) == FILE_C) {
                     flags |= Q_CASTLE_FLAG;
-                } else if (get_file(dest) == FILE_G) {
+                } else if (FILE(dest) == FILE_G) {
                     flags |= K_CASTLE_FLAG;
                 }
             }
             break;
         case PAWN:
             if (
-                get_rank(start) == SECOND_RANK[pstn->side] 
-                && get_rank(dest) == DPP_RANK[pstn->side]
+                RANK(start) == SECOND_RANK[pstn->side] 
+                && RANK(dest) == DPP_RANK[pstn->side]
             ) {
                 flags = DPP_FLAG;
             } else if (dest == pstn->ep_sq) {
                 flags = EP_FLAG;
-            } else if (get_rank(dest) == FINAL_RANK[pstn->side]) {
+            } else if (RANK(dest) == FINAL_RANK[pstn->side]) {
                 flags |= PROMO_FLAG;
-                switch(get_piece_type(PIECES[(int) mstr[4]])) {
+                switch(PTYPE(PIECES[(int) mstr[4]])) {
                     case BISHOP:
                         flags++;
                         break;

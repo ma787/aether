@@ -1,19 +1,45 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "aether.h"
 
 int evaluate(POSITION *pstn) {
-    int w_score = pstn->material[WHITE] + pstn->pcsq_sum[WHITE];
-    int b_score = pstn->material[BLACK] + pstn->pcsq_sum[BLACK];
-    int score = w_score - b_score;
+    int phase;
+    int start_scores[3] = {0, 0, 0};
+    int end_scores[3] = {0, 0, 0};
 
-    if (pstn->side == BLACK) {
-        score *= -1;
+    // evaluate white pieces
+    for (int i = 0; i < 16; i++) {
+        int pos = pstn->piece_list[i];
+        if (pos) {
+            int p_index = PLIST_INDEX(pstn->board[pos]);
+            start_scores[WHITE] += START_TABLES[p_index][SQ64(FLIP256(pos))];
+            end_scores[WHITE] += END_TABLES[p_index][SQ64(FLIP256(pos))];
+            phase += PHASES[PINDEX(pstn->board[pos])];
+        }
     }
 
-    return score;
+    // evaluate black pieces
+    for (int i = 16; i < 32; i++) {
+        int pos = pstn->piece_list[i];
+        if (pos) {
+            int p_index = PLIST_INDEX(pstn->board[pos]);
+            start_scores[BLACK] += START_TABLES[p_index][SQ64(pos)];
+            end_scores[BLACK] += END_TABLES[p_index][SQ64(pos)];
+            phase += PHASES[PINDEX(pstn->board[pos])];
+        }
+    }
+
+    int start_score = start_scores[pstn->side] - start_scores[OTHER(pstn->side)];
+    int end_score = end_scores[pstn->side] - end_scores[OTHER(pstn->side)];
+
+    int start_phase = phase;
+    if (start_phase > 24) {
+        start_phase = 24;
+    }
+    int end_phase = 24 - start_phase;
+
+    return (start_score * start_phase + end_score * end_phase) / 24;
 }
 
 void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
@@ -27,12 +53,9 @@ void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
     (pstn->hash_table)->cut = 0;
     (pstn->hash_table)->over_writes = 0;
 
-    memset(pstn->search_history[PAWN], 0, H8 * sizeof(int));
-    memset(pstn->search_history[KNIGHT], 0, H8 * sizeof(int));
-    memset(pstn->search_history[BISHOP], 0, H8 * sizeof(int));
-    memset(pstn->search_history[ROOK], 0, H8 * sizeof(int));
-    memset(pstn->search_history[QUEEN], 0, H8 * sizeof(int));
-    memset(pstn->search_history[KING], 0, H8 * sizeof(int));
+    for (int i = 0; i < 12; i++) {
+        memset(pstn->search_history[i], 0, 256 * sizeof(int));
+    }
 
     s_info->stopped = false;
     s_info->found_move = false;
@@ -117,11 +140,11 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
         return evaluate(pstn);
     }
 
-    MOVE_LIST *moves;
+    MOVE_LIST moves;
     int best_score;
 
     if (pstn->check) {
-        moves = all_moves(pstn);
+        all_moves(pstn, &moves);
         best_score = alpha;
     } else {
         best_score = evaluate(pstn); // score from 'standing pat'
@@ -133,7 +156,7 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
             alpha = best_score;
         }
 
-        moves = all_captures(pstn);
+        all_captures(pstn, &moves);
     }
 
     move_t best_move = NULL_MOVE;
@@ -143,7 +166,7 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
 
     while (1) {
         move_t mv;
-        if (!make_next_move(pstn, moves, &mv)) {
+        if (!make_next_move(pstn, &moves, &mv)) {
             if (is_null_move(mv)) {
                 break;
             }
@@ -155,13 +178,11 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
         unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
-            free(moves);
             return 0;
         }
 
         if (score > alpha) {
             if (score >= beta) {
-                free(moves);
                 return beta;
             }
 
@@ -172,8 +193,6 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
             best_score = score;
         }
     }
-
-    free(moves);
 
     if (!n) {
         if (pstn->check) {
@@ -223,7 +242,8 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         }
     }
 
-    MOVE_LIST *moves = all_moves(pstn);
+    MOVE_LIST moves;
+    all_moves(pstn, &moves);
 
     move_t best_move = NULL_MOVE;
     int best_score = -INFINITY;
@@ -235,9 +255,9 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
     }
 
     if (!(is_null_move(pv_move))) {
-        for (int i = 0; i < moves->index; i++) {
-            if (moves_equal(moves->moves[i], pv_move)) {
-                moves->moves[i].score = CAP_VALUE * 2;
+        for (int i = 0; i < moves.index; i++) {
+            if (moves_equal(moves.moves[i], pv_move)) {
+                moves.moves[i].score = CAP_VALUE * 2;
                 break;
             }
         }
@@ -249,7 +269,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
 
     while (1) {
         move_t mv;
-        if (!make_next_move(pstn, moves, &mv)) {
+        if (!make_next_move(pstn, &moves, &mv)) {
             if (is_null_move(mv)) {
                 break;
             }
@@ -261,7 +281,6 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         unmake_move(pstn, mv);
 
         if (s_info->stopped == true) {
-            free(moves);
             return 0;
         }
 
@@ -277,21 +296,17 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
                     }
 
                     store_entry(pstn, best_move, score, depth, CUT);
-
-                    free(moves);
                     return beta;
                 }
 
                 if (!(mv.flags & CAPTURE_FLAG)) {
-                    pstn->search_history[get_piece_type(pstn->board[mv.start])][mv.dest] += depth;
+                    HISTORY(pstn, mv.start, mv.dest) += depth;
                 }
 
                 alpha = score;
             }
         }
     }
-
-    free(moves);
 
     // end of game - check for mate
     if (!n) {

@@ -5,7 +5,7 @@ move_t get_move(POSITION *pstn, int start, int dest, int flags) {
     int captured_piece = 0;
 
     if (flags & CAPTURE_FLAG) {
-        int cap_pos = (flags == EP_FLAG) ? dest + PAWN_STEP[opp_side(pstn->side)] : dest;
+        int cap_pos = (flags == EP_FLAG) ? dest + PAWN_STEP[OTHER(pstn->side)] : dest;
         captured_piece = pstn->board[cap_pos];
     }
 
@@ -32,88 +32,48 @@ bool is_null_move(move_t mv) {
     return mv.start == 0;
 }
 
-int move_to_int(move_t mv) {
-    return (
-        mv.start 
-        | (mv.dest << 8) 
-        | (mv.flags << 16) 
-        | (mv.captured_piece << 20)
-    );
-}
-
-move_t move_of_int(int m_int) {
-    move_t mv = {
-        .start = m_int & 0xFF,
-        .dest = (m_int >> 8) & 0xFF,
-        .flags = (m_int >> 16) & 0xF,
-        .captured_piece = (m_int >> 20),
-        .score = 0
-    };
-    return mv;
-}
-
 void move_piece(POSITION *pstn, int start, int dest) {
     int piece = pstn->board[start];
     pstn->board[start] = 0;
     pstn->board[dest] = piece;
-    PLIST(pstn)[get_piece_list_index(piece)] = dest;
-    int p_type = get_piece_type(piece);
-    pstn->pcsq_sum[pstn->side] -= get_pst_value(pstn, p_type, start, pstn->side);
-    pstn->pcsq_sum[pstn->side] += get_pst_value(pstn, p_type, dest, pstn->side);
+    PLIST(pstn)[PLIST_INDEX(piece)] = dest;
 }
 
 void capture_piece(POSITION *pstn, move_t mv) {
     pstn->h_clk = 0;
-    int enemy_side = opp_side(pstn->side);
-    int cap_pos = ENEMY_PLIST(pstn)[get_piece_list_index(mv.captured_piece)];
+    int cap_pos = OTHER_PLIST(pstn)[PLIST_INDEX(mv.captured_piece)];
 
     if (!(mv.captured_piece & PAWN)) {
-        pstn->big_pieces[enemy_side]--;
+        pstn->big_pieces[OTHER(pstn->side)]--;
     }
 
     pstn->board[cap_pos] = 0;
-    ENEMY_PLIST(pstn)[get_piece_list_index(mv.captured_piece)] = 0;
-    int p_type = get_piece_type(mv.captured_piece);
-    pstn->material[enemy_side] -= PIECE_VALS[p_type];
-    pstn->phase -= PHASES[p_type];
-    pstn->pcsq_sum[enemy_side] -= get_pst_value(pstn, p_type, cap_pos, enemy_side);
+    OTHER_PLIST(pstn)[PLIST_INDEX(mv.captured_piece)] = 0;
 }
 
 void restore_piece(POSITION *pstn, move_t mv) {
     int cap_pos = mv.dest;
-    int enemy_side = opp_side(pstn->side);
     if (mv.flags == EP_FLAG) {
-        cap_pos += PAWN_STEP[enemy_side];
+        cap_pos += PAWN_STEP[OTHER(pstn->side)];
     }
 
     if (!(mv.captured_piece & PAWN)) {
-        pstn->big_pieces[enemy_side]++;
+        pstn->big_pieces[OTHER(pstn->side)]++;
     }
 
     pstn->board[cap_pos] = mv.captured_piece;
-    ENEMY_PLIST(pstn)[get_piece_list_index(mv.captured_piece)] = cap_pos;
-    int p_type = get_piece_type(mv.captured_piece);
-    pstn->material[enemy_side] += PIECE_VALS[p_type];
-    pstn->pcsq_sum[enemy_side] += get_pst_value(pstn, p_type, cap_pos, enemy_side);
+    OTHER_PLIST(pstn)[PLIST_INDEX(mv.captured_piece)] = cap_pos;
 }
 
 void promote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
     pstn->board[mv.dest] = change_piece_type(piece, pr_type);
-    pstn->material[pstn->side] += (PIECE_VALS[pr_type] - PIECE_VALS[PAWN]);
-    pstn->phase += (PHASES[pr_type] - PHASES[PAWN]);
-    if (pstn->phase > 24) {pstn->phase = 24; } // in case of underpromotion
-    pstn->pcsq_sum[pstn->side] -= get_pst_value(pstn, PAWN, mv.dest, pstn->side);
-    pstn->pcsq_sum[pstn->side] += get_pst_value(pstn, pr_type, mv.dest, pstn->side);
     pstn->big_pieces[pstn->side]++;
 }
 
 void demote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
     pstn->board[mv.dest] = change_piece_type(piece, PAWN);
-    pstn->material[pstn->side] += (PIECE_VALS[PAWN] - PIECE_VALS[pr_type]);
-    pstn->pcsq_sum[pstn->side] -= get_pst_value(pstn, pr_type, mv.dest, pstn->side);
-    pstn->pcsq_sum[pstn->side] += get_pst_value(pstn, PAWN, mv.dest, pstn->side);
     pstn->big_pieces[pstn->side]--;
 }
 
@@ -122,12 +82,12 @@ int is_square_attacked(POSITION *pstn, int pos, int side) {
         int enemy_pos = SIDE_PLIST(pstn, side)[i];
 
         int piece = pstn->board[enemy_pos];
-        int alignment = get_alignment(enemy_pos, pos);
+        int alignment = ALIGNMENT(enemy_pos, pos);
 
         if (alignment & piece) { // contact check
             return enemy_pos;
         } else if ((alignment >> 8) & piece) { // distant check
-            int step = get_step(enemy_pos, pos);
+            int step = STEP(enemy_pos, pos);
             int current = enemy_pos;
 
             for (;;) {
@@ -142,7 +102,7 @@ int is_square_attacked(POSITION *pstn, int pos, int side) {
         }
     }
 
-    int pawn_off = PAWN_STEP[opp_side(side)];
+    int pawn_off = PAWN_STEP[OTHER(side)];
 
     int e_pawn = pstn->board[pos + pawn_off + E];
     if ((e_pawn & side) && (e_pawn & PAWN)) {
@@ -162,25 +122,25 @@ void update_check(POSITION *pstn, move_t mv) {
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
 
-    int k_pos = ENEMY_PLIST(pstn)[0];
+    int k_pos = OTHER_PLIST(pstn)[0];
     int piece = pstn->board[mv.dest];
 
     // check if the moved piece checks the king
     if (piece & PAWN) {
-        int pawn_off = PAWN_STEP[opp_side(pstn->side)];
+        int pawn_off = PAWN_STEP[OTHER(pstn->side)];
         int diff = mv.dest - k_pos;
         if (diff == (pawn_off + E) || diff == (pawn_off + W)) {
             pstn->check = CONTACT_CHECK;
             pstn->fst_checker = mv.dest;
         }
     } else {
-        int dest_alignment = get_alignment(mv.dest, k_pos);
+        int dest_alignment = ALIGNMENT(mv.dest, k_pos);
 
         if (dest_alignment & piece) {
             pstn->check = CONTACT_CHECK;
             pstn->fst_checker = mv.dest;
         } else if ((dest_alignment >> 8) & piece) {
-            int step = get_step(mv.dest, k_pos);
+            int step = STEP(mv.dest, k_pos);
             int current = mv.dest + step;
 
             while (current != k_pos) {
@@ -197,10 +157,10 @@ void update_check(POSITION *pstn, move_t mv) {
     }
 
     // check if this move discovered a check
-    int start_alignment = get_alignment(mv.start, k_pos);
+    int start_alignment = ALIGNMENT(mv.start, k_pos);
 
     if ((start_alignment & QUEEN) || ((start_alignment >> 8) & QUEEN)) {
-        int step = get_step(k_pos, mv.start);
+        int step = STEP(k_pos, mv.start);
         int current = k_pos;
 
         for (;;) {
@@ -209,7 +169,7 @@ void update_check(POSITION *pstn, move_t mv) {
 
             if (
                 ((sq & COLOUR_MASK) == pstn->side) && 
-                ((get_alignment(current, k_pos) >> 8) & sq)
+                ((ALIGNMENT(current, k_pos) >> 8) & sq)
             ) {
                 add_checker(pstn, current, DISTANT_CHECK);
             }
@@ -230,14 +190,14 @@ bool confirm_king_move(POSITION *pstn, move_t mv) {
         kp_square = (pstn->side == WHITE) ? D1 : D8;
     }
 
-    if (is_square_attacked(pstn, mv.dest, opp_side(pstn->side))) {
+    if (is_square_attacked(pstn, mv.dest, OTHER(pstn->side))) {
         return false;
     }
 
     update_check(pstn, mv);
 
     if (kp_square) {
-        if (is_square_attacked(pstn, kp_square, opp_side(pstn->side))) {
+        if (is_square_attacked(pstn, kp_square, OTHER(pstn->side))) {
             return false;
         }
 
@@ -263,16 +223,16 @@ bool confirm_king_move(POSITION *pstn, move_t mv) {
 
 bool confirm_ep_move(POSITION *pstn, move_t mv) {
     // check if king is attacked
-    if (is_square_attacked(pstn, PLIST(pstn)[0], opp_side(pstn->side))) {
+    if (is_square_attacked(pstn, PLIST(pstn)[0], OTHER(pstn->side))) {
         return false;
     }
 
     update_check(pstn, mv);
 
     // search for a check discovered by disappearance of captured pawn
-    int e_king_pos = ENEMY_PLIST(pstn)[0];
+    int e_king_pos = OTHER_PLIST(pstn)[0];
     int e_pawn_pos = mv.dest + S;
-    int step = get_step(e_king_pos, e_pawn_pos);
+    int step = STEP(e_king_pos, e_pawn_pos);
 
     int current = e_king_pos;
     bool passed_pawn = false;
@@ -289,7 +249,7 @@ bool confirm_ep_move(POSITION *pstn, move_t mv) {
         if (
             (sq & COLOUR_MASK) == pstn->side
             && passed_pawn
-            && ((get_alignment(current, e_king_pos) >> 8) & sq)
+            && ((ALIGNMENT(current, e_king_pos) >> 8) & sq)
         ) {
             add_checker(pstn, current, DISTANT_CHECK);
             break;
@@ -391,7 +351,7 @@ void make_null_move(POSITION *pstn) {
     pstn->move_history[pstn->ply] = NULL_MOVE;
 
     if (pstn->ep_sq) {
-        pstn->key ^= HASH_VALUES[EP_OFF + get_file(pstn->ep_sq)];
+        pstn->key ^= HASH_VALUES[EP_OFF + FILE(pstn->ep_sq)];
         pstn->ep_sq = 0;
     }
     
