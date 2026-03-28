@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN64
+#include <io.h>
+#define READ(A, B) _read(_fileno(stdin), A, B)
+#else
 #include <unistd.h>
+#define READ(A, B) read(STDIN_FILENO, A, B)
+#endif
+
 #include "aether.h"
 
 int evaluate(POSITION *pstn) {
@@ -73,7 +81,7 @@ void read_stdin(SEARCH_INFO *s_info) {
         s_info->stopped = true;
 
         do {
-            bytes = read(STDIN_FILENO, buf, 256);
+            bytes = READ(buf, 256);
         } while (bytes < 0);
 
         end = strchr(buf, '\n');
