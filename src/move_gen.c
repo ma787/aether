@@ -261,23 +261,23 @@ void gen_pinned_moves(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
 }
 
 void gen_pinned_captures(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
-    if (p_info->pinned & PAWN) {
+    if (p_info->piece & PAWN) {
         if (
-            p_info->vec == (PAWN_STEP[pstn->side] + E) 
+            p_info->vec == (PAWN_STEP[pstn->side] + E)
             || p_info->vec == (PAWN_STEP[pstn->side] + W)
         ) {
             gen_pawn_capture(pstn, p_info->pinned, p_info->vec, moves);
         } else if (
-            p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + E) 
+            p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + E)
             || p_info->vec == (PAWN_STEP[OTHER(pstn->side)] + W)
         ) {
             gen_pawn_capture(pstn, p_info->pinned, -p_info->vec, moves);
         }
         return;
     }
-    
+
     int alignment = ALIGNMENT(p_info->pinned, p_info->pinning);
-    if (alignment & p_info->pinned || ((alignment >> 8) & p_info->pinned)) {
+    if (alignment & p_info->piece || ((alignment >> 8) & p_info->piece)) {
         add_capture_move(pstn, moves, p_info->pinned, p_info->pinning, 0);
     }
 }
