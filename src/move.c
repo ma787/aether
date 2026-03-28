@@ -231,7 +231,7 @@ bool confirm_ep_move(POSITION *pstn, move_t mv) {
 
     // search for a check discovered by disappearance of captured pawn
     int e_king_pos = OTHER_PLIST(pstn)[0];
-    int e_pawn_pos = mv.dest + S;
+    int e_pawn_pos = mv.dest + PAWN_STEP[OTHER(pstn->side)];
     int step = STEP(e_king_pos, e_pawn_pos);
 
     int current = e_king_pos;
