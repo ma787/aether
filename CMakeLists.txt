@@ -32,8 +32,3 @@ add_executable(
     src/string_funcs.c
     src/utils.c
 )
-
-if (WIN32)
-    target_link_libraries(aether PRIVATE regex)
-    target_link_libraries(tests PRIVATE regex)
-endif (WIN32)

@@ -27,13 +27,6 @@
 
 #define START_POS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-#define FEN_REGEX ( \
-    "((([pnbrqkPNBRQK]|[1-8]){1,})[/]){7}([pnbrqkPNBRQK]|[1-8]){1,}[ ]" \
-    "[bw][ ](([K]?[Q]?[k]?[q]?)|-)[ ](([a-h][36])|-)([ ][0-9]+){2}" \
-)
-
-#define MOVE_REGEX "[a-h][1-8][a-h][1-8]([pnbrqk]?)"
-
 #define WHITE 1
 #define BLACK 2
 #define PAWN 4

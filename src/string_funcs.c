@@ -1,29 +1,77 @@
-#include <regex.h>
 #include <stdio.h>
 #include <string.h>
 #include "aether.h"
 
-bool reg_match(char *input_str, char *reg_str) {
-    regex_t preg;
-    int res;
-
-    regcomp(&preg, reg_str, REG_EXTENDED);
-    res = regexec(&preg, input_str, (size_t) 0, NULL, 0);
-    regfree(&preg);
-
-    if (res != 0) {
-        return false;
-    }
-
-    return true;
-}
-
 bool fen_match(char *fen_str) {
-    return reg_match(fen_str, FEN_REGEX);
+    int j = 0;
+
+    for (int rank = 0; rank < 8; rank++) {
+        int count = 0;
+        while (fen_str[j] != '/' && fen_str[j] != ' ' && fen_str[j] != '\0') {
+            char c = fen_str[j++];
+            if (c >= '1' && c <= '8') {
+                count += c - '0';
+            } else if (PIECES[(int) c]) {
+                count++;
+            } else {
+                return false;
+            }
+        }
+        if (count != 8) return false;
+        if (rank < 7) {
+            if (fen_str[j++] != '/') return false;
+        }
+    }
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] != 'w' && fen_str[j] != 'b') return false;
+    j++;
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] == '-') {
+        j++;
+    } else {
+        int start = j;
+        if (fen_str[j] == 'K') j++;
+        if (fen_str[j] == 'Q') j++;
+        if (fen_str[j] == 'k') j++;
+        if (fen_str[j] == 'q') j++;
+        if (j == start) return false;
+    }
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] == '-') {
+        j++;
+    } else {
+        if (fen_str[j] < 'a' || fen_str[j] > 'h') return false;
+        j++;
+        if (fen_str[j] != '3' && fen_str[j] != '6') return false;
+        j++;
+    }
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] < '0' || fen_str[j] > '9') return false;
+    while (fen_str[j] >= '0' && fen_str[j] <= '9') j++;
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] < '0' || fen_str[j] > '9') return false;
+    while (fen_str[j] >= '0' && fen_str[j] <= '9') j++;
+
+    return fen_str[j] == '\0' || fen_str[j] == '\n' || fen_str[j] == '\r';
 }
 
 bool move_match(char *mstr) {
-    return reg_match(mstr, MOVE_REGEX);
+    int len = strlen(mstr);
+    if (len != 4 && len != 5) return false;
+    if (mstr[0] < 'a' || mstr[0] > 'h') return false;
+    if (mstr[1] < '1' || mstr[1] > '8') return false;
+    if (mstr[2] < 'a' || mstr[2] > 'h') return false;
+    if (mstr[3] < '1' || mstr[3] > '8') return false;
+    if (len == 5) {
+        char p = mstr[4];
+        if (p != 'p' && p != 'n' && p != 'b' && p != 'r' && p != 'q' && p != 'k') return false;
+    }
+    return true;
 }
 
 void board_to_fen(POSITION *pstn, char *fen_str) {
