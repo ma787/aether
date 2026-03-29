@@ -5,7 +5,7 @@
 
 void parse_position(POSITION *pstn, char *line) {
     char *current_ptr = line + 8;
-    int idx;
+    int idx = -1;
 
     if (strncmp(current_ptr, " startpos", 9) == 0) {
         idx = update_position(pstn, START_POS);
