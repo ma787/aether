@@ -1,4 +1,3 @@
-#include <string.h>
 #include "aether.h"
 
 move_t get_move(POSITION *pstn, int start, int dest, int flags) {
@@ -26,6 +25,7 @@ bool moves_equal(move_t mv1, move_t mv2) {
         mv1.start == mv2.start
         && mv1.dest == mv2.dest
         && mv1.captured_piece == mv2.captured_piece
+        && mv1.flags == mv2.flags
     );
 }
 
