@@ -237,7 +237,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
         make_null
         && pstn->s_ply
         && depth >= 4
-        && pstn->big_pieces[WHITE] > 1  // probably not zugzwang
+        && pstn->big_pieces[pstn->side] > 1  // probably not zugzwang
     ) {
         make_null_move(pstn);
         int score = -alpha_beta(pstn, -beta, -beta + 1, depth - 4, s_info, false);
