@@ -61,17 +61,15 @@ bool fen_match(char *fen_str) {
 }
 
 bool move_match(char *mstr) {
-    int len = strlen(mstr);
-    if (len != 4 && len != 5) return false;
     if (mstr[0] < 'a' || mstr[0] > 'h') return false;
     if (mstr[1] < '1' || mstr[1] > '8') return false;
     if (mstr[2] < 'a' || mstr[2] > 'h') return false;
     if (mstr[3] < '1' || mstr[3] > '8') return false;
-    if (len == 5) {
-        char p = mstr[4];
-        if (p != 'p' && p != 'n' && p != 'b' && p != 'r' && p != 'q' && p != 'k') return false;
+    char c = mstr[4];
+    if (c == 'n' || c == 'b' || c == 'r' || c == 'q') {
+        c = mstr[5];
     }
-    return true;
+    return c == '\0' || c == ' ' || c == '\n' || c == '\r';
 }
 
 void board_to_fen(POSITION *pstn, char *fen_str) {
@@ -111,7 +109,7 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
         fen_str[j++] = '-';
     }
     fen_str[j++] = ' ';
-    fen_str[j++] = '0' + pstn->h_clk;
+    j += sprintf(fen_str + j, "%d", pstn->h_clk);
     fen_str[j++] = ' ';
     fen_str[j++] = '1'; // fullmove number not implemented
     fen_str[j] = '\0';
