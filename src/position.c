@@ -146,6 +146,23 @@ void clear_tables(POSITION *pstn) {
     }
 }
 
+static int fen_to_board(POSITION *pstn, char *fen_str) {
+    int i = A8, j = 0;
+    for (char val; (val = fen_str[j++]) != ' '; ) {
+        if (val == '/') {
+            i -= 0x18;
+        } else {
+            int piece = PIECES[(int) val];
+            if (piece) {
+                pstn->board[i++] = piece;
+            } else {
+                i += val - '0';
+            }
+        }
+    }
+    return j;
+}
+
 POSITION* new_position(void) {
     // allocate struct and set up initial position
     POSITION *pstn = malloc(sizeof(POSITION));
@@ -181,7 +198,7 @@ POSITION* new_position(void) {
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
 
-    fen_to_board_array(pstn, START_POS);
+    fen_to_board(pstn, START_POS);
     set_piece_list(pstn);
     set_hash(pstn);
 
@@ -210,6 +227,10 @@ void free_position(POSITION *pstn) {
 }
 
 int update_position(POSITION *pstn, char *fen_str) {
+    if (!fen_match(fen_str)) {
+        return -1;
+    }
+
     clear_tables(pstn);
 
     pstn->ply = 0;
@@ -217,12 +238,7 @@ int update_position(POSITION *pstn, char *fen_str) {
     pstn->c_rights = 0;
     pstn->ep_sq = 0;
 
-    int idx;
-
-    if ((idx = fen_to_board_array(pstn, fen_str)) == -1) {
-        return 0;
-    }
-
+    int idx = fen_to_board(pstn, fen_str);
     pstn->side = (fen_str[idx++] == 'w') ? WHITE : BLACK;
 
     if (fen_str[++idx] == '-') {    

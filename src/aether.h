@@ -300,7 +300,6 @@ void search(POSITION *pstn, SEARCH_INFO *s_info);
 /* string-related functions */
 
 void board_to_fen(POSITION *pstn, char *fen_str);
-int fen_to_board_array(POSITION *pstn, char *fen_str);
 void print_board(POSITION *pstn);
 
 bool fen_match(char *fen_str);
