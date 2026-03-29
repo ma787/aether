@@ -183,7 +183,7 @@ void gen_moves_in_check(POSITION *pstn, int pos, MOVE_LIST *moves) {
     int k_step = STEP(k_pos, pstn->fst_checker);
     MOVE_LIST blocking_moves;
     blocking_moves.index = 0;
-    memset(blocking_moves.moves, 0, MOVE_LIST_SIZE * sizeof(int));
+    memset(blocking_moves.moves, 0, MOVE_LIST_SIZE * sizeof(move_t));
     gen_moves_from_position(pstn, pos, &blocking_moves);
 
     // check if each move actually blocks the checker
@@ -309,7 +309,7 @@ void gen_pinned(
 
 void all_moves(POSITION *pstn, MOVE_LIST *moves) {
     moves->index = 0;
-    memset(moves->moves, 0, MOVE_LIST_SIZE * sizeof(int));
+    memset(moves->moves, 0, MOVE_LIST_SIZE * sizeof(move_t));
 
     int temp_removed[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     gen_pinned(pstn, moves, gen_pinned_moves, temp_removed);
@@ -364,7 +364,7 @@ void all_moves(POSITION *pstn, MOVE_LIST *moves) {
 
 void all_captures(POSITION *pstn, MOVE_LIST *moves) {
     moves->index = 0;
-    memset(moves->moves, 0, MOVE_LIST_SIZE * sizeof(int));
+    memset(moves->moves, 0, MOVE_LIST_SIZE * sizeof(move_t));
 
     int temp_removed[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     gen_pinned(pstn, moves, gen_pinned_captures, temp_removed);
