@@ -426,6 +426,9 @@ int main(void) {
     assert(update_position(pstn, "r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1"));
     test_update_hash(pstn, "b7b8q");
 
+    assert(update_position(pstn, "4k3/8/8/8/8/8/8/4K2R w K - 0 1"));
+    test_update_hash(pstn, "h1h2");
+
     printf("passed update_hash tests\n");
 
     // move_exists tests

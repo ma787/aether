@@ -94,10 +94,10 @@ void update_hash(POSITION *pstn, move_t mv) {
     }
 
     for (int i = 0; i < 4; i++) {
-        if (c_rights & i) {
+        if (c_rights & (1 << i)) {
             pstn->key ^= HASH_VALUES[C_OFF + i];
         }
-        if (pstn->c_rights & i) {
+        if (pstn->c_rights & (1 << i)) {
             pstn->key ^= HASH_VALUES[C_OFF + i];
         }
     }
