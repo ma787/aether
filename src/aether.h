@@ -245,7 +245,7 @@ void free_position(POSITION *pstn);
 int update_position(POSITION *pstn, char *fen_str);
 
 void switch_side(POSITION *pstn);
-void add_checker(POSITION *pstn, int check_type, int checker);
+void add_checker(POSITION *pstn, int checker, int check_type);
 
 void save_state(POSITION *pstn);
 void restore_state(POSITION *pstn);
