@@ -170,7 +170,7 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
     }
 
     move_t best_move = NULL_MOVE;
-    int score = -INFINITY;
+    int score = -INF_SCORE;
     int old_alpha = alpha;
     int n = 0;
 
@@ -256,7 +256,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
     all_moves(pstn, &moves);
 
     move_t best_move = NULL_MOVE;
-    int best_score = -INFINITY;
+    int best_score = -INF_SCORE;
     move_t pv_move = NULL_MOVE;
 
     if (get_entry_info(pstn, &pv_move, &best_score, alpha, beta, depth)) {
@@ -275,7 +275,7 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
 
     int old_alpha = alpha;
     int n = 0;
-    best_score = -INFINITY;
+    best_score = -INF_SCORE;
 
     while (1) {
         move_t mv;
@@ -338,14 +338,14 @@ int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_in
 
 void search(POSITION *pstn, SEARCH_INFO *s_info) {
     move_t best_move = NULL_MOVE;
-    int score = -INFINITY;
+    int score = -INF_SCORE;
     int current_depth = 0, pv_count = 0;
     char mstr[6];
 
     init_search(pstn, s_info);
 
     for (current_depth = 1; current_depth <= s_info->depth; current_depth++) {
-        score = alpha_beta(pstn, -INFINITY, INFINITY, current_depth, s_info, true);
+        score = alpha_beta(pstn, -INF_SCORE, INF_SCORE, current_depth, s_info, true);
 
         if (s_info->stopped == true) {
             break;
