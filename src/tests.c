@@ -10,18 +10,16 @@ void test_fen(POSITION *pstn, char *fen_str){
     assert(strcmp(fen_str, parsed_str) == 0);
 }
 
-void test_string_to_move( 
-    POSITION *pstn, char *mstr, int start, int dest, int flags, 
+bool string_to_move_valid(
+    POSITION *pstn, char *mstr, int start, int dest, int flags,
     int cap_piece_type
 ) {
     move_t mv = string_to_move(pstn, mstr);
-
-    assert(
-        mv.start == start 
-        && mv.dest == dest 
+    return !is_null_move(mv)
+        && mv.start == start
+        && mv.dest == dest
         && mv.flags == flags
-        && (mv.captured_piece & 0xFF) == cap_piece_type
-    );
+        && (mv.captured_piece & 0xFF) == cap_piece_type;
 }
 
 void test_update_hash(POSITION *pstn, char *mstr) {
@@ -174,31 +172,43 @@ int main(void) {
     /* string_to_move tests */
 
     assert(update_position(pstn, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
-    test_string_to_move(pstn, "f2f3", F2, F3, Q_FLAG, 0);
+    assert(string_to_move_valid(pstn, "f2f3", F2, F3, Q_FLAG, 0));
 
     assert(update_position(pstn, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
-    test_string_to_move(pstn, "e2e4", E2, E4, DPP_FLAG, 0);
+    assert(string_to_move_valid(pstn, "e2e4", E2, E4, DPP_FLAG, 0));
+    assert(string_to_move_valid(pstn, "e2e4 ", E2, E4, DPP_FLAG, 0));
+    assert(string_to_move_valid(pstn, "e2e4\n", E2, E4, DPP_FLAG, 0));
 
     assert(update_position(pstn, "rnbqkbnr/3ppppp/ppp5/8/8/3BP2N/PPPP1PPP/RNBQK2R w KQkq - 0 1"));
-    test_string_to_move(pstn, "e1g1", E1, G1, K_CASTLE_FLAG, 0);
+    assert(string_to_move_valid(pstn, "e1g1", E1, G1, K_CASTLE_FLAG, 0));
 
     assert(update_position(pstn, "r3kbnr/pppqpppp/n2p4/5b2/8/PPPP3P/4PPP1/RNBQKBNR b KQkq - 0 1"));
-    test_string_to_move(pstn, "e8c8", E8, C8, Q_CASTLE_FLAG, 0);
+    assert(string_to_move_valid(pstn, "e8c8", E8, C8, Q_CASTLE_FLAG, 0));
 
     assert(update_position(pstn, "rnbqkbnr/1ppppppp/p7/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1"));
-    test_string_to_move(pstn, "f1a6", F1, A6, CAPTURE_FLAG, BLACK | PAWN);
+    assert(string_to_move_valid(pstn, "f1a6", F1, A6, CAPTURE_FLAG, BLACK | PAWN));
 
     assert(update_position(pstn, "rnbqkb1r/pppppppp/8/3n4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1"));
-    test_string_to_move(pstn, "e4d5", E4, D5, CAPTURE_FLAG, BLACK | KNIGHT);
+    assert(string_to_move_valid(pstn, "e4d5", E4, D5, CAPTURE_FLAG, BLACK | KNIGHT));
 
     assert(update_position(pstn, "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1"));
-    test_string_to_move(pstn, "d5e6", D5, E6, EP_FLAG, BLACK | PAWN);
+    assert(string_to_move_valid(pstn, "d5e6", D5, E6, EP_FLAG, BLACK | PAWN));
 
     assert(update_position(pstn, "r1bqkbnr/pPpppp2/p1n5/6pp/8/4P3/P1PP1PPP/RNBQK1NR w KQkq - 0 1"));
-    test_string_to_move(pstn, "b7b8q", B7, B8, (PROMO_FLAG + 3), 0);
+    assert(string_to_move_valid(pstn, "b7b8q", B7, B8, (PROMO_FLAG + 3), 0));
 
     assert(update_position(pstn, "rnbqkbnr/pp1ppppp/8/7P/8/2N5/PpPPPPP1/R1BQKBNR b KQkq - 0 1"));
-    test_string_to_move(pstn, "b2a1n", B2, A1, CAPTURE_FLAG | PROMO_FLAG, WHITE | ROOK);
+    assert(string_to_move_valid(pstn, "b2a1n", B2, A1, CAPTURE_FLAG | PROMO_FLAG, WHITE | ROOK));
+
+    assert(is_null_move(string_to_move(pstn, "")));
+    assert(is_null_move(string_to_move(pstn, "e2")));
+    assert(is_null_move(string_to_move(pstn, "e2e")));
+    assert(is_null_move(string_to_move(pstn, "i2e4")));
+    assert(is_null_move(string_to_move(pstn, "e0e4")));
+    assert(is_null_move(string_to_move(pstn, "e2i4")));
+    assert(is_null_move(string_to_move(pstn, "e2e0")));
+    assert(is_null_move(string_to_move(pstn, "e2e4x")));
+    assert(is_null_move(string_to_move(pstn, "b7b8p")));
 
     printf("passed string_to_move tests\n");
 

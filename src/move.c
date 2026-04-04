@@ -1,3 +1,4 @@
+#include <string.h>
 #include "aether.h"
 
 move_t get_move(POSITION *pstn, int start, int dest, int flags) {
@@ -33,14 +34,14 @@ bool is_null_move(move_t mv) {
     return mv.start == 0;
 }
 
-void move_piece(POSITION *pstn, int start, int dest) {
+static void move_piece(POSITION *pstn, int start, int dest) {
     int piece = pstn->board[start];
     pstn->board[start] = 0;
     pstn->board[dest] = piece;
     PLIST(pstn)[PLIST_INDEX(piece)] = dest;
 }
 
-void capture_piece(POSITION *pstn, move_t mv) {
+static void capture_piece(POSITION *pstn, move_t mv) {
     pstn->h_clk = 0;
     int cap_pos = OTHER_PLIST(pstn)[PLIST_INDEX(mv.captured_piece)];
 
@@ -52,7 +53,7 @@ void capture_piece(POSITION *pstn, move_t mv) {
     OTHER_PLIST(pstn)[PLIST_INDEX(mv.captured_piece)] = 0;
 }
 
-void restore_piece(POSITION *pstn, move_t mv) {
+static void restore_piece(POSITION *pstn, move_t mv) {
     int cap_pos = mv.dest;
     if (mv.flags == EP_FLAG) {
         cap_pos += PAWN_STEP[OTHER(pstn->side)];
@@ -66,13 +67,13 @@ void restore_piece(POSITION *pstn, move_t mv) {
     OTHER_PLIST(pstn)[PLIST_INDEX(mv.captured_piece)] = cap_pos;
 }
 
-void promote_piece(POSITION *pstn, move_t mv, int piece) {
+static void promote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
     pstn->board[mv.dest] = CHANGE_TYPE(piece, pr_type);
     pstn->big_pieces[pstn->side]++;
 }
 
-void demote_piece(POSITION *pstn, move_t mv, int piece) {
+static void demote_piece(POSITION *pstn, move_t mv, int piece) {
     int pr_type = PROMOTIONS[mv.flags & 3];
     pstn->board[mv.dest] = CHANGE_TYPE(piece, PAWN);
     pstn->big_pieces[pstn->side]--;
@@ -117,7 +118,7 @@ bool is_square_attacked(POSITION *pstn, int pos, int side) {
     return false;
 }
 
-void update_check(POSITION *pstn, move_t mv) {
+static void update_check(POSITION *pstn, move_t mv) {
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
@@ -181,7 +182,7 @@ void update_check(POSITION *pstn, move_t mv) {
     }
 }
 
-bool confirm_king_move(POSITION *pstn, move_t mv) {
+static bool confirm_king_move(POSITION *pstn, move_t mv) {
     int kp_square = 0;
 
     if (mv.flags == K_CASTLE_FLAG) {
@@ -221,7 +222,7 @@ bool confirm_king_move(POSITION *pstn, move_t mv) {
     return true;
 }
 
-bool confirm_ep_move(POSITION *pstn, move_t mv) {
+static bool confirm_ep_move(POSITION *pstn, move_t mv) {
     // check if king is attacked
     if (is_square_attacked(pstn, PLIST(pstn)[0], OTHER(pstn->side))) {
         return false;
@@ -263,7 +264,7 @@ bool confirm_ep_move(POSITION *pstn, move_t mv) {
     return true;
 }
 
-bool confirm_legal(POSITION *pstn, move_t mv) {
+static bool confirm_legal(POSITION *pstn, move_t mv) {
     if ((pstn->board[mv.dest] & KING))  {
         return confirm_king_move(pstn, mv);
     } else if (mv.flags == EP_FLAG) {
@@ -274,7 +275,7 @@ bool confirm_legal(POSITION *pstn, move_t mv) {
     return true;
 }
 
-void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
+static void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     save_state(pstn);
     pstn->rep_table[pstn->key & REP_TABLE_MASK] += 1;
     pstn->ply++;
@@ -307,7 +308,7 @@ void make_pseudo_legal_move(POSITION *pstn, move_t mv) {
     }
 }
 
-void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
+static void unmake_pseudo_legal_move(POSITION *pstn, move_t mv) {
     if (mv.flags & PROMO_FLAG) {
         demote_piece(pstn, mv, pstn->board[mv.dest]);
     }
@@ -373,4 +374,77 @@ void unmake_null_move(POSITION *pstn) {
     pstn->s_ply--;
     restore_state(pstn);
     pstn->rep_table[pstn->key & REP_TABLE_MASK] -= 1;
+}
+
+void move_to_string(move_t mv, char* mstr) {
+    if (is_null_move(mv)) {
+        strcpy(mstr, "none");
+        return;
+    }
+
+    strcpy(mstr, COORD(mv.start));
+    strcpy(mstr + 2, COORD(mv.dest));
+    if (mv.flags & PROMO_FLAG) {
+        mstr[4] = LETTER(PROMOTIONS[mv.flags & 3] | BLACK);
+        mstr[5] = '\0';
+    }
+}
+
+move_t string_to_move(POSITION *pstn, char *mstr) {
+    if (mstr[0] < 'a' || mstr[0] > 'h') return NULL_MOVE;
+    if (mstr[1] < '1' || mstr[1] > '8') return NULL_MOVE;
+    if (mstr[2] < 'a' || mstr[2] > 'h') return NULL_MOVE;
+    if (mstr[3] < '1' || mstr[3] > '8') return NULL_MOVE;
+    char c = mstr[4];
+    if (c == 'n' || c == 'b' || c == 'r' || c == 'q') {
+        c = mstr[5];
+    }
+    if (c != '\0' && c != ' ' && c != '\n' && c != '\r') return NULL_MOVE;
+
+    int start = INDEX(mstr);
+    int dest = INDEX((mstr + 2));
+    int flags = Q_FLAG;
+
+    if (pstn->board[dest]) {
+        flags |= CAPTURE_FLAG;
+    };
+
+    int c_start = (pstn->side == WHITE) ? E1 : E8;
+
+    switch(PTYPE(pstn->board[start])) {
+        case KING:
+            if (start == c_start) {
+                if (FILE(dest) == FILE_C) {
+                    flags |= Q_CASTLE_FLAG;
+                } else if (FILE(dest) == FILE_G) {
+                    flags |= K_CASTLE_FLAG;
+                }
+            }
+            break;
+        case PAWN:
+            if (
+                RANK(start) == SECOND_RANK[pstn->side] 
+                && RANK(dest) == DPP_RANK[pstn->side]
+            ) {
+                flags = DPP_FLAG;
+            } else if (dest == pstn->ep_sq) {
+                flags = EP_FLAG;
+            } else if (RANK(dest) == FINAL_RANK[pstn->side]) {
+                flags |= PROMO_FLAG;
+                switch(PTYPE(PIECES[(int) mstr[4]])) {
+                    case BISHOP:
+                        flags++;
+                        break;
+                    case ROOK:
+                        flags += 2;
+                        break;
+                    case QUEEN:
+                        flags += 3;
+                        break;
+                }
+            }
+            break;
+    }
+
+    return get_move(pstn, start, dest, flags);
 }

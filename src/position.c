@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "aether.h"
@@ -14,7 +15,7 @@ void add_checker(POSITION *pstn, int checker, int check_type) {
     }
 }
 
-void set_check(POSITION *pstn) {
+static void set_check(POSITION *pstn) {
     pstn->check = 0;
     pstn->fst_checker = 0;
     pstn->snd_checker = 0;
@@ -68,7 +69,7 @@ void set_check(POSITION *pstn) {
     }
 }
 
-void set_piece_list(POSITION *pstn) {
+static void set_piece_list(POSITION *pstn) {
     int i = A1;
     int king_offs[3] = {0, 0, 16};
     int list_offs[3] = {0, 1, 17};
@@ -122,7 +123,7 @@ void restore_state(POSITION *pstn) {
     pstn->snd_checker = h_entry.snd_checker;
 }
 
-void clear_tables(POSITION *pstn) {
+static void clear_tables(POSITION *pstn) {
     // clear board
     for (int i = A1; i <= A8; i += 0x10) {
         memset(pstn->board + i, 0, 8 * sizeof(int));
@@ -226,6 +227,64 @@ void free_position(POSITION *pstn) {
     free(pstn);
 }
 
+static bool fen_match(char *fen_str) {
+    int j = 0;
+
+    for (int rank = 0; rank < 8; rank++) {
+        int count = 0;
+        while (fen_str[j] != '/' && fen_str[j] != ' ' && fen_str[j] != '\0') {
+            char c = fen_str[j++];
+            if (c >= '1' && c <= '8') {
+                count += c - '0';
+            } else if (PIECES[(int) c]) {
+                count++;
+            } else {
+                return false;
+            }
+        }
+        if (count != 8) return false;
+        if (rank < 7) {
+            if (fen_str[j++] != '/') return false;
+        }
+    }
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] != 'w' && fen_str[j] != 'b') return false;
+    j++;
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] == '-') {
+        j++;
+    } else {
+        int start = j;
+        if (fen_str[j] == 'K') j++;
+        if (fen_str[j] == 'Q') j++;
+        if (fen_str[j] == 'k') j++;
+        if (fen_str[j] == 'q') j++;
+        if (j == start) return false;
+    }
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] == '-') {
+        j++;
+    } else {
+        if (fen_str[j] < 'a' || fen_str[j] > 'h') return false;
+        j++;
+        if (fen_str[j] != '3' && fen_str[j] != '6') return false;
+        j++;
+    }
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] < '0' || fen_str[j] > '9') return false;
+    while (fen_str[j] >= '0' && fen_str[j] <= '9') j++;
+    if (fen_str[j++] != ' ') return false;
+
+    if (fen_str[j] < '0' || fen_str[j] > '9') return false;
+    while (fen_str[j] >= '0' && fen_str[j] <= '9') j++;
+
+    return fen_str[j] == '\0' || fen_str[j] == '\n' || fen_str[j] == '\r';
+}
+
 int update_position(POSITION *pstn, char *fen_str) {
     if (!fen_match(fen_str)) {
         return -1;
@@ -278,4 +337,67 @@ bool is_repetition(POSITION *pstn) {
     }
 
     return false;
+}
+
+void board_to_fen(POSITION *pstn, char *fen_str) {
+    int i = A8, j = 0, sq;
+
+    while (i != 0x4C) {
+        sq = pstn->board[i];
+
+        if (sq == G) {
+            fen_str[j++] = '/';
+            i -= 0x18;
+        } else if (sq == 0) {
+            int count = 0;
+            while (sq == 0) {
+                count++;
+                sq = pstn->board[++i];
+            }
+            fen_str[j++] = '0' + count;
+        } else {
+            fen_str[j++] = LETTER(sq);
+            i++;
+        }
+    }
+
+    fen_str[j++] = ' ';
+    fen_str[j++] = pstn->side == WHITE ? 'w' : 'b';
+    fen_str[j++] = ' ';
+
+    strcpy(fen_str + j, CASTLE_STRINGS[pstn->c_rights]);
+    j += strlen(CASTLE_STRINGS[pstn->c_rights]);
+    fen_str[j++] = ' ';
+
+    if (pstn->ep_sq) {
+        strcpy(fen_str + j, COORD(pstn->ep_sq));
+        j += 2;
+    } else {
+        fen_str[j++] = '-';
+    }
+    fen_str[j++] = ' ';
+    j += sprintf(fen_str + j, "%d", pstn->h_clk);
+    fen_str[j++] = ' ';
+    fen_str[j++] = '1'; // fullmove number not implemented
+    fen_str[j] = '\0';
+}
+
+void print_board(POSITION *pstn) {
+    char b_str[72];
+    int i = 0xB4, j = 0, sq;
+
+    while (i != 0x4C) {
+        sq = pstn->board[i];
+
+        if (sq == G) {
+            b_str[j++] = '\n';
+            i -= 0x18;
+        } else {
+            b_str[j++] = LETTER(sq);
+            i++;
+        }
+    }
+    
+    b_str[j] = '\0';
+    printf("%s\n", b_str);
 }

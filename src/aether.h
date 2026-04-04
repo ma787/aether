@@ -302,9 +302,6 @@ void search(POSITION *pstn, SEARCH_INFO *s_info);
 void board_to_fen(POSITION *pstn, char *fen_str);
 void print_board(POSITION *pstn);
 
-bool fen_match(char *fen_str);
-bool move_match(char *mstr);
-
 void move_to_string(move_t mv, char* mstr);
 move_t string_to_move(POSITION *pstn, char *mstr);
 

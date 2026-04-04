@@ -15,7 +15,6 @@ add_executable(
     src/move_gen.c
     src/perft.c
     src/position.c
-    src/string_funcs.c
     src/utils.c
 )
 
@@ -29,6 +28,5 @@ add_executable(
     src/move_gen.c
     src/perft.c
     src/position.c
-    src/string_funcs.c
     src/utils.c
 )
