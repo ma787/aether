@@ -233,9 +233,9 @@ typedef struct {
 
 } POSITION;
 
-typedef void (*GEN_FROM_POSITION)(POSITION*, int, MOVE_LIST*);
-typedef void (*GEN_PINNED)(POSITION*, PIN_INFO*, MOVE_LIST*);
-typedef void (*MOVE_GENERATOR)(POSITION*, int, int, MOVE_LIST*);
+typedef void (*pos_gen_fn)(POSITION*, int, MOVE_LIST*);
+typedef void (*pinned_gen_fn)(POSITION*, PIN_INFO*, MOVE_LIST*);
+typedef void (*move_gen_fn)(POSITION*, int, int, MOVE_LIST*);
 
 /* functions to create/update/query position structs */
 

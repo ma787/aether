@@ -1,8 +1,8 @@
 #include <string.h>
 #include "aether.h"
 
-void add_quiet_move(POSITION *pstn, MOVE_LIST *moves, int s, int d, int f) {
-    move_t mv = get_move(pstn, s, d, f);
+static void add_quiet_move(POSITION *pstn, MOVE_LIST *moves, int start, int dest, int flags) {
+    move_t mv = get_move(pstn, start, dest, flags);
 
     if (moves_equal(pstn->search_killers[0][pstn->s_ply], mv)) {
         mv.score = FIRST_KILLER_VALUE;
@@ -15,45 +15,45 @@ void add_quiet_move(POSITION *pstn, MOVE_LIST *moves, int s, int d, int f) {
     moves->moves[moves->index++] = mv;
 }
 
-void add_capture_move(POSITION *pstn, MOVE_LIST *moves, int s, int d, int f) {
-    move_t mv = get_move(pstn, s, d, f | CAPTURE_FLAG);
+static void add_capture_move(POSITION *pstn, MOVE_LIST *moves, int start, int dest, int flags) {
+    move_t mv = get_move(pstn, start, dest, flags | CAPTURE_FLAG);
     mv.score = MVV_LVA(pstn, mv.start, mv.dest) + CAP_VALUE;
     moves->moves[moves->index++] = mv;
 }
 
-void add_ep_capture_move(POSITION *pstn, MOVE_LIST *moves, int start) {
+static void add_ep_capture_move(POSITION *pstn, MOVE_LIST *moves, int start) {
     move_t mv = get_move(pstn, start, pstn->ep_sq, EP_FLAG);
     mv.score = 105 + CAP_VALUE;
     moves->moves[moves->index++] = mv;
 }
 
-void add_pawn_quiet_move(POSITION *pstn, int s, int d, MOVE_LIST *moves) {
-    if (RANK(d) == FINAL_RANK[pstn->side]) {
-        add_quiet_move(pstn, moves, s, d, KNIGHT_PROMO);
-        add_quiet_move(pstn, moves, s, d, BISHOP_PROMO);
-        add_quiet_move(pstn, moves, s, d, ROOK_PROMO);
-        add_quiet_move(pstn, moves, s, d, QUEEN_PROMO);
+static void add_pawn_quiet_move(POSITION *pstn, MOVE_LIST *moves, int start, int dest) {
+    if (RANK(dest) == FINAL_RANK[pstn->side]) {
+        add_quiet_move(pstn, moves, start, dest, KNIGHT_PROMO);
+        add_quiet_move(pstn, moves, start, dest, BISHOP_PROMO);
+        add_quiet_move(pstn, moves, start, dest, ROOK_PROMO);
+        add_quiet_move(pstn, moves, start, dest, QUEEN_PROMO);
     } else {
-        add_quiet_move(pstn, moves, s, d, Q_FLAG);
+        add_quiet_move(pstn, moves, start, dest, Q_FLAG);
     }
 }
 
-void add_pawn_capture_move(POSITION *pstn, int s, int d, MOVE_LIST *moves) {
-    if (RANK(d) == FINAL_RANK[pstn->side]) {
-        add_capture_move(pstn, moves, s, d, KNIGHT_PROMO);
-        add_capture_move(pstn, moves, s, d, BISHOP_PROMO);
-        add_capture_move(pstn, moves, s, d, ROOK_PROMO);
-        add_capture_move(pstn, moves, s, d, QUEEN_PROMO);
+static void add_pawn_capture_move(POSITION *pstn, MOVE_LIST *moves, int start, int dest) {
+    if (RANK(dest) == FINAL_RANK[pstn->side]) {
+        add_capture_move(pstn, moves, start, dest, KNIGHT_PROMO);
+        add_capture_move(pstn, moves, start, dest, BISHOP_PROMO);
+        add_capture_move(pstn, moves, start, dest, ROOK_PROMO);
+        add_capture_move(pstn, moves, start, dest, QUEEN_PROMO);
     } else {
-        add_capture_move(pstn, moves, s, d, 0);
+        add_capture_move(pstn, moves, start, dest, 0);
     }
 }
 
-void gen_pawn_step(POSITION *pstn, int pos, MOVE_LIST *moves) {
+static void gen_pawn_step(POSITION *pstn, int pos, MOVE_LIST *moves) {
     int current = pos + PAWN_STEP[pstn->side];
 
     if (!pstn->board[current]) {
-        add_pawn_quiet_move(pstn, pos, current, moves);
+        add_pawn_quiet_move(pstn, moves, pos, current);
 
         if (
             RANK(pos) == SECOND_RANK[pstn->side] 
@@ -64,14 +64,14 @@ void gen_pawn_step(POSITION *pstn, int pos, MOVE_LIST *moves) {
     }
 }
 
-void gen_pawn_capture(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
+static void gen_pawn_capture(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
     int current = pos + vec;
     if ((pstn->board[current] & COLOUR_MASK) == OTHER(pstn->side)) {
-        add_pawn_capture_move(pstn, pos, current, moves);
+        add_pawn_capture_move(pstn, moves, pos, current);
     }
 }
 
-void gen_ep_capture(POSITION *pstn, MOVE_LIST *moves) {
+static void gen_ep_capture(POSITION *pstn, MOVE_LIST *moves) {
     int e_pawn_pos = pstn->ep_sq + PAWN_STEP[OTHER(pstn->side)] + E;
     int e_pawn = pstn->board[e_pawn_pos];
 
@@ -87,7 +87,7 @@ void gen_ep_capture(POSITION *pstn, MOVE_LIST *moves) {
     }
 }
 
-void gen_step(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
+static void gen_step(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
     int current = pos + vec, sq = pstn->board[current];
 
     if (DIFF_COLOUR(sq & COLOUR_MASK, pstn->side)) {
@@ -97,7 +97,7 @@ void gen_step(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
     }
 }
 
-void gen_slider(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
+static void gen_slider(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
     int current = pos;
 
     for (;;) {
@@ -115,17 +115,17 @@ void gen_slider(POSITION *pstn, int pos, int vec, MOVE_LIST *moves) {
     }
 }
 
-void gen_moves_from_position(POSITION *pstn, int pos, MOVE_LIST *moves) {
+static void gen_moves_from_position(POSITION *pstn, int pos, MOVE_LIST *moves) {
     int p_type = PTYPE(pstn->board[pos]);
     if (!p_type) {
         return;
     }
-    MOVE_GENERATOR gen;
+    move_gen_fn generate;
 
     if (p_type & (BISHOP | ROOK | QUEEN)) {
-        gen = gen_slider;
+        generate = gen_slider;
     } else if (p_type & (KING | KNIGHT)) {
-        gen = gen_step;
+        generate = gen_step;
     } else {
         gen_pawn_step(pstn, pos, moves);
         gen_pawn_capture(pstn, pos, PAWN_STEP[pstn->side] + E, moves);
@@ -134,11 +134,11 @@ void gen_moves_from_position(POSITION *pstn, int pos, MOVE_LIST *moves) {
     }
 
     for (int i = 0; i < N_VECS[PINDEX(p_type)]; i++) {
-        gen(pstn, pos, VECS(p_type)[i], moves);
+        generate(pstn, pos, VECS(p_type)[i], moves);
     }
 }
 
-void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
+static void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
     int piece = pstn->board[pos];
     if (!piece || !pstn->board[enemy_pos]) {
         return;
@@ -149,7 +149,7 @@ void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
             enemy_pos == (pos + PAWN_STEP[pstn->side] + E) 
             || enemy_pos == (pos + PAWN_STEP[pstn->side] + W)
         ) {
-            add_pawn_capture_move(pstn, pos, enemy_pos, moves);
+            add_pawn_capture_move(pstn, moves, pos, enemy_pos);
         }
         return;
     }
@@ -173,7 +173,7 @@ void gen_capture(POSITION *pstn, int pos, int enemy_pos, MOVE_LIST *moves) {
     }
 }
 
-void gen_moves_in_check(POSITION *pstn, int pos, MOVE_LIST *moves) {
+static void gen_moves_in_check(POSITION *pstn, int pos, MOVE_LIST *moves) {
     int k_pos = PLIST(pstn)[0];
 
     // attempt to capture the checker
@@ -203,7 +203,7 @@ void gen_moves_in_check(POSITION *pstn, int pos, MOVE_LIST *moves) {
     }
 }
 
-bool find_pinned_piece(POSITION *pstn, PIN_INFO *p_info) {
+static bool find_pinned_piece(POSITION *pstn, PIN_INFO *p_info) {
     bool possible_pin = false;
     int k_pos = PLIST(pstn)[0];
     int current = k_pos;
@@ -231,7 +231,7 @@ bool find_pinned_piece(POSITION *pstn, PIN_INFO *p_info) {
     }
 }
 
-void gen_pinned_moves(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
+static void gen_pinned_moves(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
     if (p_info->piece & PAWN) {
         if (p_info->vec == N || p_info->vec == S) {
             gen_pawn_step(pstn, p_info->pinned, moves);
@@ -260,7 +260,7 @@ void gen_pinned_moves(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
     }
 }
 
-void gen_pinned_captures(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
+static void gen_pinned_captures(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
     if (p_info->piece & PAWN) {
         if (
             p_info->vec == (PAWN_STEP[pstn->side] + E)
@@ -282,8 +282,8 @@ void gen_pinned_captures(POSITION *pstn, PIN_INFO *p_info, MOVE_LIST *moves) {
     }
 }
 
-void gen_pinned(
-    POSITION *pstn, MOVE_LIST *moves, GEN_PINNED gen, int *tmp_removed
+static void gen_pinned(
+    POSITION *pstn, MOVE_LIST *moves, pinned_gen_fn generate, int *tmp_removed
 ) {
     PIN_INFO p_info;
 
@@ -302,7 +302,7 @@ void gen_pinned(
                 continue;
             }
 
-            gen(pstn, &p_info, moves);
+            generate(pstn, &p_info, moves);
         }
     }
 }
@@ -318,12 +318,12 @@ void all_moves(POSITION *pstn, MOVE_LIST *moves) {
     gen_moves_from_position(pstn, PLIST(pstn)[0], moves);
 
     if (pstn->check < DOUBLE_CHECK) {
-        GEN_FROM_POSITION gen;
+        pos_gen_fn generate;
 
         if (pstn->check == CONTACT_CHECK || pstn->check == DISTANT_CHECK) {
-            gen = gen_moves_in_check;
+            generate = gen_moves_in_check;
         } else {
-            gen = gen_moves_from_position;
+            generate = gen_moves_from_position;
 
             if (pstn->c_rights & KINGSIDE_RIGHTS[pstn->side]) {
                 int start = K_KING_MOVES[pstn->side][0];
@@ -347,7 +347,7 @@ void all_moves(POSITION *pstn, MOVE_LIST *moves) {
         }
 
         for (int i = 1; i < 16; i++) {
-            gen(pstn, PLIST(pstn)[i], moves);
+            generate(pstn, PLIST(pstn)[i], moves);
         }
 
         if (pstn->ep_sq) {
@@ -406,13 +406,12 @@ bool move_exists(POSITION *pstn, move_t mv) {
     all_moves(pstn, &moves);
 
     for (int i = 0; i < moves.index; i++) {
-        move_t m = moves.moves[i];
-
-        if (make_move(pstn, m)) {
-            unmake_move(pstn, m);
-            if (moves_equal(m, mv)) {
+        if (moves_equal(moves.moves[i], mv)) {
+            if (make_move(pstn, moves.moves[i])) {
+                unmake_move(pstn, moves.moves[i]);
                 return true;
-            };
+            }
+            return false;
         }
     }
 

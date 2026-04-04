@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "aether.h"
 
-void parse_position(POSITION *pstn, char *line) {
+static void parse_position(POSITION *pstn, char *line) {
     char *current_ptr = line + 8;
     int idx = -1;
 
@@ -40,7 +40,7 @@ void parse_position(POSITION *pstn, char *line) {
     }
 }
 
-void parse_go(POSITION *pstn, char *line, SEARCH_INFO *s_info) {
+static void parse_go(POSITION *pstn, char *line, SEARCH_INFO *s_info) {
     char *cmd, *end;
     int n;
 
@@ -115,7 +115,7 @@ void parse_go(POSITION *pstn, char *line, SEARCH_INFO *s_info) {
     search(pstn, s_info);
 }
 
-void display_info(POSITION *pstn) {
+static void display_info(POSITION *pstn) {
     char fen_str[92];
     board_to_fen(pstn, fen_str);
     print_board(pstn);
@@ -133,7 +133,7 @@ void display_info(POSITION *pstn) {
     );
 }
 
-void uci_loop(void) {
+static void uci_loop(void) {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
 

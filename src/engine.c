@@ -11,7 +11,7 @@
 
 #include "aether.h"
 
-int evaluate(POSITION *pstn) {
+static int evaluate(POSITION *pstn) {
     int phase = 0;
     int start_scores[3] = {0, 0, 0};
     int end_scores[3] = {0, 0, 0};
@@ -52,7 +52,7 @@ int evaluate(POSITION *pstn) {
     return (start_score * start_phase + end_score * end_phase) / 24;
 }
 
-void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
+static void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
     pstn->s_ply = 0;
 
     for (int i = 0; i < MAX_DEPTH; i++) {
@@ -72,7 +72,7 @@ void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
     s_info->nodes = 0UL;
 }
 
-void read_stdin(SEARCH_INFO *s_info) {
+static void read_stdin(SEARCH_INFO *s_info) {
     int bytes;
     char buf[256];
     char *end;
@@ -95,7 +95,7 @@ void read_stdin(SEARCH_INFO *s_info) {
     }
 }
 
-void check_status(SEARCH_INFO *s_info) {
+static void check_status(SEARCH_INFO *s_info) {
     if ((s_info->time_set == true) && (get_time() > s_info->stop_time) && s_info->found_move) {
         s_info->stopped = true;
     }
@@ -103,7 +103,7 @@ void check_status(SEARCH_INFO *s_info) {
     read_stdin(s_info);
 }
 
-bool make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
+static bool make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
     move_t best_move;
     int m_index = 0;
 
@@ -139,7 +139,7 @@ bool make_next_move(POSITION *pstn, MOVE_LIST *moves, move_t *move_to_return) {
     return make_move(pstn, best_move);
 }
 
-int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
+static int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
     if ((s_info->nodes & 2047) == 0) {
         check_status(s_info);
     }
@@ -215,7 +215,7 @@ int quiescence(POSITION *pstn, int alpha, int beta, SEARCH_INFO *s_info) {
     return best_score;
 }
 
-int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_info, bool make_null) {
+static int alpha_beta(POSITION *pstn, int alpha, int beta, int depth, SEARCH_INFO *s_info, bool make_null) {
     if (depth == 0) {
         return quiescence(pstn, alpha, beta, s_info);
     }

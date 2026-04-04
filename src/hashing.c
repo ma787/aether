@@ -1,6 +1,7 @@
+#include <string.h>
 #include "aether.h"
 
-uint64_t get_hash(uint64_t pos, uint64_t piece) {
+static uint64_t get_hash(uint64_t pos, uint64_t piece) {
     return HASH_VALUES[(96 * RANK(pos)) + (12 * FILE(pos)) + PCINDEX(piece)];
 }
 
@@ -104,17 +105,10 @@ void update_hash(POSITION *pstn, move_t mv) {
 }
 
 void clear_hash_table(POSITION *pstn) {
-    TABLE_ENTRY *t_entry = (pstn->hash_table)->table;
-
-    while (t_entry < (pstn->hash_table)->table + (pstn->hash_table)->n_entries) {
-        t_entry->key = 0UL;
-        t_entry->best_move = NULL_MOVE;
-        t_entry->score = 0;
-        t_entry->depth = 0;
-        t_entry->n_type = 0;
-        t_entry++;
-    }
-    
+    memset(
+        (pstn->hash_table)->table, 0,
+        (pstn->hash_table)->n_entries * sizeof(TABLE_ENTRY)
+    );
     (pstn->hash_table)->new_writes = 0;
 }
 
@@ -166,7 +160,7 @@ bool get_entry_info(POSITION *pstn, move_t *mv, int *score, int alpha, int beta,
     return false;
 }
 
-move_t get_pv_move(POSITION *pstn) {
+static move_t get_pv_move(POSITION *pstn) {
     int index = pstn->key % (pstn->hash_table)->n_entries;
     TABLE_ENTRY entry = (pstn->hash_table)->table[index];
 
