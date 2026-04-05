@@ -316,7 +316,9 @@ int update_position(POSITION *pstn, char *fen_str) {
     }
     idx += 2;
 
-    pstn->h_clk = fen_str[idx] - '0';
+    char *end;
+    pstn->h_clk = (int) strtol(fen_str + idx, &end, 10);
+    idx = (int) (end - fen_str);
 
     set_piece_list(pstn);
     set_check(pstn);
