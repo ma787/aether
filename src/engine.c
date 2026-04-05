@@ -355,8 +355,8 @@ void search(POSITION *pstn, SEARCH_INFO *s_info) {
         best_move = pstn->pv_line[0];
 
         printf(
-            "info depth %d score cp %d nodes %" PRIu64 " tbhits %d time %" PRIu64 " pv", 
-            current_depth, score, s_info->nodes, (pstn->hash_table)->hit, (get_time() - s_info->start_time)
+            "info depth %d score cp %d nodes %" PRIu64 " time %" PRIu64 " pv", 
+            current_depth, score, s_info->nodes, (get_time() - s_info->start_time)
         );
 
         for (int i = 0; i < pv_count; i++) {
