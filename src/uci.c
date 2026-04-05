@@ -144,7 +144,7 @@ static void uci_loop(void) {
     printf("uciok\n");
 
     POSITION *pstn = new_position();
-    SEARCH_INFO *s_info = malloc(sizeof(SEARCH_INFO));
+    SEARCH_INFO *s_info = calloc(1, sizeof(SEARCH_INFO));
 
     while (true) {
         memset(buf, 0, sizeof(buf));
