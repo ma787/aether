@@ -119,7 +119,7 @@ static void display_info(POSITION *pstn) {
     char fen_str[92];
     board_to_fen(pstn, fen_str);
     print_board(pstn);
-    printf("\nFEN: %s\nKey: %lu\nCheckers: ", fen_str, pstn->key);
+    printf("\nFEN: %s\nKey: %" PRIu64 "\nCheckers: ", fen_str, pstn->key);
     if (pstn->check) {
         printf("%s", COORD(pstn->fst_checker));
         if (pstn->check == DOUBLE_CHECK) {

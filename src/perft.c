@@ -40,12 +40,12 @@ void divide(POSITION *pstn, int depth) {
         if (make_move(pstn, mv)) {
             uint64_t n = perft(pstn, depth - 1);
             total += n;
-            printf("%s %lu\n", mstr, n);
+            printf("%s %" PRIu64 "\n", mstr, n);
             unmake_move(pstn, mv);
         }
     }
 
-    printf("\n%lu\n", total);
+    printf("\n%" PRIu64 "\n", total);
 }
 
 uint64_t count_captures(POSITION *pstn, int depth) {
