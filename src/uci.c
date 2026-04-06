@@ -164,6 +164,7 @@ static void uci_loop(void) {
             parse_position(pstn, buf);
         } else if (strncmp(buf, "ucinewgame", 10) == 0) {
             update_position(pstn, START_POS);
+            clear_hash_table(pstn);
         } else if (strncmp(buf, "go", 2) == 0) {
             parse_go(pstn, buf, s_info);
         } else if (strncmp(buf, "quit", 4) == 0) {
