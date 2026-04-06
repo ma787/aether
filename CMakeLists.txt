@@ -21,11 +21,23 @@ add_executable(
     src/uci.c
 )
 
+target_include_directories(aether PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(aether PRIVATE aether_core)
 
 add_executable(
     tests
-    src/tests.c
+    tests/test_main.c
+    tests/test_position.c
+    tests/test_move.c
+    tests/test_hash.c
+    tests/test_check.c
+    tests/test_move_gen.c
+    lib/unity/src/unity.c
+)
+target_include_directories(
+    tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/unity/src
 )
 
 target_link_libraries(tests PRIVATE aether_core)
