@@ -4,10 +4,8 @@ project(Aether VERSION 1.0)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 
-add_executable(
-    aether 
-    src/uci.c
-
+add_library(
+    aether_core
     src/constants.c
     src/engine.c
     src/hashing.c
@@ -19,14 +17,15 @@ add_executable(
 )
 
 add_executable(
+    aether 
+    src/uci.c
+)
+
+target_link_libraries(aether PRIVATE aether_core)
+
+add_executable(
     tests
     src/tests.c
-
-    src/constants.c
-    src/hashing.c
-    src/move.c
-    src/move_gen.c
-    src/perft.c
-    src/position.c
-    src/utils.c
 )
+
+target_link_libraries(tests PRIVATE aether_core)
