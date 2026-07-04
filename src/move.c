@@ -82,6 +82,10 @@ static void demote_piece(POSITION *pstn, move_t mv, int piece) {
 bool is_square_attacked(POSITION *pstn, int pos, int side) {
     for (int i = 0; i < 16; i++) {
         int enemy_pos = SIDE_PLIST(pstn, side)[i];
+        if (!enemy_pos) {
+            continue;
+        }
+
         int piece = pstn->board[enemy_pos];
         int alignment = ALIGNMENT(enemy_pos, pos);
 
