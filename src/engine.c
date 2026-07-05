@@ -64,7 +64,12 @@ static void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
     (pstn->hash_table)->over_writes = 0;
 
     for (int i = 0; i < 12; i++) {
-        memset(pstn->search_history[i], 0, 256 * sizeof(int));
+        memset(pstn->search_history[i], 0, S_HIS_TABLE_SIZE * sizeof(int));
+    }
+
+    for (int i = 0; i < HISTORY_TABLE_SIZE; i++) {
+        pstn->search_killers[0][i] = NULL_MOVE;
+        pstn->search_killers[1][i] = NULL_MOVE;
     }
 
     s_info->stopped = false;

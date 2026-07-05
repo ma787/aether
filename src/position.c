@@ -139,12 +139,6 @@ static void clear_tables(POSITION *pstn) {
 
     // initialise repetition table
     memset(pstn->rep_table, 0, REPETITION_TABLE_SIZE);
-
-    // initialise killer table
-    for (int i = 0; i < HISTORY_TABLE_SIZE; i++) {
-        pstn->search_killers[0][i] = NULL_MOVE;
-        pstn->search_killers[1][i] = NULL_MOVE;
-    }
 }
 
 static int fen_to_board(POSITION *pstn, char *fen_str) {
@@ -172,6 +166,12 @@ POSITION* new_position(void) {
     memset(pstn->board, 0, 256 * sizeof(int));
 
     clear_tables(pstn);
+
+    // initialise killer table
+    for (int i = 0; i < HISTORY_TABLE_SIZE; i++) {
+        pstn->search_killers[0][i] = NULL_MOVE;
+        pstn->search_killers[1][i] = NULL_MOVE;
+    }
 
     // adding guard squares to board
     for (int i = 0x20; i < 0xE0; i += 0x10) {
