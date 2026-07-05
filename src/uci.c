@@ -107,9 +107,17 @@ static void parse_go(POSITION *pstn, char *line, SEARCH_INFO *s_info) {
     s_info->start_time = get_time();
 
     if (time != -1) {
-        time /= moves_to_go;
+        int budget = (time / moves_to_go) + (3 * inc / 4) - 50;
+
+        if (budget > time - 50) {
+            budget = time - 50;
+        }
+        if (budget < 5) {
+            budget = 5;
+        }
+
         s_info->time_set = true;
-        s_info->stop_time = s_info->start_time + time + inc;
+        s_info->stop_time = s_info->start_time + budget;
     }
 
     search(pstn, s_info);
