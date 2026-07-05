@@ -80,22 +80,33 @@ static void init_search(POSITION *pstn, SEARCH_INFO *s_info) {
 static void read_stdin(SEARCH_INFO *s_info) {
     int bytes;
     char buf[256];
-    char *end;
+    char *line, *nl;
 
     if (input_waiting()) {
-        s_info->stopped = true;
-
         do {
-            bytes = READ(buf, 256);
+            bytes = READ(buf, 255);
         } while (bytes < 0);
+        buf[bytes] = '\0';
 
-        end = strchr(buf, '\n');
-        if (end != NULL) {
-            *end = 0;
-        }
+        line = buf;
+        while (line != NULL && *line != '\0') {
+            nl = strchr(line, '\n');
+            if (nl != NULL) {
+                *nl = 0;
+            }
 
-        if (strlen(buf) > 0 && strcmp(buf, "quit") == 0) {
-            s_info->quit = true;
+            if (strncmp(line, "quit", 4) == 0) {
+                s_info->stopped = true;
+                s_info->quit = true;
+            } else if (strncmp(line, "stop", 4) == 0) {
+                if (s_info->found_move) {
+                    s_info->stopped = true;
+                }
+            } else if (strncmp(line, "isready", 7) == 0) {
+                printf("readyok\n");
+            }
+
+            line = (nl != NULL) ? nl + 1 : NULL;
         }
     }
 }

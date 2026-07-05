@@ -150,10 +150,10 @@ static void uci_loop(void) {
         memset(buf, 0, sizeof(buf));
         fflush(stdout);
 
-        if (
-            fgets(buf, sizeof(buf), stdin) == NULL
-            || buf[0] == '\n'
-        ) {
+        if (fgets(buf, sizeof(buf), stdin) == NULL) {
+            break;
+        }
+        if (buf[0] == '\n') {
             continue;
         }
 
@@ -167,6 +167,8 @@ static void uci_loop(void) {
             clear_hash_table(pstn);
         } else if (strncmp(buf, "go", 2) == 0) {
             parse_go(pstn, buf, s_info);
+        } else if (strncmp(buf, "stop", 4) == 0) {
+            s_info->stopped = true;
         } else if (strncmp(buf, "quit", 4) == 0) {
             s_info->quit = true;
         } else if (strncmp(buf, "uci", 3) == 0) {
