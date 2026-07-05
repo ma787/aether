@@ -349,7 +349,7 @@ int input_waiting(void);
 
 #define VECS(piece) MOVE_SETS[PINDEX(piece)]
 
-#define HISTORY(pstn, start, dest) pstn->search_history[PCINDEX(pstn->board[start])][PCINDEX(pstn->board[dest])]
+#define HISTORY(pstn, start, dest) pstn->search_history[PCINDEX(pstn->board[start])][dest]
 #define MVV_LVA(pstn, start, dest) MVV_LVA_SCORES[PINDEX(pstn->board[dest])][PINDEX(pstn->board[start])]
 
 #endif
