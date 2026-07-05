@@ -210,6 +210,7 @@ typedef struct {
 
     int ply;
     int s_ply;
+    int base_ply;
     int side;
     int c_rights;
     int ep_sq;

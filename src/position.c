@@ -191,6 +191,7 @@ POSITION* new_position(void) {
 
     pstn->ply = 0;
     pstn->s_ply = 0;
+    pstn->base_ply = 0;
     pstn->side = WHITE;
     pstn->c_rights = 0b1111;
     pstn->ep_sq = 0;
@@ -282,7 +283,8 @@ static bool fen_match(char *fen_str) {
     if (fen_str[j] < '0' || fen_str[j] > '9') return false;
     while (fen_str[j] >= '0' && fen_str[j] <= '9') j++;
 
-    return fen_str[j] == '\0' || fen_str[j] == '\n' || fen_str[j] == '\r';
+    return fen_str[j] == '\0' || fen_str[j] == '\n' || fen_str[j] == '\r'
+        || fen_str[j] == ' ';
 }
 
 int update_position(POSITION *pstn, char *fen_str) {
@@ -318,13 +320,16 @@ int update_position(POSITION *pstn, char *fen_str) {
 
     char *end;
     pstn->h_clk = (int) strtol(fen_str + idx, &end, 10);
+
+    int full_move = (int) strtol(end, &end, 10);
+    pstn->base_ply = 2 * (full_move - 1) + (pstn->side == BLACK ? 1 : 0);
     idx = (int) (end - fen_str);
 
     set_piece_list(pstn);
     set_check(pstn);
     set_hash(pstn);
 
-    return idx + 2;
+    return idx;
 }
 
 bool is_repetition(POSITION *pstn) {
@@ -380,7 +385,7 @@ void board_to_fen(POSITION *pstn, char *fen_str) {
     fen_str[j++] = ' ';
     j += sprintf(fen_str + j, "%d", pstn->h_clk);
     fen_str[j++] = ' ';
-    fen_str[j++] = '1'; // fullmove number not implemented
+    j += sprintf(fen_str + j, "%d", (pstn->base_ply + pstn->ply) / 2 + 1);
     fen_str[j] = '\0';
 }
 

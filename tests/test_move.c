@@ -171,7 +171,7 @@ void test_make_move_e7e5(void) {
     POSITION *pstn = new_position();
     TEST_ASSERT_TRUE(update_position(pstn, "rnbqkbnr/1ppppppp/p7/3P4/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1"));
     TEST_ASSERT_TRUE(make_move(pstn, string_to_move(pstn, "e7e5")));
-    assert_fen(pstn, "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1");
+    assert_fen(pstn, "rnbqkbnr/1ppp1ppp/p7/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2");
     free_position(pstn);
 }
 
@@ -195,7 +195,7 @@ void test_make_move_a8a7(void) {
     POSITION *pstn = new_position();
     TEST_ASSERT_TRUE(update_position(pstn, "rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1"));
     TEST_ASSERT_TRUE(make_move(pstn, string_to_move(pstn, "a8a7")));
-    assert_fen(pstn, "1nbqkbnr/rppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR w KQk - 1 1");
+    assert_fen(pstn, "1nbqkbnr/rppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR w KQk - 1 2");
     free_position(pstn);
 }
 
@@ -211,7 +211,7 @@ void test_make_move_h8h7(void) {
     POSITION *pstn = new_position();
     TEST_ASSERT_TRUE(update_position(pstn, "rnbqkbnr/ppppppp1/7p/7P/8/8/PPPPPPP1/RNBQKBNR b KQkq - 0 1"));
     TEST_ASSERT_TRUE(make_move(pstn, string_to_move(pstn, "h8h7")));
-    assert_fen(pstn, "rnbqkbn1/pppppppr/7p/7P/8/8/PPPPPPP1/RNBQKBNR w KQq - 1 1");
+    assert_fen(pstn, "rnbqkbn1/pppppppr/7p/7P/8/8/PPPPPPP1/RNBQKBNR w KQq - 1 2");
     free_position(pstn);
 }
 
@@ -227,7 +227,7 @@ void test_make_move_e8e7(void) {
     POSITION *pstn = new_position();
     TEST_ASSERT_TRUE(update_position(pstn, "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"));
     TEST_ASSERT_TRUE(make_move(pstn, string_to_move(pstn, "e8e7")));
-    assert_fen(pstn, "rnbq1bnr/ppppkppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQ - 1 1");
+    assert_fen(pstn, "rnbq1bnr/ppppkppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQ - 1 2");
     free_position(pstn);
 }
 

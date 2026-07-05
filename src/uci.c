@@ -13,7 +13,7 @@ static void parse_position(POSITION *pstn, char *line) {
     } else if (strncmp(current_ptr, " fen ", 5) == 0) {
         current_ptr += 5;
         idx = update_position(pstn, current_ptr);
-        current_ptr += (idx + 2);
+        current_ptr += (idx + 1);
     }
 
     if (idx == -1) { // an invalid fen string was passed
